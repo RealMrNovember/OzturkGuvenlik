@@ -97,7 +97,7 @@ export function PanelShell({
           aria-label="Menüyü aç/kapat"
           className="flex h-9 w-9 items-center justify-center rounded-lg text-ink"
         >
-          <Icon name={menuOpen ? "close" : "users"} className="h-5 w-5" />
+          <Icon name={menuOpen ? "close" : "menu"} className="h-5 w-5" />
         </button>
       </div>
 
@@ -118,8 +118,8 @@ export function PanelShell({
 
       <div className="flex">
         {/* Masaüstü kenar çubuğu */}
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink p-4 lg:flex">
-          <Link href="/panel" className="flex items-center gap-2 px-3.5 py-3">
+        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink lg:flex">
+          <Link href="/panel" className="flex shrink-0 items-center gap-2 p-4 pb-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/images/logo-square.png"
@@ -133,10 +133,10 @@ export function PanelShell({
               <p className="text-[11px] text-white/45">Yönetim Paneli</p>
             </div>
           </Link>
-          <div className="mt-4 flex-1">
-          <SidebarLinks pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-1">
+            <SidebarLinks pathname={pathname} onNavigate={() => setMenuOpen(false)} />
           </div>
-          <div className="border-t border-white/10 pt-4">
+          <div className="shrink-0 border-t border-white/10 p-4">
             <p className="px-3.5 text-sm font-semibold text-white">{session.name}</p>
             <div className="mt-1 flex items-center justify-between px-3.5">
               <Badge tone={session.role === "admin" ? "brand" : "gray"}>

@@ -1,10 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { MobileBar } from "@/components/MobileBar";
-import { FloatingWhatsApp } from "@/components/FloatingWhatsApp";
 import { site } from "@/lib/site";
 import { localBusinessJsonLd } from "@/lib/seo";
 
@@ -48,12 +44,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="tr" className={`${inter.variable} h-full antialiased`}>
-      <body className="flex min-h-full flex-col">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
-        <MobileBar />
-        <FloatingWhatsApp />
+      <body className="min-h-full">
+        {children}
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd()) }}

@@ -232,6 +232,13 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M12 22V12" />
     </>
   ),
+  menu: (
+    <>
+      <path d="M4 6h16" />
+      <path d="M4 12h16" />
+      <path d="M4 18h16" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {

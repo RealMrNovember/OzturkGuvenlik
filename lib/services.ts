@@ -34,7 +34,8 @@ export type IconName =
   | "eye"
   | "wallet"
   | "receipt"
-  | "box";
+  | "box"
+  | "menu";
 
 export type Service = {
   slug: string;
