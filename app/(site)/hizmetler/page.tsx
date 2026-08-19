@@ -31,7 +31,7 @@ const groups: { key: "kamera" | "alarm" | "gecis" | "diger"; title: string; desc
   {
     key: "diger",
     title: "Diğer Sistemler",
-    desc: "Ses, network, akıllı ev ve araç çözümleri.",
+    desc: "Ses, network ve akıllı ev çözümleri.",
   },
 ];
 

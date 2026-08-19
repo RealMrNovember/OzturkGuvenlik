@@ -543,45 +543,6 @@ export const services: Service[] = [
     waText: "Merhaba, web sitenizden ulaşıyorum. Fotokapan hakkında bilgi almak istiyorum.",
     group: "diger",
   },
-  {
-    slug: "arac-ici-kamera",
-    name: "Araç İçi Kamera",
-    short: "Ön-arka görüş kayıt sistemleri; kaza ve olaylarda kanıt desteği.",
-    icon: "car",
-    tagline: "Kaza anında tek kanıt kaynağınız. Araç içi kamera kurulumu.",
-    intro: [
-      "Araç içi kameralar; sürüş sırasında ön ve arka görüntüyü kesintisiz kaydeder. Kaza, tartışma ve sigorta süreçlerinde en güçlü kanıttır. Öztürk Güvenlik olarak araç kamerası temin ediyor, temiz şekilde monte ediyor ve yapılandırıyoruz.",
-      "Park halinde de çalışan modellerle aracınızı her an korur.",
-    ],
-    forWho: [
-      { title: "Bireysel sürücüler", desc: "Kaza ve sigorta süreçlerinde kanıt güvencesi." },
-      { title: "Filo ve ticari araçlar", desc: "Sürüş davranışı takibi ve filo güvenliği." },
-    ],
-    systems: [
-      {
-        title: "Ön kamera",
-        desc: "Standart kayıt; en yaygın ve ekonomik çözüm.",
-      },
-      {
-        title: "Ön + arka kamera",
-        desc: "Çift yönlü görüş; park ve manevra güvenliği.",
-      },
-    ],
-    features: [
-      "Model seçiminde ihtiyaç analizi",
-      "Gizli, temiz kablo ile montaj",
-      "Gece görüşü ve park modu ayarları",
-      "Kurulum sonrası kullanım eğitimi",
-    ],
-    faqs: [
-      {
-        q: "Araç kamerası kayıtları kazada kanıt sayılır mı?",
-        a: "Evet; tarih ve saat damgalı kayıtlar trafik kazalarında ve sigorta süreçlerinde delil olarak kullanılabilir.",
-      },
-    ],
-    waText: "Merhaba, web sitenizden ulaşıyorum. Araç içi kamera hakkında bilgi almak istiyorum.",
-    group: "diger",
-  },
 ];
 
 export const serviceGroups = [
@@ -603,7 +564,7 @@ export const serviceGroups = [
   {
     key: "diger" as const,
     title: "Diğer çözümler",
-    desc: "Akıllı ev, network, tüp, fotokapan, araç kamerası.",
+    desc: "Akıllı ev, network, tüp, fotokapan.",
   },
 ];
 
