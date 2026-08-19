@@ -225,6 +225,19 @@ için de aynı tarayıcı bileşeni.
 - [ ] `maintenance_contracts` tablosu — müşteri, sözleşme tipi, son bakım,
       sonraki bakım tarihi. Dashboard'da "yaklaşan bakım" uyarı listesi
 - [ ] Personel: izin takibi, masraf, prim/performans alanları
+- [ ] **Master admin — tam yetki yönetimi**: `/panel/personel`'de admin
+      zaten rol (yönetici/personel) değiştirebiliyor, aktif/pasif
+      yapabiliyor, şifre sıfırlayabiliyor — bunlar çalışıyor. İstenen
+      daha **granüler** kontrol: hangi personelin hangi modülü
+      görebileceğini/düzenleyebileceğini tek tek belirleyebilmek
+      (şu an ikili admin/personel rolüne göre kod içinde sabit —
+      örn. maliyet görme, iş/müşteri silme gibi yetkiler her yerde
+      `role==="admin"` kontrolüyle yazılı). Öneri: `users.permissions:
+      jsonb` (izin anahtarları dizisi) + admin arayüzünden her personel
+      için tek tek açılıp kapatılabilen izin listesi, API route'larda
+      role kontrolüne ek olarak bu liste de kontrol edilir. Kapsamlı
+      bir değişiklik — tüm API route'larındaki yetki kontrol noktaları
+      gözden geçirilmeli.
 - [ ] Personel için "Bugünkü işlerim" filtrelenmiş görünüm (mevcut
       `/panel/isler` sayfasına personel bazlı filtre eklenerek — ayrı mobil
       app gerekmez, responsive tasarım zaten mobilde çalışıyor)
