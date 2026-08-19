@@ -184,6 +184,42 @@ listesi.
 Mevcut basit adet sistemini **bozmadan** üstüne ekleniyor — seri
 takibi kapalı ürünlerde hiçbir şey değişmiyor.
 
+### 🔜 Faz 3d — Barkod ile stok girişi (Faz 3c'ye bağımlı)
+
+İki ayrı barkod hedefi var, ikisi de aynı tarama bileşenini kullanır:
+
+1. **Ürün barkodu** (kutu üzerindeki EAN/UPC) — mal kabulde tarat,
+   sistemde `products.barcode` eşleşiyorsa direkt o ürünün stok
+   ekranı açılır (adet artır / seri takipliyse yeni seri no ekle).
+   Eşleşme yoksa: **global sorgu** (öneri: EAN-Search.org, ücretsiz
+   katman bu hacim için yeterli — API anahtarı gerekiyor, hesap açma
+   ve anahtar üretme kullanıcı tarafında) isim/marka/kategori
+   önerisiyle "Yeni Ürün" formunu önceden doldurur, bulunamazsa boş
+   form açılır. Ne olursa olsun taranan barkod o ürüne kaydedilir —
+   **ikinci taramadan itibaren her zaman yerel eşleşme çalışır**,
+   global sorguya bağımlılık yalnızca ilk seferlik.
+   Not: global veritabanları perakende/tüketici ürünlerinde güçlü,
+   markanıza özgü B2B güvenlik kamerası/NVR modellerinde çoğunlukla
+   **bulunamayacaktır** — bu normal, yerel kayıt asıl güvenilir
+   mekanizma, global sorgu yalnızca yardımcı.
+2. **Seri numarası barkodu/QR'ı** (cihazın üzerindeki) — Faz 3c'deki
+   iş/servis kalem seçiminde, seri numarasını elle aramak yerine
+   doğrudan tarayarak o `product_units` satırını seçmek için.
+
+**Teknik:** Donanım gerekmez — telefon kamerası üzerinden tarayıcıda
+okuma (`@zxing/browser` veya `html5-qrcode`, `BarcodeDetector`
+destekleyen tarayıcılarda onu kullanıp diğerlerinde JS kütüphanesine
+düşer). İleride ucuz bir USB barkod okuyucu eklenirse otomatik çalışır
+(donanım "klavye gibi" davranıp odaklı metin alanına yazar, ekstra
+entegrasyon gerekmez).
+
+**Şema:** `products.barcode: varchar unique nullable`.
+**API:** `app/api/products/lookup?barcode=...` — önce yerel eşleşme,
+yoksa global sorgu sonucu döner (bulunamazsa `null`, form boş açılır).
+**UI:** Ürünler sayfasında "Barkod Tara" butonu (kamera erişimi ister),
+ürün formunda barkod alanı; iş/servis kalem editöründe seri no alanı
+için de aynı tarayıcı bileşeni.
+
 ### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
 
 - [ ] `maintenance_contracts` tablosu — müşteri, sözleşme tipi, son bakım,
