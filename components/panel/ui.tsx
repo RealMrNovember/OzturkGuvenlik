@@ -274,7 +274,7 @@ export function Card({ title, children, action }: { title?: string; children: Re
 
 export function Loading() {
   return (
-    <div className="flex items-center justify-center py-16 text-sm text-ink/50">
+    <div className="flex min-h-[50vh] items-center justify-center text-sm text-ink/50">
       Yükleniyor…
     </div>
   );
