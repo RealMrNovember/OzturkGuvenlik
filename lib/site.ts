@@ -18,8 +18,11 @@ export const site = {
     "https://maps.google.com/maps?q=Yenibosna%20Merkez%20Mahallesi%20Kenanbey%20Sokak%20No%2011%20İstanbul&t=m&z=16&output=embed&iwloc=near",
   mapLink:
     "https://maps.google.com/?q=Yenibosna+Merkez+Mahallesi+Kenanbey+Sokak+No:11+İstanbul",
-  domain: "ozturkguvenlik.com",
-  url: "https://ozturkguvenlik.com",
+  // Gerçek alan adı Türkçe karakterli bir IDN (öztürkgüvenlik.com); DNS/URL
+  // bağlamlarında ASCII-uyumlu punycode karşılığı kullanılıyor. Vercel'de
+  // apex → www 308 yönlendirmesi var, bu yüzden kanonik host www'lı.
+  domain: "www.xn--ztrkgvenlik-qfb4fd.com",
+  url: "https://www.xn--ztrkgvenlik-qfb4fd.com",
   rating: "5.0",
   reviewCount: 33,
 } as const;
