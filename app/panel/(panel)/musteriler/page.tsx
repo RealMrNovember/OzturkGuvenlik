@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
 import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
@@ -43,6 +45,7 @@ const blank = {
 export default function MusterilerPage() {
   const role = usePanelRole();
   const isAdmin = role === "admin";
+  const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<CustomerRow[]>([]);
   const [q, setQ] = useState("");
@@ -52,22 +55,6 @@ export default function MusterilerPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    try {
-      setRows(await api<CustomerRow[]>(`/api/customers${q ? `?q=${encodeURIComponent(q)}` : ""}`));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [q]);
-
-  useEffect(() => {
-    const t = setTimeout(load, q ? 300 : 0);
-    return () => clearTimeout(t);
-  }, [load, q]);
 
   const openCreate = () => {
     setForm(blank);
@@ -85,6 +72,29 @@ export default function MusterilerPage() {
     });
     setEditing(row);
   };
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await api<CustomerRow[]>(`/api/customers${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+      setRows(data);
+      const editId = searchParams.get("edit");
+      if (editId) {
+        const target = data.find((c) => c.id === Number(editId));
+        if (target) openEdit(target);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [q]);
+
+  useEffect(() => {
+    const t = setTimeout(load, q ? 300 : 0);
+    return () => clearTimeout(t);
+  }, [load, q]);
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -174,7 +184,9 @@ export default function MusterilerPage() {
                 {rows.map((c) => (
                   <tr key={c.id} className="align-top hover:bg-ink/2">
                     <td className="px-5 py-4">
-                      <p className="font-bold text-ink">{c.name}</p>
+                      <Link href={`/panel/musteriler/${c.id}`} className="font-bold text-ink hover:text-brand">
+                        {c.name}
+                      </Link>
                       {c.address && (
                         <p className="mt-0.5 max-w-[220px] truncate text-xs text-ink/45">
                           {c.address}

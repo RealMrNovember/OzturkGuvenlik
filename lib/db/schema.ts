@@ -29,9 +29,22 @@ export const customers = pgTable("customers", {
   name: varchar("name", { length: 120 }).notNull(),
   phone: varchar("phone", { length: 30 }).default(""),
   placeType: varchar("place_type", { length: 60 }).default(""),
-  address: text("address").default(""),
+  address: text("address").default(""), // ana / fatura adresi
+  contacts: jsonb("contacts").notNull().default([]), // [{name, phone, title}] — birden fazla yetkili kişi
+  locations: jsonb("locations").notNull().default([]), // [{label, address}] — address dışındaki ek lokasyonlar
   note: text("note").default(""),
   source: varchar("source", { length: 30 }).default("web"), // web | whatsapp | telefon | referans | panel
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const customerNotes = pgTable("customer_notes", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id")
+    .notNull()
+    .references(() => customers.id, { onDelete: "cascade" }),
+  channel: varchar("channel", { length: 20 }).notNull().default("telefon"), // telefon | whatsapp | yuz-yuze | diger
+  note: text("note").notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -178,6 +191,9 @@ export const transactions = pgTable("transactions", {
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Customer = typeof customers.$inferSelect;
+export type CustomerContact = { name: string; phone: string; title: string };
+export type CustomerLocation = { label: string; address: string };
+export type CustomerNote = typeof customerNotes.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
@@ -256,3 +272,6 @@ export const TRANSACTION_CATEGORIES = [
   ...EXPENSE_CATEGORIES,
 ] as const;
 export type TransactionCategory = (typeof TRANSACTION_CATEGORIES)[number];
+
+export const CUSTOMER_NOTE_CHANNELS = ["telefon", "whatsapp", "yuz-yuze", "diger"] as const;
+export type CustomerNoteChannel = (typeof CUSTOMER_NOTE_CHANNELS)[number];

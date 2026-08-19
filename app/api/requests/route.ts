@@ -44,6 +44,7 @@ export async function GET(req: Request) {
   const rows = await db
     .select({
       id: serviceRequests.id,
+      customerId: serviceRequests.customerId,
       name: serviceRequests.name,
       phone: serviceRequests.phone,
       placeType: serviceRequests.placeType,

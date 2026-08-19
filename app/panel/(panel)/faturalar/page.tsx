@@ -16,17 +16,11 @@ import {
   Select,
   StatusBadge,
   Textarea,
+  INVOICE_STATUS_LABEL,
   fmtDate,
   fmtDateTime,
   fmtMoney,
 } from "@/components/panel/ui";
-
-const INVOICE_STATUS_LABEL: Record<string, string> = {
-  taslak: "Taslak",
-  gonderildi: "Gönderildi",
-  odendi: "Ödendi",
-  iptal: "İptal",
-};
 
 type InvoiceRow = {
   id: number;

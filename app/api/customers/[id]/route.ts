@@ -7,6 +7,19 @@ import { getSession } from "@/lib/auth";
 
 type Ctx = { params: Promise<{ id: string }> };
 
+export async function GET(_req: Request, { params }: Ctx) {
+  const session = await getSession();
+  if (!session) return jsonErr("Yetkisiz", 401);
+
+  const { id } = await params;
+  const numericId = Number(id);
+  if (!Number.isInteger(numericId)) return jsonErr("Geçersiz ID", 400);
+
+  const [row] = await db.select().from(customers).where(eq(customers.id, numericId)).limit(1);
+  if (!row) return jsonErr("Müşteri bulunamadı", 404);
+  return jsonOk(row);
+}
+
 export async function PATCH(req: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);

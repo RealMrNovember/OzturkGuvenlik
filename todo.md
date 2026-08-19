@@ -80,16 +80,31 @@ sıfırlıyordu.** `node -e` ile ayrı bir script'te doğrulandı, sonra tüm il
 zaten vardı (Faz 1 öncesi) — ben de aynı deseni fark etmeden Faz 2'ye taşımışım,
 kendi testlerimde yakalayıp düzelttim.
 
-### 🔜 Faz 3 — CRM derinliği + servis/arıza
+### ✅ Faz 3a — CRM derinliği (TAMAMLANDI — 2026-08-19)
 
-- [ ] Müşteri detay ekranı ("tek ekranda geçmiş"): o müşteriye ait tüm talep/
-      randevu/teklif/iş/fatura/tahsilat tek sayfada
-- [ ] Müşteri başına birden fazla yetkili kişi + birden fazla lokasyon
-      (`customer_contacts`, `customer_locations` tabloları)
-- [ ] Görüşme notu geçmişi (telefon/WhatsApp), müşteri kartına eklenebilir not akışı
-- [ ] **Servis / Arıza Yönetimi**: yeni `service_tickets` tablosu — müşteri,
-      cihaz, lokasyon, arıza açıklaması, fotoğraf, teknisyen ataması, randevu,
-      kullanılan parça (stoktan düşer), servis ücreti, sonuç. Panel: `/panel/servis`.
+- [x] **Müşteri detay ekranı** (`/panel/musteriler/[id]`) — o müşteriye ait
+      tüm talep/randevu/teklif/iş/fatura/kasa hareketi tek sayfada (mevcut
+      liste API'leri client-side `customerId` ile filtreleniyor — bu ölçekte
+      ayrı bir agregasyon endpoint'ine gerek yok), üstte toplam fatura /
+      toplam tahsilat / bakiye özeti.
+- [x] Müşteri başına **birden fazla yetkili kişi** (`customers.contacts`) ve
+      **birden fazla lokasyon** (`customers.locations`) — ayrı normalize
+      tablolar yerine bilinçli olarak jsonb dizi olarak tutuldu (bu ölçek için
+      yeterli, ayrı CRUD endpoint'i gerektirmiyor); ana adres (`address`)
+      hâlâ randevu/iş formlarının varsayılan doldurduğu alan, `locations`
+      yalnızca ek şubeler/adresler için.
+- [x] **Görüşme notu geçmişi** — yeni `customer_notes` tablosu (kanal:
+      telefon/WhatsApp/yüz yüze/diğer, yazan kişi, tarih), müşteri kartında
+      eklenebilir not akışı.
+- [x] Migration uygulandı (`drizzle/0003_calm_the_anarchist.sql`).
+
+### 🔜 Faz 3b — Servis / Arıza Yönetimi
+
+- [ ] Yeni `service_tickets` tablosu — müşteri, cihaz, lokasyon, arıza
+      açıklaması, fotoğraf, teknisyen ataması, randevu, kullanılan parça
+      (stoktan `lib/stock.ts` üzerinden düşer, Faz 2'deki mekanizma
+      yeniden kullanılabilir), servis ücreti, sonuç. Panel: `/panel/servis`.
+- [ ] Dashboard'a "açık servis kaydı" sayısı eklenebilir.
 
 ### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
 
@@ -120,7 +135,17 @@ kendi testlerimde yakalayıp düzelttim.
   - [x] Admin giriş: `yonetici@ozturkguvenlik.com` çalışıyor, session cookie dönüyor
   - [ ] `/api/requests` POST tam akış testi (gerçek veri ile, WhatsApp yönlendirmesi dahil) — henüz yapılmadı
 - [x] `ozturk-guvenlik.vercel.app` zaten yeni projeye doğru bağlıydı, taşımaya gerek kalmadı
-- [ ] Özel domain bağlanacak mı karar ver (örn. `ozturkguvenlik.com` / alt alan)
+- [x] **Gerçek alan adı bağlandı** (2026-08-19): `öztürkgüvenlik.com` (punycode
+      `xn--ztrkgvenlik-qfb4fd.com`), Hostinger → Cloudflare (DNS-only, proxy
+      değil) → Vercel. Apex → www 308 yönlendirmesi, SSL (Let's Encrypt,
+      Vercel otomatik yeniliyor) doğrulandı, ikisi de Vercel projesinde
+      `verified: true`.
+- [x] **Bulunan hata**: `lib/site.ts`'teki `site.url` hiç DNS'de olmayan
+      `https://ozturkguvenlik.com`'a (düz ASCII, gerçek domain değil) işaret
+      ediyordu — `sitemap.xml`, `robots.txt`'nin Sitemap satırı, canonical/OG
+      etiketleri ve JSON-LD hepsi var olmayan bir adrese gidiyordu. Artık
+      gerçek domaine (`www.xn--ztrkgvenlik-qfb4fd.com`) düzeltildi, canlıda
+      doğrulandı.
 - [ ] Uptime/ping monitor eklensin (UptimeRobot / Better Stack)
 
 ## 🔐 Güvenlik / Sır Yönetimi
@@ -189,3 +214,5 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 - Lint + build temiz, GitHub push tamamlandı (main)
 - Vercel projesi yeniden oluşturuldu (zombi deployment temizliği)
 - Vercel Framework Preset + Deployment Protection + DB SSL çakışması düzeltildi (site canlı)
+- **Müşteri detay ekranı + yetkili kişiler/lokasyonlar + görüşme notu geçmişi** (2026-08-19, bkz. Faz 3a yukarıda)
+- **Gerçek alan adı canlıya alındı** (Cloudflare → Vercel) + yanlış canonical/sitemap domaini düzeltildi

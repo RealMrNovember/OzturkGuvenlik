@@ -18,11 +18,24 @@ export const updateRequestSchema = z.object({
   assignedTo: z.number().int().positive().nullable().optional(),
 });
 
+export const customerContactSchema = z.object({
+  name: z.string().trim().min(1, "Ad gerekli").max(120),
+  phone: z.string().trim().max(30).optional().default(""),
+  title: z.string().trim().max(80).optional().default(""),
+});
+
+export const customerLocationSchema = z.object({
+  label: z.string().trim().max(80).optional().default(""),
+  address: z.string().trim().min(1, "Adres gerekli").max(1000),
+});
+
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   phone: z.string().trim().max(30).optional().default(""),
   placeType: z.string().trim().max(60).optional().default(""),
   address: z.string().trim().max(1000).optional().default(""),
+  contacts: z.array(customerContactSchema).max(20).optional().default([]),
+  locations: z.array(customerLocationSchema).max(20).optional().default([]),
   note: z.string().trim().max(2000).optional().default(""),
   source: z
     .enum(["web", "whatsapp", "telefon", "referans", "panel"])
@@ -39,8 +52,15 @@ export const updateCustomerSchema = z.object({
   phone: z.string().trim().max(30).optional(),
   placeType: z.string().trim().max(60).optional(),
   address: z.string().trim().max(1000).optional(),
+  contacts: z.array(customerContactSchema).max(20).optional(),
+  locations: z.array(customerLocationSchema).max(20).optional(),
   note: z.string().trim().max(2000).optional(),
   source: z.enum(["web", "whatsapp", "telefon", "referans", "panel"]).optional(),
+});
+
+export const createCustomerNoteSchema = z.object({
+  channel: z.enum(["telefon", "whatsapp", "yuz-yuze", "diger"]).optional().default("telefon"),
+  note: z.string().trim().min(1, "Not boş olamaz").max(2000),
 });
 
 export const createAppointmentSchema = z.object({

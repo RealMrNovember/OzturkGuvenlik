@@ -33,6 +33,20 @@ export const JOB_STATUS_LABEL: Record<string, string> = {
   garanti: "Garanti",
 };
 
+export const INVOICE_STATUS_LABEL: Record<string, string> = {
+  taslak: "Taslak",
+  gonderildi: "Gönderildi",
+  odendi: "Ödendi",
+  iptal: "İptal",
+};
+
+export const CUSTOMER_NOTE_CHANNEL_LABEL: Record<string, string> = {
+  telefon: "Telefon",
+  whatsapp: "WhatsApp",
+  "yuz-yuze": "Yüz yüze",
+  diger: "Diğer",
+};
+
 export const SOURCE_LABEL: Record<string, string> = {
   web: "Web",
   whatsapp: "WhatsApp",
@@ -52,6 +66,7 @@ export function statusTone(status: string) {
       return "amber";
     case "tamamlandi":
     case "onaylandi":
+    case "odendi":
       return "green";
     case "randevu-verildi":
     case "garanti":
