@@ -27,6 +27,7 @@ const nav = [
   { href: "/panel/musteriler", label: "Müşteriler", icon: "users" as const },
   { href: "/panel/teklifler", label: "Teklifler", icon: "file" as const },
   { href: "/panel/isler", label: "İşler", icon: "briefcase" as const },
+  { href: "/panel/servis", label: "Servis", icon: "wrench" as const },
   { href: "/panel/faturalar", label: "Faturalar", icon: "receipt" as const },
   { href: "/panel/kasa", label: "Kasa", icon: "wallet" as const },
   { href: "/panel/urunler", label: "Ürünler", icon: "box" as const },

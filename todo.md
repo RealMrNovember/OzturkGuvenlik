@@ -98,13 +98,27 @@ kendi testlerimde yakalayıp düzelttim.
       eklenebilir not akışı.
 - [x] Migration uygulandı (`drizzle/0003_calm_the_anarchist.sql`).
 
-### 🔜 Faz 3b — Servis / Arıza Yönetimi
+### ✅ Faz 3b — Servis / Arıza Yönetimi (TAMAMLANDI — 2026-08-19)
 
-- [ ] Yeni `service_tickets` tablosu — müşteri, cihaz, lokasyon, arıza
-      açıklaması, fotoğraf, teknisyen ataması, randevu, kullanılan parça
-      (stoktan `lib/stock.ts` üzerinden düşer, Faz 2'deki mekanizma
-      yeniden kullanılabilir), servis ücreti, sonuç. Panel: `/panel/servis`.
-- [ ] Dashboard'a "açık servis kaydı" sayısı eklenebilir.
+- [x] Yeni `service_tickets` tablosu — müşteri, cihaz, lokasyon, arıza
+      açıklaması, teknisyen ataması, kullanılan parça (`lib/stock.ts` Faz
+      2'deki stok düşüm mekanizması aynen yeniden kullanıldı — otomatik
+      düşer/geri eklenir), servis ücreti (herkese görünür), parça maliyeti
+      (yalnızca admin'e görünür), sonuç. Panel: `/panel/servis`.
+- [x] Dashboard'a "Açık servis kaydı" kartı eklendi (durum: açık veya
+      randevu verildi olanlar sayılıyor).
+- [ ] Fotoğraf ve bağlı randevudan otomatik oluşturma — dosya yükleme
+      altyapısı gerektiği için hâlâ ertelendi (Faz 2'deki iş fotoğrafı
+      kararıyla aynı gerekçe).
+- [x] Migration uygulandı (`drizzle/0004_lumpy_ultimo.sql`).
+
+**Aynı oturumda ayrıca acil bir mobil hata düzeltildi**: panel kabuğu ve
+giriş sayfası `100vh` (`h-screen`/`min-h-screen`) kullanıyordu — mobil
+tarayıcılarda adres çubuğu scroll ile gizlenip açılınca gerçek görünür
+yükseklik değişiyor ama `100vh` sabit kaldığı için sayfa "kayıyor" hissi
+veriyordu. `dvh` birimine geçildi, ayrı ve hızlı bir deploy ile hemen
+düzeltildi (diğer Faz 3b değişikliklerinden bağımsız, veritabanı
+migration'ı gerektirmediği için önce o gitti).
 
 ### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
 
@@ -215,4 +229,6 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 - Vercel projesi yeniden oluşturuldu (zombi deployment temizliği)
 - Vercel Framework Preset + Deployment Protection + DB SSL çakışması düzeltildi (site canlı)
 - **Müşteri detay ekranı + yetkili kişiler/lokasyonlar + görüşme notu geçmişi** (2026-08-19, bkz. Faz 3a yukarıda)
+- **Servis / Arıza Yönetimi** (2026-08-19, bkz. Faz 3b yukarıda)
+- **Mobilde panel kayması düzeltildi** (100vh → dvh)
 - **Gerçek alan adı canlıya alındı** (Cloudflare → Vercel) + yanlış canonical/sitemap domaini düzeltildi

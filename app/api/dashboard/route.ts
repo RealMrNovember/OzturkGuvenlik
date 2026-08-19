@@ -3,6 +3,7 @@ import {
   appointments,
   jobs,
   serviceRequests,
+  serviceTickets,
   users,
   customers,
   offers,
@@ -34,6 +35,7 @@ export async function GET() {
     pendingInvoices,
     monthTransactions,
     lowStockProducts,
+    openTickets,
   ] = await Promise.all([
     db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "yeni")),
     db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "aranacak")),
@@ -64,6 +66,10 @@ export async function GET() {
       .select({ id: products.id, name: products.name, stockQty: products.stockQty })
       .from(products)
       .where(and(lte(products.stockQty, LOW_STOCK_THRESHOLD), eq(products.active, true))),
+    db
+      .select({ id: serviceTickets.id })
+      .from(serviceTickets)
+      .where(inArray(serviceTickets.status, ["acik", "randevu-verildi"])),
   ]);
 
   const monthIncome = monthTransactions
@@ -135,6 +141,7 @@ export async function GET() {
       pendingOffers: pendingOffers.length,
       pendingInvoices: pendingInvoices.length,
       lowStockProducts: lowStockProducts.length,
+      openTickets: openTickets.length,
     },
     lowStockProducts,
     finance: {

@@ -174,6 +174,33 @@ export const updateJobSchema = z.object({
   staffIds: z.array(z.number().int().positive()).max(20).optional(),
 });
 
+export const createServiceTicketSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  appointmentId: z.number().int().positive().nullable().optional(),
+  device: z.string().trim().max(200).optional().default(""),
+  location: z.string().trim().max(255).optional().default(""),
+  issue: z.string().trim().min(2, "Arıza açıklaması gerekli").max(2000),
+  result: z.string().trim().max(2000).optional().default(""),
+  status: z.enum(["acik", "randevu-verildi", "tamamlandi", "iptal"]).optional().default("acik"),
+  assignedTo: z.number().int().positive().nullable().optional(),
+  items: z.array(jobItemSchema).max(200).optional().default([]),
+  fee: z.number().nonnegative().max(100_000_000).optional().default(0),
+});
+
+// NOT createServiceTicketSchema.partial() — bkz. updateJobSchema notu.
+export const updateServiceTicketSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  appointmentId: z.number().int().positive().nullable().optional(),
+  device: z.string().trim().max(200).optional(),
+  location: z.string().trim().max(255).optional(),
+  issue: z.string().trim().min(2, "Arıza açıklaması gerekli").max(2000).optional(),
+  result: z.string().trim().max(2000).optional(),
+  status: z.enum(["acik", "randevu-verildi", "tamamlandi", "iptal"]).optional(),
+  assignedTo: z.number().int().positive().nullable().optional(),
+  items: z.array(jobItemSchema).max(200).optional(),
+  fee: z.number().nonnegative().max(100_000_000).optional(),
+});
+
 export const createUserSchema = z.object({
   name: z.string().trim().min(2).max(120),
   email: z.string().email("E-posta geçersiz").max(190),

@@ -40,6 +40,13 @@ export const INVOICE_STATUS_LABEL: Record<string, string> = {
   iptal: "İptal",
 };
 
+export const SERVICE_TICKET_STATUS_LABEL: Record<string, string> = {
+  acik: "Açık",
+  "randevu-verildi": "Randevu verildi",
+  tamamlandi: "Tamamlandı",
+  iptal: "İptal",
+};
+
 export const CUSTOMER_NOTE_CHANNEL_LABEL: Record<string, string> = {
   telefon: "Telefon",
   whatsapp: "WhatsApp",
@@ -63,6 +70,7 @@ export function statusTone(status: string) {
       return "brand";
     case "aranacak":
     case "devam-ediyor":
+    case "acik":
       return "amber";
     case "tamamlandi":
     case "onaylandi":

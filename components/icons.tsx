@@ -239,6 +239,9 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M4 18h16" />
     </>
   ),
+  wrench: (
+    <path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L2 19l3 3 7.1-7.1a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2z" />
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {

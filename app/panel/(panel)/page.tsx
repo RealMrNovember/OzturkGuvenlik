@@ -26,6 +26,7 @@ type DashboardData = {
     pendingOffers: number;
     pendingInvoices: number;
     lowStockProducts: number;
+    openTickets: number;
   };
   finance: { monthIncome: number; monthExpense: number; monthNet: number };
   pendingInvoices: { id: number; number: string; total: string; dueDate: string | null; customerName: string | null }[];
@@ -99,6 +100,13 @@ export default function PanelPage() {
       icon: "receipt" as const,
       tone: "bg-red-500/10 text-red-600",
     },
+    {
+      label: "Açık servis kaydı",
+      value: data.counts.openTickets,
+      href: "/panel/servis",
+      icon: "wrench" as const,
+      tone: "bg-amber-500/10 text-amber-700",
+    },
   ];
 
   return (
@@ -108,7 +116,7 @@ export default function PanelPage() {
         <p className="mt-1 text-sm text-ink/55">Bugüne genel bakış</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {statCards.map((s) => (
           <Link
             key={s.label}

@@ -146,6 +146,27 @@ export const jobs = pgTable("jobs", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const serviceTickets = pgTable("service_tickets", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").references(() => customers.id, {
+    onDelete: "set null",
+  }),
+  appointmentId: integer("appointment_id").references(() => appointments.id, {
+    onDelete: "set null",
+  }),
+  device: varchar("device", { length: 200 }).default(""), // örn. "NVR", "Kamera 3 - giriş"
+  location: varchar("location", { length: 255 }).default(""), // varsayılan: müşteri adresi
+  issue: text("issue").notNull(), // arıza açıklaması
+  result: text("result").default(""), // yapılan işlem / sonuç
+  status: varchar("status", { length: 20 }).notNull().default("acik"), // acik | randevu-verildi | tamamlandi | iptal
+  assignedTo: integer("assigned_to").references(() => users.id, { onDelete: "set null" }),
+  items: jsonb("items").notNull().default([]), // [{productId, qty, name}] — kullanılan parça, stok otomatik düşer
+  costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // yalnızca admin'e döner
+  fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"), // servis ücreti
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 export const invoices = pgTable("invoices", {
   id: serial("id").primaryKey(),
   number: varchar("number", { length: 30 }).notNull().unique(),
@@ -198,6 +219,7 @@ export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
+export type ServiceTicket = typeof serviceTickets.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Product = typeof products.$inferSelect;
@@ -245,6 +267,14 @@ export const JOB_STATUSES = [
   "garanti",
 ] as const;
 export type JobStatus = (typeof JOB_STATUSES)[number];
+
+export const SERVICE_TICKET_STATUSES = [
+  "acik",
+  "randevu-verildi",
+  "tamamlandi",
+  "iptal",
+] as const;
+export type ServiceTicketStatus = (typeof SERVICE_TICKET_STATUSES)[number];
 
 export const SOURCES = ["web", "whatsapp", "telefon", "referans", "panel"] as const;
 export type Source = (typeof SOURCES)[number];
