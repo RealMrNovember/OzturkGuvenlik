@@ -84,7 +84,7 @@ export function PanelShell({
 
   return (
     <PanelContext.Provider value={{ role: session.role, name: session.name, id: session.id }}>
-      <div className="min-h-screen bg-surface">
+      <div className="min-h-dvh bg-surface">
       {/* Mobil üst bar */}
       <div className="flex items-center justify-between border-b border-ink/8 bg-white px-4 py-3 lg:hidden">
         <Link href="/panel" className="text-sm font-bold text-ink">
@@ -118,7 +118,7 @@ export function PanelShell({
 
       <div className="flex">
         {/* Masaüstü kenar çubuğu */}
-        <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink lg:flex">
+        <aside className="sticky top-0 hidden h-dvh w-60 shrink-0 flex-col bg-ink lg:flex">
           <Link href="/panel" className="flex shrink-0 items-center gap-2 p-4 pb-3">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
