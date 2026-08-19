@@ -283,10 +283,30 @@ korunuyor — plandaki "kutuda ki barkod ayrı, cihazdaki ayrı" ayrımı
       - Güvenlik: oturumsuz `GET`/`PATCH` isteklerinin `401` döndüğü
         doğrulandı.
 
-### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
+### 🔄 Faz 4 — Sözleşme/bakım + personel derinliği (kısmen tamamlandı)
 
-- [ ] `maintenance_contracts` tablosu — müşteri, sözleşme tipi, son bakım,
-      sonraki bakım tarihi. Dashboard'da "yaklaşan bakım" uyarı listesi
+- [x] **Bakım sözleşmeleri (TAMAMLANDI — 2026-08-20)**: `maintenance_contracts`
+      tablosu — müşteri, sözleşme tipi, başlangıç/son/sonraki bakım
+      tarihleri, bakım aralığı (ay), not, aktif durumu.
+      [lib/db/schema.ts](lib/db/schema.ts), admin+personel erişimli
+      `GET/POST /api/maintenance-contracts` + `PATCH/DELETE
+      /api/maintenance-contracts/[id]` (silme admin-only).
+      `/panel/bakim` sayfası: liste + oluştur/düzenle modalı,
+      gecikmiş/yaklaşan/planlı/pasif durum rozetleri, **"Bakımı
+      Tamamla" tek tık aksiyonu** (bugünü son bakım yapar, sonraki
+      tarihi bakım aralığına göre otomatik hesaplar).
+      [app/panel/(panel)/bakim/page.tsx](<app/panel/(panel)/bakim/page.tsx>)
+      Dashboard'a "Yaklaşan bakım" kart + önümüzdeki 30 gün (gecikmiş
+      dahil) listesi eklendi.
+      **Test sırasında bulunan ve düzeltilen hata**: panelin
+      client-side tarih hesaplarında (`todayStr`, ay ekleme)
+      `toISOString()` ile UTC'ye çevirme yerel saat dilimine göre bir
+      gün kaymaya sebep oluyordu — düzeltilip
+      [components/panel/ui.tsx](components/panel/ui.tsx)'e paylaşılan
+      `todayStr()`/`addMonths()` yardımcıları olarak taşındı (aynı
+      hatalı desen dashboard'da da vardı, o da düzeltildi).
+      Production'da uçtan uca test edildi: sözleşme oluşturuldu, dashboard
+      sayacı doğrulandı, silindi (temiz durum).
 - [ ] Personel: izin takibi, masraf, prim/performans alanları
 - [ ] **Master admin — tam yetki yönetimi**: `/panel/personel`'de admin
       zaten rol (yönetici/personel) değiştirebiliyor, aktif/pasif
