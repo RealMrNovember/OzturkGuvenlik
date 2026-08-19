@@ -10,9 +10,10 @@ import {
   invoices,
   transactions,
   products,
+  maintenanceContracts,
   LOW_STOCK_THRESHOLD,
 } from "@/lib/db/schema";
-import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { jsonOk, jsonErr } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 
@@ -22,6 +23,9 @@ export async function GET() {
 
   const today = new Date().toISOString().slice(0, 10);
   const weekFromNow = new Date(Date.now() + 7 * 24 * 3600 * 1000)
+    .toISOString()
+    .slice(0, 10);
+  const monthFromNow = new Date(Date.now() + 30 * 24 * 3600 * 1000)
     .toISOString()
     .slice(0, 10);
   const now = new Date();
@@ -132,6 +136,20 @@ export async function GET() {
     .orderBy(desc(appointments.date))
     .limit(8);
 
+  const upcomingMaintenance = await db
+    .select({
+      id: maintenanceContracts.id,
+      type: maintenanceContracts.type,
+      nextServiceDate: maintenanceContracts.nextServiceDate,
+      customerName: customers.name,
+      customerPhone: customers.phone,
+    })
+    .from(maintenanceContracts)
+    .leftJoin(customers, eq(maintenanceContracts.customerId, customers.id))
+    .where(and(eq(maintenanceContracts.active, true), lte(maintenanceContracts.nextServiceDate, monthFromNow)))
+    .orderBy(asc(maintenanceContracts.nextServiceDate))
+    .limit(10);
+
   return jsonOk({
     counts: {
       newRequests: newRequests.length,
@@ -142,8 +160,10 @@ export async function GET() {
       pendingInvoices: pendingInvoices.length,
       lowStockProducts: lowStockProducts.length,
       openTickets: openTickets.length,
+      upcomingMaintenance: upcomingMaintenance.length,
     },
     lowStockProducts,
+    upcomingMaintenance,
     finance: {
       monthIncome,
       monthExpense,

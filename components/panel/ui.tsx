@@ -293,6 +293,26 @@ export function fmtDate(date: string) {
   return d.toLocaleDateString("tr-TR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function dateToYmd(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+/**
+ * Bugünün tarihi, YYYY-MM-DD. `new Date().toISOString().slice(0, 10)` KULLANMA
+ * — toISOString() UTC'ye çevirir, bu da yerel saat dilimine göre (örn. gece
+ * yarısına yakın saatlerde) bir gün kaymasına sebep olabilir. Bu, panelde
+ * "Bakımı tamamla" gibi tarih hesaplarında gerçek bir hataya yol açmıştı.
+ */
+export function todayStr(): string {
+  return dateToYmd(new Date());
+}
+
+/** Bir tarihe (YYYY-MM-DD) N ay ekler, yerel saat dilimi güvenli şekilde. */
+export function addMonths(dateStr: string, months: number): string {
+  const [y, m, day] = dateStr.split("-").map(Number);
+  return dateToYmd(new Date(y, m - 1 + months, day));
+}
+
 export function fmtDateTime(dt: Date | string) {
   const d = typeof dt === "string" ? new Date(dt) : dt;
   return d.toLocaleString("tr-TR", {

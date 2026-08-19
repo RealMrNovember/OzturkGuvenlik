@@ -239,6 +239,20 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const maintenanceContracts = pgTable("maintenance_contracts", {
+  id: serial("id").primaryKey(),
+  customerId: integer("customer_id").references(() => customers.id, { onDelete: "set null" }),
+  type: varchar("type", { length: 100 }).notNull().default(""), // örn. "Yıllık bakım", "Aylık bakım"
+  startDate: date("start_date", { mode: "string" }).notNull(),
+  lastServiceDate: date("last_service_date", { mode: "string" }),
+  nextServiceDate: date("next_service_date", { mode: "string" }).notNull(),
+  intervalMonths: integer("interval_months").notNull().default(12),
+  note: text("note").default(""),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 /** Sitenin orijinal marka renkleri — DB kolon varsayılanı ve panelin "Varsayılana Sıfırla" düğmesi aynı değerleri kullanır. */
 export const DEFAULT_BRAND_COLOR = "#0e6fb8";
 export const DEFAULT_BRAND_LIGHT_COLOR = "#40a0e0";
@@ -266,6 +280,7 @@ export type Job = typeof jobs.$inferSelect;
 export type ServiceTicket = typeof serviceTickets.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
+export type MaintenanceContract = typeof maintenanceContracts.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type ProductUnit = typeof productUnits.$inferSelect;
 export type SiteSettings = typeof siteSettings.$inferSelect;

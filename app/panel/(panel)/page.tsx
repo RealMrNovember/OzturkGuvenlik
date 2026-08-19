@@ -15,6 +15,7 @@ import {
   fmtDateTime,
   fmtDate,
   fmtMoney,
+  todayStr,
 } from "@/components/panel/ui";
 
 type DashboardData = {
@@ -27,10 +28,18 @@ type DashboardData = {
     pendingInvoices: number;
     lowStockProducts: number;
     openTickets: number;
+    upcomingMaintenance: number;
   };
   finance: { monthIncome: number; monthExpense: number; monthNet: number };
   pendingInvoices: { id: number; number: string; total: string; dueDate: string | null; customerName: string | null }[];
   lowStockProducts: { id: number; name: string; stockQty: number }[];
+  upcomingMaintenance: {
+    id: number;
+    type: string;
+    nextServiceDate: string;
+    customerName: string | null;
+    customerPhone: string | null;
+  }[];
   recentRequests: {
     id: number;
     name: string;
@@ -106,6 +115,13 @@ export default function PanelPage() {
       href: "/panel/servis",
       icon: "wrench" as const,
       tone: "bg-amber-500/10 text-amber-700",
+    },
+    {
+      label: "Yaklaşan bakım",
+      value: data.counts.upcomingMaintenance,
+      href: "/panel/bakim",
+      icon: "clock" as const,
+      tone: "bg-violet-500/10 text-violet-700",
     },
   ];
 
@@ -221,6 +237,34 @@ export default function PanelPage() {
                 <Badge tone="red">{p.stockQty} adet</Badge>
               </Link>
             ))
+          )}
+        </Card>
+
+        <Card
+          title="Yaklaşan bakım"
+          action={<Link href="/panel/bakim" className="text-xs font-semibold text-brand">Tümü →</Link>}
+        >
+          {data.upcomingMaintenance.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-ink/50">Önümüzdeki 30 günde bakım yok.</div>
+          ) : (
+            data.upcomingMaintenance.map((m) => {
+              const overdue = m.nextServiceDate < todayStr();
+              return (
+                <Link
+                  key={m.id}
+                  href="/panel/bakim"
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink/2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {m.customerName ?? "Müşteri yok"}
+                    </p>
+                    <p className="truncate text-xs text-ink/50">{m.type || "Bakım sözleşmesi"}</p>
+                  </div>
+                  <Badge tone={overdue ? "red" : "amber"}>{fmtDate(m.nextServiceDate)}</Badge>
+                </Link>
+              );
+            })
           )}
         </Card>
 

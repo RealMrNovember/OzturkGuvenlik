@@ -350,3 +350,28 @@ export const updateSiteSettingsSchema = z.object({
   brandColor: hexColor.optional(),
   brandLightColor: hexColor.optional(),
 });
+
+const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz");
+
+export const createMaintenanceContractSchema = z.object({
+  customerId: z.number().int().positive("Müşteri gerekli"),
+  type: z.string().trim().max(100).optional().default(""),
+  startDate: isoDate,
+  lastServiceDate: isoDate.nullable().optional(),
+  nextServiceDate: isoDate,
+  intervalMonths: z.number().int().min(1).max(60).optional().default(12),
+  note: z.string().trim().max(2000).optional().default(""),
+  active: z.boolean().optional().default(true),
+});
+
+// NOT createMaintenanceContractSchema.partial() — bkz. updateJobSchema notu.
+export const updateMaintenanceContractSchema = z.object({
+  customerId: z.number().int().positive().optional(),
+  type: z.string().trim().max(100).optional(),
+  startDate: isoDate.optional(),
+  lastServiceDate: isoDate.nullable().optional(),
+  nextServiceDate: isoDate.optional(),
+  intervalMonths: z.number().int().min(1).max(60).optional(),
+  note: z.string().trim().max(2000).optional(),
+  active: z.boolean().optional(),
+});
