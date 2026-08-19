@@ -48,11 +48,11 @@ export function BrandsShowcase() {
           </p>
         </Reveal>
         <Reveal delay={100}>
-          <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-ink/10 bg-ink/10 sm:grid-cols-4 lg:grid-cols-6">
+          <div className="mt-10 flex flex-wrap justify-center gap-px overflow-hidden rounded-2xl border border-ink/10 bg-ink/10">
             {brands.map((brand) => (
               <div
                 key={brand.name}
-                className="group flex items-center justify-center bg-white px-6 py-7 transition-colors duration-300"
+                className="group flex w-36 shrink-0 grow-0 items-center justify-center bg-white px-6 py-7 transition-colors duration-300"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
