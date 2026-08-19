@@ -27,7 +27,7 @@ export async function getSiteSettings(): Promise<SiteSettings> {
 }
 
 export async function updateSiteSettings(
-  patch: Partial<Pick<SiteSettings, "brandColor" | "brandLightColor">>,
+  patch: Partial<Omit<SiteSettings, "id" | "updatedAt" | "updatedBy">>,
   updatedBy: number
 ): Promise<SiteSettings> {
   await getSiteSettings();

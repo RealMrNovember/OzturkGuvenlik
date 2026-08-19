@@ -51,9 +51,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const brandLightColor = HEX_COLOR.test(settings.brandLightColor)
     ? settings.brandLightColor
     : undefined;
+  const accentColor = HEX_COLOR.test(settings.accentColor) ? settings.accentColor : undefined;
+  const accentThickness =
+    Number.isInteger(settings.accentThickness) && settings.accentThickness > 0
+      ? `${settings.accentThickness}px`
+      : undefined;
   const themeStyle = {
     ...(brandColor ? { "--color-brand": brandColor } : {}),
     ...(brandLightColor ? { "--color-brand-light": brandLightColor } : {}),
+    ...(accentColor ? { "--color-accent": accentColor } : {}),
+    ...(accentThickness ? { "--accent-thickness": accentThickness } : {}),
   } as CSSProperties;
 
   return (

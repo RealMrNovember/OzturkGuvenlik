@@ -35,7 +35,7 @@ export function ReviewsSection() {
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {reviews.map((r, i) => (
             <Reveal key={r.name} delay={i * 80}>
-              <figure className="flex h-full flex-col rounded-2xl border border-ink/8 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
+              <figure className="accent-frame-left flex h-full flex-col rounded-2xl border border-ink/8 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
                 <div className="flex items-center gap-1 text-[#F5A623]">
                   {Array.from({ length: 5 }).map((_, j) => (
                     <Icon key={j} name="star" className="h-4 w-4" />

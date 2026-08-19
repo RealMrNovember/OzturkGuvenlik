@@ -4,6 +4,7 @@ import { site } from "@/lib/site";
 import { services, processSteps } from "@/lib/services";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
+import { HeroMedia } from "@/components/HeroMedia";
 import { SectionHeading } from "@/components/SectionHeading";
 import { ReviewsSection } from "@/components/ReviewsSection";
 import { BrandsShowcase } from "@/components/BrandsShowcase";
@@ -27,17 +28,7 @@ export default function HomePage() {
     <>
       {/* HERO */}
       <section className="relative overflow-hidden bg-ink text-white">
-        <div className="absolute inset-0">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src="/images/hero-1.jpg"
-            alt=""
-            className="h-full w-full object-cover opacity-50"
-            width={2000}
-            height={1500}
-          />
-          <div className="absolute inset-0 bg-gradient-to-b from-ink/80 via-ink/55 to-ink" />
-        </div>
+        <HeroMedia />
 
         <div className="relative mx-auto max-w-6xl px-4 pb-24 pt-20 sm:px-6 sm:pb-32 sm:pt-28">
           <Reveal>
@@ -184,7 +175,7 @@ export default function HomePage() {
               },
             ].map((img, i) => (
               <Reveal key={img.src} delay={i * 90}>
-                <figure className="group overflow-hidden rounded-2xl bg-ink shadow-sm">
+                <figure className="accent-frame group overflow-hidden rounded-2xl bg-ink shadow-sm">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.src}

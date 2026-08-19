@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { site, waLinkDefault } from "@/lib/site";
+import { services } from "@/lib/services";
 import { Icon } from "@/components/icons";
 
 const nav = [
@@ -12,6 +13,93 @@ const nav = [
   { href: "/hakkimizda", label: "Hakkımızda" },
   { href: "/iletisim", label: "İletişim" },
 ];
+
+const CLOSE_DELAY_MS = 400;
+
+function ServicesDropdown({ active }: { active: boolean }) {
+  const [open, setOpen] = useState(false);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelClose = () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  };
+  const scheduleClose = () => {
+    cancelClose();
+    closeTimer.current = setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
+  };
+
+  return (
+    <div
+      className="relative"
+      onMouseEnter={() => {
+        cancelClose();
+        setOpen(true);
+      }}
+      onMouseLeave={scheduleClose}
+    >
+      <Link
+        href="/hizmetler"
+        className={`flex items-center gap-1 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
+          active ? "text-brand-light" : "text-white/80 hover:text-white"
+        }`}
+        aria-expanded={open}
+      >
+        Hizmetler
+        <Icon name="arrow" className={`h-3 w-3 rotate-90 transition-transform ${open ? "-rotate-90" : ""}`} />
+      </Link>
+
+      {open && (
+        <div className="absolute left-1/2 top-full w-[560px] -translate-x-1/2 pt-3">
+          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-ink/8 bg-white p-3 shadow-2xl">
+            {services.map((s) => (
+              <Link
+                key={s.slug}
+                href={`/hizmetler/${s.slug}`}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink/80 transition-colors hover:bg-surface hover:text-ink"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-brand">
+                  <Icon name={s.icon} className="h-4 w-4" />
+                </span>
+                {s.name}
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MobileServicesAccordion({ onNavigate }: { onNavigate: () => void }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        aria-expanded={open}
+        className="flex w-full items-center justify-between rounded-md px-3 py-3 text-base font-medium text-white/85"
+      >
+        Hizmetler
+        <Icon name="arrow" className={`h-3.5 w-3.5 rotate-90 transition-transform ${open ? "-rotate-90" : ""}`} />
+      </button>
+      {open && (
+        <div className="ml-3 flex flex-col border-l border-white/10 pl-3">
+          {services.map((s) => (
+            <Link
+              key={s.slug}
+              href={`/hizmetler/${s.slug}`}
+              onClick={onNavigate}
+              className="rounded-md px-3 py-2.5 text-sm text-white/70 hover:text-white"
+            >
+              {s.name}
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function Header() {
   const pathname = usePathname();
@@ -32,19 +120,23 @@ export function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Ana menü">
-          {nav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
-                pathname === item.href
-                  ? "text-brand-light"
-                  : "text-white/80 hover:text-white"
-              }`}
-            >
-              {item.label}
-            </Link>
-          ))}
+          {nav.map((item) =>
+            item.href === "/hizmetler" ? (
+              <ServicesDropdown key={item.href} active={pathname.startsWith("/hizmetler")} />
+            ) : (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
+                  pathname === item.href
+                    ? "text-brand-light"
+                    : "text-white/80 hover:text-white"
+                }`}
+              >
+                {item.label}
+              </Link>
+            )
+          )}
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
@@ -79,18 +171,22 @@ export function Header() {
       {open && (
         <div className="border-t border-white/10 bg-ink px-4 pb-6 pt-2 lg:hidden">
           <nav className="flex flex-col" aria-label="Mobil menü">
-            {nav.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className={`rounded-md px-3 py-3 text-base font-medium ${
-                  pathname === item.href ? "text-brand-light" : "text-white/85"
-                }`}
-              >
-                {item.label}
-              </Link>
-            ))}
+            {nav.map((item) =>
+              item.href === "/hizmetler" ? (
+                <MobileServicesAccordion key={item.href} onNavigate={() => setOpen(false)} />
+              ) : (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className={`rounded-md px-3 py-3 text-base font-medium ${
+                    pathname === item.href ? "text-brand-light" : "text-white/85"
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              )
+            )}
           </nav>
           <div className="mt-4 flex flex-col gap-2.5">
             <a

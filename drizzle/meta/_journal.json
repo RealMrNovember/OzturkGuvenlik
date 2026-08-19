@@ -50,6 +50,20 @@
       "when": 1787178606098,
       "tag": "0006_light_multiple_man",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787180632717,
+      "tag": "0007_clever_nightcrawler",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1787181319820,
+      "tag": "0008_overrated_tarantula",
+      "breakpoints": true
     }
   ]
 }

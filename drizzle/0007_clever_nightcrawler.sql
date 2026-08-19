@@ -1,0 +1,2 @@
+ALTER TABLE "site_settings" ADD COLUMN "accent_color" varchar(7) DEFAULT '#e63946' NOT NULL;--> statement-breakpoint
+ALTER TABLE "site_settings" ADD COLUMN "accent_thickness" integer DEFAULT 3 NOT NULL;

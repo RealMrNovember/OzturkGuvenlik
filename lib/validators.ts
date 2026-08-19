@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { extractYouTubeId } from "@/lib/youtube";
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
 
@@ -349,6 +350,24 @@ const hexColor = z
 export const updateSiteSettingsSchema = z.object({
   brandColor: hexColor.optional(),
   brandLightColor: hexColor.optional(),
+  accentColor: hexColor.optional(),
+  accentThickness: z.number().int().min(1, "En az 1px olmalı").max(12, "En fazla 12px olabilir").optional(),
+  heroVideoUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || extractYouTubeId(v) !== null, "Geçerli bir YouTube linki girin")
+    .optional(),
+  heroVideoAutoplay: z.boolean().optional(),
+  heroVideoMuted: z.boolean().optional(),
+  heroVideoStart: z.number().int().min(0, "0'dan küçük olamaz").max(86_400).optional(),
+  heroVideoDuration: z
+    .number()
+    .int()
+    .min(1, "En az 1 saniye olmalı")
+    .max(3600, "En fazla 3600 saniye olabilir")
+    .nullable()
+    .optional(),
 });
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz");

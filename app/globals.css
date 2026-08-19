@@ -2,6 +2,7 @@
 
 :root {
   --background: #ffffff;
+  --accent-thickness: 3px;
 }
 
 @theme {
@@ -10,9 +11,14 @@
   --color-surface: #f4f7fa;
   --color-brand: #0e6fb8;
   --color-brand-light: #40a0e0;
+  --color-accent: #e63946;
   --color-wa: #25d366;
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, Arial, sans-serif;
+}
+
+:root {
+  --accent-thickness: 3px;
 }
 
 html {
@@ -56,4 +62,22 @@ body {
     transform: none;
     transition: none;
   }
+}
+
+.accent-frame {
+  border: var(--accent-thickness) solid var(--color-accent);
+}
+
+.accent-frame-left {
+  border-left: var(--accent-thickness) solid var(--color-accent);
+}
+
+.accent-bar {
+  display: block;
+  height: var(--accent-thickness);
+  background: var(--color-accent);
+}
+
+.accent-bar-pill {
+  border-radius: 999px;
 }

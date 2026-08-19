@@ -256,6 +256,9 @@ export const maintenanceContracts = pgTable("maintenance_contracts", {
 /** Sitenin orijinal marka renkleri — DB kolon varsayılanı ve panelin "Varsayılana Sıfırla" düğmesi aynı değerleri kullanır. */
 export const DEFAULT_BRAND_COLOR = "#0e6fb8";
 export const DEFAULT_BRAND_LIGHT_COLOR = "#40a0e0";
+/** Vurgu çerçeve/şerit efekti (kartlar, hero çerçevesi vb.) için varsayılan renk ve kalınlık. */
+export const DEFAULT_ACCENT_COLOR = "#e63946";
+export const DEFAULT_ACCENT_THICKNESS = 3;
 
 export const siteSettings = pgTable("site_settings", {
   id: serial("id").primaryKey(),
@@ -263,6 +266,13 @@ export const siteSettings = pgTable("site_settings", {
   brandLightColor: varchar("brand_light_color", { length: 7 })
     .notNull()
     .default(DEFAULT_BRAND_LIGHT_COLOR),
+  accentColor: varchar("accent_color", { length: 7 }).notNull().default(DEFAULT_ACCENT_COLOR),
+  accentThickness: integer("accent_thickness").notNull().default(DEFAULT_ACCENT_THICKNESS),
+  heroVideoUrl: varchar("hero_video_url", { length: 500 }).default(""),
+  heroVideoAutoplay: boolean("hero_video_autoplay").notNull().default(true),
+  heroVideoMuted: boolean("hero_video_muted").notNull().default(true),
+  heroVideoStart: integer("hero_video_start").notNull().default(0),
+  heroVideoDuration: integer("hero_video_duration"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });

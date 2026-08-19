@@ -283,6 +283,60 @@ korunuyor — plandaki "kutuda ki barkod ayrı, cihazdaki ayrı" ayrımı
       - Güvenlik: oturumsuz `GET`/`PATCH` isteklerinin `401` döndüğü
         doğrulandı.
 
+### ✅ Faz 3f — Setonet ilhamlı görsel yenileme (TAMAMLANDI — 2026-08-20)
+
+Müşteri, iş ortağı firma [setonet.com.tr](https://setonet.com.tr)'yi örnek
+göstererek üç şey istedi: hero'da video, kırmızı şerit/çerçeve efektleri
+(admin'den ayarlanabilir), ve setonet'in iş ortakları sayfasındaki marka
+logoları + Aypro + KNX Future.
+
+- [x] **Vurgu çerçeve efekti sistemi**: `site_settings`'e `accentColor`
+      (varsayılan `#e63946`) ve `accentThickness` (varsayılan `3px`)
+      eklendi, Site Ayarları'nda ayrı bir "Vurgu Çerçeve Efekti" kartından
+      renk + kalınlık (1-12px) admin tarafından değiştirilebiliyor.
+      `--color-accent`/`--accent-thickness` CSS değişkenleri olarak
+      `app/globals.css`'te `.accent-frame` (tam çerçeve), `.accent-frame-left`
+      (sol çerçeve) ve `.accent-bar` (ince şerit) utility sınıfları
+      tanımlandı; "Gerçek işler" fotoğraf kartlarına tam çerçeve, yorum
+      kartlarına sol çerçeve, bölüm eyebrow başlıklarına küçük bir şerit
+      olarak uygulandı. (Setonet'in kendisi bu efekti düz `border`
+      kullanarak yapıyor — kullanıcı bunu doğrudan teyit etti, aynı
+      teknik izlendi.)
+- [x] **Anasayfa marka logoları genişletildi (5 → 33 marka)**: setonet'in
+      iş ortakları sayfasından ([setonet.com.tr/is-ortaklarimiz](https://setonet.com.tr/is-ortaklarimiz))
+      26 yeni logo (Hikvision, Dahua, Hanwha, EZVIZ, IMOU, Tiandy, TVT,
+      Kedacom, Sanjiang, Suprema, Ajax, Paradox, DSC, Caddx, Teletek,
+      Roombanker, Honeywell, Grandstream, Wi-Tek, Ruijie Reyee, Kodicom,
+      Toshiba, TTEC, Formrack, Westa, Decon) + [Aypro](https://aypro.com)
+      + [Future KNX](https://www.futureknx.com) (SVG olarak sayfa
+      kaynağından çıkarıldı) eklendi. Orijinal renkler korunuyor
+      (grayscale kaldırıldı — kullanıcı özellikle istedi). Grid,
+      33 logoyu düzgün sarıp taşıracak şekilde `grid-cols-2 sm:grid-cols-4
+      lg:grid-cols-6`'ya genişletildi. [BrandsShowcase.tsx](components/BrandsShowcase.tsx)
+- [x] **Hizmetler alt menüsü**: ana site header'ında "Hizmetler" artık
+      hover'da (masaüstü) / dokununca (mobil accordion) 11 hizmetin
+      tamamını gösteren bir dropdown açıyor, doğrudan ilgili hizmet
+      sayfasına gidiliyor. [Header.tsx](components/Header.tsx)
+- [x] **Hero videosu — YouTube link sistemi**: dosya yükleme yerine,
+      Site Ayarları'nda bir "Hero Videosu" kartından YouTube linki
+      yapıştırılıyor (`watch?v=`, `youtu.be/`, `embed/`, `shorts/`
+      biçimlerinin hepsi tanınıyor — [lib/youtube.ts](lib/youtube.ts)).
+      Link boşsa mevcut statik görsel (`hero-1.jpg`) kalır. Doluysa
+      `youtube-nocookie.com` embed'i CSS `aspect-ratio` + container-relatif
+      `min-width/min-height:100%` tekniğiyle hero alanını tam kaplayacak
+      şekilde (crop/cover, distorsiyonsuz) responsive gösteriliyor —
+      viewport birimlerine (`vw`/`vh`) değil container'a göre hesaplanıyor,
+      bu yüzden hero'nun gerçek yüksekliği ne olursa olsun doğru çalışıyor.
+      Otomatik oynatma, sessiz başlatma, başlangıç saniyesi ve süre
+      (loop segmenti — `start`/`end` YouTube parametreleri) admin
+      panelinden ayarlanabiliyor. [HeroMedia.tsx](components/HeroMedia.tsx)
+      Production'da gerçek bir YouTube linkiyle uçtan uca test edildi
+      (embed URL parametreleri, cover-fill boyut hesabı, boş linkte
+      görsele geri dönüş) — hepsi doğrulandı.
+- [x] Yapay zeka video üretim aracı için kullanılacak bir prompt
+      kullanıcıya verildi (güvenlik kurulumu temalı, mavi tonlarda,
+      sessiz döngü, 8-10 saniye).
+
 ### 🔄 Faz 4 — Sözleşme/bakım + personel derinliği (kısmen tamamlandı)
 
 - [x] **Bakım sözleşmeleri (TAMAMLANDI — 2026-08-20)**: `maintenance_contracts`
