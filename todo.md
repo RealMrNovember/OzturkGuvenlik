@@ -263,10 +263,25 @@ korunuyor — plandaki "kutuda ki barkod ayrı, cihazdaki ayrı" ayrımı
       hem public site hem panel aynı anda etkileniyor. Kayıt anında
       `revalidatePath("/", "layout")` çağrılıyor, yeniden deploy
       gerekmeden anında yayına yansıyor.
-- [x] Local'de uçtan uca doğrulandı: rengi kırmızıya çevirip CTA
-      butonunun gerçekten `rgb(192,57,43)` render ettiği
-      `getComputedStyle` ile teyit edildi, sonra varsayılana
-      döndürüldü.
+- [x] **"Varsayılana Sıfırla" düğmesi**: admin tek tıkla orijinal marka
+      renklerine (`#0e6fb8` / `#40a0e0`) dönebiliyor — değerler
+      `lib/db/schema.ts`'teki `DEFAULT_BRAND_COLOR`/
+      `DEFAULT_BRAND_LIGHT_COLOR` sabitlerinden geliyor (DB kolon
+      varsayılanıyla aynı kaynak, sapma riski yok). Zaten
+      varsayılandaysa hem Kaydet hem Sıfırla düğmesi devre dışı kalır.
+- [x] **Uçtan uca doğrulama — hem local hem gerçek production**:
+      - Local (`next dev`): rengi mora çevirip CTA butonunun
+        `getComputedStyle` ile gerçekten değiştiğini, sonra Sıfırla
+        düğmesiyle varsayılana döndüğünü teyit ettim.
+      - **Gerçek production'da API üzerinden canlı test**: giriş yapıp
+        `PATCH /api/site-settings` ile rengi değiştirdim, anasayfanın
+        **yeniden deploy gerekmeden aynı anda** yeni rengi döndürdüğünü
+        `curl` ile doğrudan doğruladım (bu `revalidatePath`'in gerçek
+        Vercel ISR ortamında çalıştığının kanıtı — `next dev` bunu
+        test edemez, çünkü dev modda statik önbellekleme hiç devrede
+        değil). Ardından aynı şekilde varsayılana geri döndürdüm.
+      - Güvenlik: oturumsuz `GET`/`PATCH` isteklerinin `401` döndüğü
+        doğrulandı.
 
 ### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
 
