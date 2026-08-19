@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ozturk-og-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: og
+      POSTGRES_PASSWORD: og_dev_password
+      POSTGRES_DB: ozturk
+    ports:
+      - "5432:5432"
+    volumes:
+      - og_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U og -d ozturk"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  og_pgdata:
