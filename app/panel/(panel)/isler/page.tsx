@@ -6,6 +6,11 @@ import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import {
+  JobItemsEditor,
+  emptyJobItem,
+  type JobProductOption,
+} from "@/components/panel/JobItemsEditor";
+import {
   Badge,
   Btn,
   EmptyState,
@@ -20,6 +25,7 @@ import {
   JOB_STATUS_LABEL,
   fmtDate,
   fmtDateTime,
+  fmtMoney,
 } from "@/components/panel/ui";
 
 type JobRow = {
@@ -33,6 +39,9 @@ type JobRow = {
   endDate: string | null;
   status: string;
   equipment: string[];
+  items: { productId: number; qty: number; name: string }[];
+  costTotal?: string;
+  saleTotal: string;
   notes: string;
   staffIds: number[];
   staffNames: string[];
@@ -43,6 +52,7 @@ type JobRow = {
 
 type CustomerRow = { id: number; name: string; phone: string };
 type StaffRow = { id: number; name: string };
+type ProductRow = JobProductOption & { costPrice?: string };
 
 const blank = {
   title: "",
@@ -52,6 +62,8 @@ const blank = {
   status: "planlandi",
   equipment: [] as string[],
   equipmentText: "",
+  items: [emptyJobItem()],
+  saleTotal: "",
   notes: "",
   staffIds: [] as number[],
   customerId: null as number | null,
@@ -66,6 +78,7 @@ export default function IslerPage() {
   const [rows, setRows] = useState<JobRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
   const [staff, setStaff] = useState<StaffRow[]>([]);
+  const [products, setProducts] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<JobRow | null>(null);
@@ -76,14 +89,16 @@ export default function IslerPage() {
 
   const load = useCallback(async () => {
     try {
-      const [jobs, custs, staffList] = await Promise.all([
+      const [jobs, custs, staffList, productList] = await Promise.all([
         api<JobRow[]>("/api/jobs"),
         api<CustomerRow[]>("/api/customers"),
         api<StaffRow[]>("/api/staff"),
+        api<ProductRow[]>("/api/products"),
       ]);
       setRows(jobs);
       setCustomers(custs);
       setStaff(staffList);
+      setProducts(productList);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -110,6 +125,8 @@ export default function IslerPage() {
       status: row.status,
       equipment: row.equipment,
       equipmentText: row.equipment.join(", "),
+      items: row.items.map((i) => ({ productId: i.productId, name: i.name, qty: String(i.qty) })),
+      saleTotal: row.saleTotal,
       notes: row.notes,
       staffIds: row.staffIds,
       customerId: row.customerId,
@@ -118,6 +135,11 @@ export default function IslerPage() {
     });
     setEditing(row);
   };
+
+  const estimatedCost = form.items.reduce((sum, i) => {
+    const product = products.find((p) => p.id === i.productId);
+    return sum + (Number(i.qty) || 0) * Number(product?.costPrice ?? 0);
+  }, 0);
 
   const toggleStaff = (id: number) =>
     setForm((cur) => ({
@@ -129,6 +151,9 @@ export default function IslerPage() {
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
+    const cleanItems = form.items
+      .filter((i) => i.productId && Number(i.qty) > 0)
+      .map((i) => ({ productId: i.productId as number, qty: Number(i.qty), name: i.name }));
     setSaving(true);
     setError("");
     const payload = {
@@ -141,6 +166,8 @@ export default function IslerPage() {
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean),
+      items: cleanItems,
+      saleTotal: Number(form.saleTotal) || 0,
       notes: form.notes,
       staffIds: form.staffIds,
       customerId: form.customerId,
@@ -200,7 +227,7 @@ export default function IslerPage() {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
+            <table className="w-full min-w-[920px] text-left text-sm">
               <thead>
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
                   <th className="px-5 py-3.5">İş</th>
@@ -208,6 +235,7 @@ export default function IslerPage() {
                   <th className="px-5 py-3.5">Tarih</th>
                   <th className="px-5 py-3.5">Ekip</th>
                   <th className="px-5 py-3.5">Durum</th>
+                  {isAdmin && <th className="px-5 py-3.5 text-right">Kâr</th>}
                   <th className="px-5 py-3.5 text-right">İşlem</th>
                 </tr>
               </thead>
@@ -256,6 +284,23 @@ export default function IslerPage() {
                         ))}
                       </Select>
                     </td>
+                    {isAdmin && (
+                      <td className="whitespace-nowrap px-5 py-4 text-right font-bold">
+                        {j.costTotal !== undefined ? (
+                          <span
+                            className={
+                              Number(j.saleTotal) - Number(j.costTotal) >= 0
+                                ? "text-emerald-600"
+                                : "text-red-500"
+                            }
+                          >
+                            {fmtMoney(Number(j.saleTotal) - Number(j.costTotal))}
+                          </span>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                    )}
                     <td className="whitespace-nowrap px-5 py-4 text-right">
                       <div className="flex justify-end gap-1.5">
                         <button
@@ -358,13 +403,42 @@ export default function IslerPage() {
                   ))}
                 </Select>
               </Field>
-              <Field label="Ekipman / malzeme (virgülle)">
+              <Field label="Ekipman / malzeme (serbest not, virgülle)">
                 <Input
                   value={form.equipmentText}
                   onChange={(e) => setForm({ ...form, equipmentText: e.target.value })}
                   placeholder="Örn: 8x kamera, NVR 16 kanal, Cat6 kablo"
                 />
               </Field>
+              <Field label="Satış tutarı">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.saleTotal}
+                  onChange={(e) => setForm({ ...form, saleTotal: e.target.value })}
+                  placeholder="₺"
+                />
+              </Field>
+              <div className="sm:col-span-2">
+                <JobItemsEditor
+                  items={form.items}
+                  onChange={(items) => setForm({ ...form, items })}
+                  products={products}
+                />
+              </div>
+              {isAdmin && form.items.length > 0 && (
+                <div className="sm:col-span-2 flex flex-wrap gap-4 rounded-xl bg-ink/3 px-4 py-3 text-sm">
+                  <span className="text-ink/60">
+                    Tahmini maliyet: <strong className="text-ink">{fmtMoney(estimatedCost)}</strong>
+                  </span>
+                  <span className="text-ink/60">
+                    Tahmini kâr:{" "}
+                    <strong className={(Number(form.saleTotal) || 0) - estimatedCost >= 0 ? "text-emerald-600" : "text-red-500"}>
+                      {fmtMoney((Number(form.saleTotal) || 0) - estimatedCost)}
+                    </strong>
+                  </span>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <Field label="Görevli personel">
                   <div className="flex flex-wrap gap-2">
@@ -447,8 +521,37 @@ export default function IslerPage() {
                 <dt className="text-xs font-semibold text-ink/45">Kayıt</dt>
                 <dd className="mt-0.5 text-ink/80">{fmtDateTime(viewing.createdAt)}</dd>
               </div>
+              <div>
+                <dt className="text-xs font-semibold text-ink/45">Satış tutarı</dt>
+                <dd className="mt-0.5 font-bold text-ink">{fmtMoney(viewing.saleTotal)}</dd>
+              </div>
+              {isAdmin && viewing.costTotal !== undefined && (
+                <div>
+                  <dt className="text-xs font-semibold text-ink/45">Maliyet / Kâr</dt>
+                  <dd className="mt-0.5 text-ink/80">
+                    {fmtMoney(viewing.costTotal)} /{" "}
+                    <strong
+                      className={
+                        Number(viewing.saleTotal) - Number(viewing.costTotal) >= 0
+                          ? "text-emerald-600"
+                          : "text-red-500"
+                      }
+                    >
+                      {fmtMoney(Number(viewing.saleTotal) - Number(viewing.costTotal))}
+                    </strong>
+                  </dd>
+                </div>
+              )}
               <div className="sm:col-span-2">
-                <dt className="text-xs font-semibold text-ink/45">Malzeme</dt>
+                <dt className="text-xs font-semibold text-ink/45">Kullanılan ürünler</dt>
+                <dd className="mt-0.5 text-ink/80">
+                  {viewing.items.length > 0
+                    ? viewing.items.map((i) => `${i.name} × ${i.qty}`).join(", ")
+                    : "-"}
+                </dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-semibold text-ink/45">Ekipman / malzeme notu</dt>
                 <dd className="mt-0.5 text-ink/80">
                   {viewing.equipment.length > 0 ? viewing.equipment.join(", ") : "-"}
                 </dd>

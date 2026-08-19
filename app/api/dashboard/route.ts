@@ -8,6 +8,8 @@ import {
   offers,
   invoices,
   transactions,
+  products,
+  LOW_STOCK_THRESHOLD,
 } from "@/lib/db/schema";
 import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { jsonOk, jsonErr } from "@/lib/api";
@@ -31,6 +33,7 @@ export async function GET() {
     pendingOffers,
     pendingInvoices,
     monthTransactions,
+    lowStockProducts,
   ] = await Promise.all([
     db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "yeni")),
     db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "aranacak")),
@@ -57,6 +60,10 @@ export async function GET() {
       .select({ type: transactions.type, amount: transactions.amount })
       .from(transactions)
       .where(gte(transactions.date, monthStart)),
+    db
+      .select({ id: products.id, name: products.name, stockQty: products.stockQty })
+      .from(products)
+      .where(and(lte(products.stockQty, LOW_STOCK_THRESHOLD), eq(products.active, true))),
   ]);
 
   const monthIncome = monthTransactions
@@ -127,7 +134,9 @@ export async function GET() {
       todayAppointments: todayAppointments.length,
       pendingOffers: pendingOffers.length,
       pendingInvoices: pendingInvoices.length,
+      lowStockProducts: lowStockProducts.length,
     },
+    lowStockProducts,
     finance: {
       monthIncome,
       monthExpense,

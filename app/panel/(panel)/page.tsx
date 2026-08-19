@@ -25,9 +25,11 @@ type DashboardData = {
     todayAppointments: number;
     pendingOffers: number;
     pendingInvoices: number;
+    lowStockProducts: number;
   };
   finance: { monthIncome: number; monthExpense: number; monthNet: number };
   pendingInvoices: { id: number; number: string; total: string; dueDate: string | null; customerName: string | null }[];
+  lowStockProducts: { id: number; name: string; stockQty: number }[];
   recentRequests: {
     id: number;
     name: string;
@@ -189,6 +191,26 @@ export default function PanelPage() {
                   </p>
                 </div>
                 <p className="shrink-0 font-bold text-ink">{fmtMoney(inv.total)}</p>
+              </Link>
+            ))
+          )}
+        </Card>
+
+        <Card
+          title="Kritik stok"
+          action={<Link href="/panel/urunler" className="text-xs font-semibold text-brand">Tümü →</Link>}
+        >
+          {data.lowStockProducts.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-ink/50">Kritik seviyede ürün yok.</div>
+          ) : (
+            data.lowStockProducts.map((p) => (
+              <Link
+                key={p.id}
+                href="/panel/urunler"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink/2"
+              >
+                <p className="truncate text-sm font-semibold text-ink">{p.name}</p>
+                <Badge tone="red">{p.stockQty} adet</Badge>
               </Link>
             ))
           )}

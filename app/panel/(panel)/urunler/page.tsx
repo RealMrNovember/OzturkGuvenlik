@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
 import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
+import { LOW_STOCK_THRESHOLD } from "@/lib/db/schema";
 import {
   Badge,
   Btn,
@@ -200,7 +201,22 @@ export default function UrunlerPage() {
                           )}
                         </td>
                       )}
-                      <td className="px-5 py-4 text-right text-ink/70">{p.stockQty}</td>
+                      <td className="px-5 py-4 text-right">
+                        <span
+                          className={
+                            p.stockQty <= LOW_STOCK_THRESHOLD
+                              ? "font-bold text-red-500"
+                              : "text-ink/70"
+                          }
+                        >
+                          {p.stockQty}
+                        </span>
+                        {p.stockQty <= LOW_STOCK_THRESHOLD && (
+                          <span className="ml-2">
+                            <Badge tone="red">Kritik</Badge>
+                          </span>
+                        )}
+                      </td>
                       {isAdmin && (
                         <td className="whitespace-nowrap px-5 py-4 text-right">
                           <div className="flex justify-end gap-1.5">

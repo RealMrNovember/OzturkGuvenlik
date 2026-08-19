@@ -47,16 +47,38 @@ hiçbiri kaybolmadı — sadece sırayla gelecek.
       gösteriyor (önceden yalnızca metin rozetiydi, dosyalar `public/images/
       brands/`'te duruyordu ama hiç kullanılmıyordu).
 
-### 🔜 Faz 2 — İş bazlı maliyet/kâr + stok
+### ✅ Faz 2 — İş bazlı maliyet/kâr + stok (TAMAMLANDI — 2026-08-19)
 
-- [ ] `jobs` tablosuna `costTotal`/`saleTotal` ekle → iş kapanınca gerçek kâr
-      görünsün ("hangi işten ne kadar kazandım" — şu an yalnızca şirket geneli
-      aylık net var, **iş bazlı değil**, bu Faz 2'nin ana hedefi)
-- [ ] Teklif/fatura onaylanınca kullanılan ürünler `products.stockQty`'den
-      otomatik düşsün
-- [ ] İş kartına: kullanılan ürün listesi, fotoğraf (URL dizisi — önce dosya
-      yükleme altyapısı gerekli, örn. Vercel Blob), teslim tutanağı metni
-- [ ] Düşük stok uyarısı (dashboard'da "X ürün kritik seviyede")
+- [x] `jobs.items` (ürün+adet, kataloğa bağlı), `jobs.costTotal` (kalemlerden
+      otomatik, `lib/stock.ts`), `jobs.saleTotal` (elle girilir) eklendi.
+      Kâr (satış − maliyet) İşler listesinde ve iş detayında **yalnızca
+      admin'e** görünür — personel işte satış tutarını görür, maliyeti görmez.
+- [x] **Otomatik stok düşümü**: bir işe ürün eklenince/kaydedilince
+      `products.stockQty` işlem içinde (DB transaction, `db.transaction`)
+      otomatik güncellenir. İş düzenlenip kalem adedi değişince yalnızca
+      **fark** kadar düşer/geri eklenir; iş silinince kullanılan ürünler
+      stoğa tam olarak geri eklenir. Negatif stok engellenmiyor (gerçek
+      envanter tam kayıtlı olmayabilir) — bunun yerine düşük/kritik stok
+      panelde uyarı olarak gösteriliyor.
+- [x] **Düşük stok uyarısı**: `/panel/urunler`'de kritik rozet (≤5 adet,
+      `LOW_STOCK_THRESHOLD`), dashboard'da "Kritik stok" kartı.
+- [ ] İş kartına fotoğraf + teslim tutanağı — hâlâ dosya yükleme altyapısı
+      gerektiği için ertelendi (Faz 3/4'e taşınabilir, örn. Vercel Blob).
+
+**Bu fazı yaparken kritik, önceden var olan bir hata bulundu ve düzeltildi:**
+`updateCustomerSchema`, `updateAppointmentSchema`, `updateOfferSchema` (ve artık
+`updateJobSchema`/`updateProductSchema`/`updateTransactionSchema`) `createXSchema
+.partial()` ile tanımlanmıştı. Zod'da `.partial()` her alanı `.optional()` ile
+sarar ama alanın kendi `.default(...)`'ini **iptal etmez** — yani gönderilmeyen
+bir alan yine de varsayılana düşüyordu. Somut etkisi: **Randevular/Teklifler/
+İşler sayfalarındaki satır-içi durum değiştirme dropdown'u yalnızca
+`{status:"..."}` gönderiyor — bu, o kaydın başlığını/notunu/adresini (ve artık
+işlerde ürün listesini + dolayısıyla stok düşümünü) sessizce `""`/`[]`/`0`'a
+sıfırlıyordu.** `node -e` ile ayrı bir script'te doğrulandı, sonra tüm ilgili
+`update*Schema`'lar varsayılansız, elle yazılmış şemalarla değiştirildi
+([lib/validators.ts](lib/validators.ts)). Bu, OpenCode'un orijinal kodunda
+zaten vardı (Faz 1 öncesi) — ben de aynı deseni fark etmeden Faz 2'ye taşımışım,
+kendi testlerimde yakalayıp düzelttim.
 
 ### 🔜 Faz 3 — CRM derinliği + servis/arıza
 
@@ -156,6 +178,10 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 - Kurumsal site (hero, 11 hizmet, süreç, işler, yorumlar, gerçek marka logoları, harita, CTA)
 - Yönetim paneli: giriş, dashboard, talepler, randevular, müşteriler, teklifler, işler
 - **Faturalar + Kasa (gelir/gider) + Ürün kataloğu modülleri** (2026-08-19, bkz. Faz 1 yukarıda)
+- **İş bazlı maliyet/kâr + otomatik stok düşümü** (2026-08-19, bkz. Faz 2 yukarıda)
+- **Kritik hata düzeltmesi**: satır-içi durum değişikliklerinin kaydın diğer
+  alanlarını sessizce sıfırlaması (bkz. Faz 2 notu) — müşteri/randevu/teklif/
+  iş güncellemelerinin tamamını etkiliyordu, artık düzeltildi
 - Personel yönetimi sayfası + staff API'leri; ürün alış fiyatı personelden gizli
 - Keşif sihirbazı → backend kaydı + WhatsApp
 - JWT cookie auth, rol bazlı yetkilendirme, honeypot koruması

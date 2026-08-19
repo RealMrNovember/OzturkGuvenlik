@@ -30,7 +30,18 @@ export const createCustomerSchema = z.object({
     .default("panel"),
 });
 
-export const updateCustomerSchema = createCustomerSchema.partial();
+// NOT createCustomerSchema.partial(): partial() re-applies each field's
+// .default() to absent keys too, silently wiping them back to "" on every
+// partial PATCH (e.g. an inline status-only update). See updateJobSchema
+// below for the full explanation — same fix applied to every update schema.
+export const updateCustomerSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  phone: z.string().trim().max(30).optional(),
+  placeType: z.string().trim().max(60).optional(),
+  address: z.string().trim().max(1000).optional(),
+  note: z.string().trim().max(2000).optional(),
+  source: z.enum(["web", "whatsapp", "telefon", "referans", "panel"]).optional(),
+});
 
 export const createAppointmentSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
@@ -44,7 +55,17 @@ export const createAppointmentSchema = z.object({
   assignedTo: z.number().int().positive().nullable().optional(),
 });
 
-export const updateAppointmentSchema = createAppointmentSchema.partial();
+export const updateAppointmentSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  requestId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().max(200).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz").optional(),
+  time: z.string().trim().max(10).optional(),
+  address: z.string().trim().max(255).optional(),
+  note: z.string().trim().max(2000).optional(),
+  status: z.enum(["planlandi", "tamamlandi", "iptal"]).optional(),
+  assignedTo: z.number().int().positive().nullable().optional(),
+});
 
 export const offerItemSchema = z.object({
   name: z.string().trim().min(1).max(200),
@@ -71,7 +92,22 @@ export const createOfferSchema = z.object({
   note: z.string().trim().max(2000).optional().default(""),
 });
 
-export const updateOfferSchema = createOfferSchema.partial();
+export const updateOfferSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  requestId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().max(200).optional(),
+  items: z.array(offerItemSchema).max(100).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  status: z.enum(["tasarim", "gonderildi", "onaylandi", "reddedildi"]).optional(),
+  sentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+export const jobItemSchema = z.object({
+  productId: z.number().int().positive(),
+  qty: z.number().positive().max(100000),
+  name: z.string().trim().max(200).optional().default(""),
+});
 
 export const createJobSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
@@ -86,11 +122,37 @@ export const createJobSchema = z.object({
     .optional()
     .default("planlandi"),
   equipment: z.array(z.string()).max(60).optional().default([]),
+  items: z.array(jobItemSchema).max(200).optional().default([]),
+  saleTotal: z.number().nonnegative().max(100_000_000).optional().default(0),
   notes: z.string().trim().max(3000).optional().default(""),
   staffIds: z.array(z.number().int().positive()).max(20).optional().default([]),
 });
 
-export const updateJobSchema = createJobSchema.partial();
+// NOT createJobSchema.partial(): Zod's .partial() wraps each field in an
+// extra .optional() but does NOT strip the field's own .default(...) — so an
+// absent key still resolves through to its default value instead of staying
+// absent. Every partial PATCH (e.g. the inline status dropdown sending only
+// {status: "..."}) would then silently overwrite title/items/saleTotal/etc.
+// back to "" / [] / 0. Confirmed empirically: schema.partial().parse({items:
+// [...]}) still returns title: "" even though title was never sent. Writing
+// the update schema out explicitly (plain .optional(), no .default()) is the
+// only way an absent field is left untouched by the PATCH handler's
+// `{...parsed.data}` spread.
+export const updateJobSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  requestId: z.number().int().positive().nullable().optional(),
+  offerId: z.number().int().positive().nullable().optional(),
+  title: z.string().trim().max(200).optional(),
+  address: z.string().trim().max(255).optional(),
+  startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  status: z.enum(["planlandi", "devam-ediyor", "tamamlandi", "garanti"]).optional(),
+  equipment: z.array(z.string()).max(60).optional(),
+  items: z.array(jobItemSchema).max(200).optional(),
+  saleTotal: z.number().nonnegative().max(100_000_000).optional(),
+  notes: z.string().trim().max(3000).optional(),
+  staffIds: z.array(z.number().int().positive()).max(20).optional(),
+});
 
 export const createUserSchema = z.object({
   name: z.string().trim().min(2).max(120),
@@ -150,7 +212,16 @@ export const createProductSchema = z.object({
   active: z.boolean().optional().default(true),
 });
 
-export const updateProductSchema = createProductSchema.partial();
+export const updateProductSchema = z.object({
+  name: z.string().trim().min(2, "Ürün adı en az 2 karakter olmalı").max(200).optional(),
+  sku: z.string().trim().max(60).optional(),
+  category: z.string().trim().max(60).optional(),
+  unit: z.string().trim().min(1).max(20).optional(),
+  costPrice: z.number().nonnegative().max(100_000_000).optional(),
+  salePrice: z.number().nonnegative().max(100_000_000).optional(),
+  stockQty: z.number().int().optional(),
+  active: z.boolean().optional(),
+});
 
 export const createTransactionSchema = z.object({
   type: z.enum(["gelir", "gider"], { message: "Tür gelir veya gider olmalı" }),
@@ -172,7 +243,27 @@ export const createTransactionSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
 });
 
-export const updateTransactionSchema = createTransactionSchema.partial();
+export const updateTransactionSchema = z.object({
+  type: z.enum(["gelir", "gider"]).optional(),
+  category: z
+    .enum([
+      "is-tahsilati",
+      "diger-gelir",
+      "malzeme",
+      "yakit-ulasim",
+      "personel-maasi",
+      "kira",
+      "fatura-abonelik",
+      "diger-gider",
+    ])
+    .optional(),
+  amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz").optional(),
+  method: z.enum(["nakit", "havale", "kart"]).optional(),
+  description: z.string().trim().max(500).optional(),
+  jobId: z.number().int().positive().nullable().optional(),
+  customerId: z.number().int().positive().nullable().optional(),
+});
 
 export const loginSchema = z.object({
   email: z.string().email("E-posta geçersiz").max(190),

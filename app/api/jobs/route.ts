@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { createJobSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { costTotalForItems, applyStockDelta } from "@/lib/stock";
 
 export async function GET() {
   const session = await getSession();
@@ -21,6 +22,9 @@ export async function GET() {
       endDate: jobs.endDate,
       status: jobs.status,
       equipment: jobs.equipment,
+      items: jobs.items,
+      costTotal: jobs.costTotal,
+      saleTotal: jobs.saleTotal,
       notes: jobs.notes,
       staffIds: jobs.staffIds,
       createdAt: jobs.createdAt,
@@ -40,12 +44,38 @@ export async function GET() {
 
   const staffMap = Object.fromEntries(staffRows.map((s) => [s.id, s.name]));
 
-  return jsonOk(
-    rows.map((job) => ({
-      ...job,
-      staffNames: (job.staffIds ?? []).map((id) => staffMap[id] ?? "").filter(Boolean),
-    }))
-  );
+  const withStaff = rows.map((job) => ({
+    ...job,
+    staffNames: (job.staffIds ?? []).map((id) => staffMap[id] ?? "").filter(Boolean),
+  }));
+
+  // Maliyet (alış fiyatı üzerinden) ve dolayısıyla kâr yalnızca yöneticiye görünür.
+  if (session.role !== "admin") {
+    return jsonOk(
+      withStaff.map((j) => ({
+        id: j.id,
+        customerId: j.customerId,
+        requestId: j.requestId,
+        offerId: j.offerId,
+        title: j.title,
+        address: j.address,
+        startDate: j.startDate,
+        endDate: j.endDate,
+        status: j.status,
+        equipment: j.equipment,
+        items: j.items,
+        saleTotal: j.saleTotal,
+        notes: j.notes,
+        staffIds: j.staffIds,
+        createdAt: j.createdAt,
+        updatedAt: j.updatedAt,
+        customerName: j.customerName,
+        customerPhone: j.customerPhone,
+        staffNames: j.staffNames,
+      }))
+    );
+  }
+  return jsonOk(withStaff);
 }
 
 export async function POST(req: Request) {
@@ -58,10 +88,19 @@ export async function POST(req: Request) {
     return jsonErr(parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
 
-  const [created] = await db
-    .insert(jobs)
-    .values(parsed.data)
-    .returning();
+  const created = await db.transaction(async (tx) => {
+    const costTotal = await costTotalForItems(tx, parsed.data.items);
+    const [row] = await tx
+      .insert(jobs)
+      .values({
+        ...parsed.data,
+        saleTotal: String(parsed.data.saleTotal),
+        costTotal: String(costTotal),
+      })
+      .returning();
+    await applyStockDelta(tx, [], parsed.data.items);
+    return row;
+  });
 
   return jsonOk(created);
 }

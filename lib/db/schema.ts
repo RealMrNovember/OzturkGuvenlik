@@ -124,6 +124,9 @@ export const jobs = pgTable("jobs", {
   endDate: date("end_date", { mode: "string" }),
   status: varchar("status", { length: 20 }).notNull().default("planlandi"), // planlandi | devam-ediyor | tamamlandi | garanti
   equipment: varchar("equipment", { length: 60 }).array().default([]),
+  items: jsonb("items").notNull().default([]), // [{productId, qty, name}] — kataloğa bağlı, stok otomatik düşer
+  costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // items'tan otomatik hesaplanır, yalnızca admin'e döner
+  saleTotal: numeric("sale_total", { precision: 12, scale: 2 }).notNull().default("0"), // elle girilir
   notes: text("notes").default(""),
   staffIds: pgInteger("staff_ids").array().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -183,11 +186,20 @@ export type Invoice = typeof invoices.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Product = typeof products.$inferSelect;
 
+/** Bu adedin altındaki stok "kritik" sayılır (bkz. /panel/urunler, dashboard). */
+export const LOW_STOCK_THRESHOLD = 5;
+
 export type OfferItem = {
   name: string;
   qty: number;
   unitPrice: number;
   productId?: number | null;
+};
+
+export type JobItem = {
+  productId: number;
+  qty: number;
+  name: string;
 };
 
 export const REQUEST_STATUSES = [
