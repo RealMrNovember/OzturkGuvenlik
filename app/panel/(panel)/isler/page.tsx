@@ -39,7 +39,7 @@ type JobRow = {
   endDate: string | null;
   status: string;
   equipment: string[];
-  items: { productId: number; qty: number; name: string }[];
+  items: { productId: number; qty: number; name: string; unitIds?: number[] }[];
   costTotal?: string;
   saleTotal: string;
   notes: string;
@@ -125,7 +125,12 @@ export default function IslerPage() {
       status: row.status,
       equipment: row.equipment,
       equipmentText: row.equipment.join(", "),
-      items: row.items.map((i) => ({ productId: i.productId, name: i.name, qty: String(i.qty) })),
+      items: row.items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        qty: String(i.qty),
+        unitIds: i.unitIds,
+      })),
       saleTotal: row.saleTotal,
       notes: row.notes,
       staffIds: row.staffIds,
@@ -153,7 +158,12 @@ export default function IslerPage() {
     e.preventDefault();
     const cleanItems = form.items
       .filter((i) => i.productId && Number(i.qty) > 0)
-      .map((i) => ({ productId: i.productId as number, qty: Number(i.qty), name: i.name }));
+      .map((i) => ({
+        productId: i.productId as number,
+        qty: Number(i.qty),
+        name: i.name,
+        ...(i.unitIds ? { unitIds: i.unitIds } : {}),
+      }));
     setSaving(true);
     setError("");
     const payload = {

@@ -34,7 +34,7 @@ type TicketRow = {
   result: string;
   status: string;
   assignedTo: number | null;
-  items: { productId: number; qty: number; name: string }[];
+  items: { productId: number; qty: number; name: string; unitIds?: number[] }[];
   costTotal?: string;
   fee: string;
   createdAt: string;
@@ -114,7 +114,12 @@ export default function ServisPage() {
       result: row.result,
       status: row.status,
       assignedTo: row.assignedTo,
-      items: row.items.map((i) => ({ productId: i.productId, name: i.name, qty: String(i.qty) })),
+      items: row.items.map((i) => ({
+        productId: i.productId,
+        name: i.name,
+        qty: String(i.qty),
+        unitIds: i.unitIds,
+      })),
       fee: row.fee,
     });
     setEditing(row);
@@ -129,7 +134,12 @@ export default function ServisPage() {
     e.preventDefault();
     const cleanItems = form.items
       .filter((i) => i.productId && Number(i.qty) > 0)
-      .map((i) => ({ productId: i.productId as number, qty: Number(i.qty), name: i.name }));
+      .map((i) => ({
+        productId: i.productId as number,
+        qty: Number(i.qty),
+        name: i.name,
+        ...(i.unitIds ? { unitIds: i.unitIds } : {}),
+      }));
     if (!form.issue.trim()) {
       setError("Arıza açıklaması gerekli.");
       return;

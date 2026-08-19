@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { updateServiceTicketSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { costTotalForItems, applyStockDelta } from "@/lib/stock";
+import { costTotalForItems, applyStockDelta, StockConflictError } from "@/lib/stock";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -22,33 +22,38 @@ export async function PATCH(req: Request, { params }: Ctx) {
     return jsonErr(parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
 
-  const updated = await db.transaction(async (tx) => {
-    const [before] = await tx
-      .select()
-      .from(serviceTickets)
-      .where(eq(serviceTickets.id, numericId))
-      .limit(1);
-    if (!before) return null;
+  try {
+    const updated = await db.transaction(async (tx) => {
+      const [before] = await tx
+        .select()
+        .from(serviceTickets)
+        .where(eq(serviceTickets.id, numericId))
+        .limit(1);
+      if (!before) return null;
 
-    const set: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
-    if (parsed.data.fee !== undefined) set.fee = String(parsed.data.fee);
+      const set: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
+      if (parsed.data.fee !== undefined) set.fee = String(parsed.data.fee);
 
-    if (parsed.data.items) {
-      const oldItems = before.items as JobItem[];
-      await applyStockDelta(tx, oldItems, parsed.data.items);
-      set.costTotal = String(await costTotalForItems(tx, parsed.data.items));
-    }
+      if (parsed.data.items) {
+        const oldItems = before.items as JobItem[];
+        await applyStockDelta(tx, oldItems, parsed.data.items, { serviceTicketId: numericId });
+        set.costTotal = String(await costTotalForItems(tx, parsed.data.items));
+      }
 
-    const [row] = await tx
-      .update(serviceTickets)
-      .set(set)
-      .where(eq(serviceTickets.id, numericId))
-      .returning();
-    return row;
-  });
+      const [row] = await tx
+        .update(serviceTickets)
+        .set(set)
+        .where(eq(serviceTickets.id, numericId))
+        .returning();
+      return row;
+    });
 
-  if (!updated) return jsonErr("Servis kaydı bulunamadı", 404);
-  return jsonOk(updated);
+    if (!updated) return jsonErr("Servis kaydı bulunamadı", 404);
+    return jsonOk(updated);
+  } catch (e) {
+    if (e instanceof StockConflictError) return jsonErr(e.message, 409);
+    throw e;
+  }
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {

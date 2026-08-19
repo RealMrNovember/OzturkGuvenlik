@@ -1,8 +1,12 @@
+import type { CSSProperties } from "react";
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { site } from "@/lib/site";
 import { localBusinessJsonLd } from "@/lib/seo";
+import { getSiteSettings } from "@/lib/site-settings";
+
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 const inter = Inter({
   variable: "--font-inter",
@@ -41,9 +45,19 @@ export const metadata: Metadata = {
   icons: { icon: "/images/logo-square.png" },
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const settings = await getSiteSettings();
+  const brandColor = HEX_COLOR.test(settings.brandColor) ? settings.brandColor : undefined;
+  const brandLightColor = HEX_COLOR.test(settings.brandLightColor)
+    ? settings.brandLightColor
+    : undefined;
+  const themeStyle = {
+    ...(brandColor ? { "--color-brand": brandColor } : {}),
+    ...(brandLightColor ? { "--color-brand-light": brandLightColor } : {}),
+  } as CSSProperties;
+
   return (
-    <html lang="tr" className={`${inter.variable} h-full antialiased`}>
+    <html lang="tr" className={`${inter.variable} h-full antialiased`} style={themeStyle}>
       <body className="min-h-full">
         {children}
         <script

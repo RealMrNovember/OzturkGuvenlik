@@ -15,6 +15,7 @@
   "dependencies": {
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.2",
+    "html5-qrcode": "^2.3.8",
     "jose": "^6.2.9",
     "next": "16.3.1",
     "pg": "^8.23.0",

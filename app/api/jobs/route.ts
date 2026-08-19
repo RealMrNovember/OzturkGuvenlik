@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { createJobSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { costTotalForItems, applyStockDelta } from "@/lib/stock";
+import { costTotalForItems, applyStockDelta, StockConflictError } from "@/lib/stock";
 
 export async function GET() {
   const session = await getSession();
@@ -88,19 +88,23 @@ export async function POST(req: Request) {
     return jsonErr(parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
 
-  const created = await db.transaction(async (tx) => {
-    const costTotal = await costTotalForItems(tx, parsed.data.items);
-    const [row] = await tx
-      .insert(jobs)
-      .values({
-        ...parsed.data,
-        saleTotal: String(parsed.data.saleTotal),
-        costTotal: String(costTotal),
-      })
-      .returning();
-    await applyStockDelta(tx, [], parsed.data.items);
-    return row;
-  });
-
-  return jsonOk(created);
+  try {
+    const created = await db.transaction(async (tx) => {
+      const costTotal = await costTotalForItems(tx, parsed.data.items);
+      const [row] = await tx
+        .insert(jobs)
+        .values({
+          ...parsed.data,
+          saleTotal: String(parsed.data.saleTotal),
+          costTotal: String(costTotal),
+        })
+        .returning();
+      await applyStockDelta(tx, [], parsed.data.items, { jobId: row.id });
+      return row;
+    });
+    return jsonOk(created);
+  } catch (e) {
+    if (e instanceof StockConflictError) return jsonErr(e.message, 409);
+    throw e;
+  }
 }

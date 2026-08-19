@@ -1,10 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
 import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { LOW_STOCK_THRESHOLD } from "@/lib/db/schema";
+import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
 import {
   Badge,
   Btn,
@@ -26,9 +29,16 @@ type ProductRow = {
   costPrice?: string;
   salePrice: string;
   stockQty: number;
+  barcode: string | null;
+  serialized: boolean;
   active: boolean;
   createdAt: string;
 };
+
+type LookupResponse =
+  | { found: true; source: "local"; product: ProductRow }
+  | { found: true; source: "global"; suggestion: { name: string; category: string } }
+  | { found: false };
 
 const blank = {
   name: "",
@@ -38,11 +48,14 @@ const blank = {
   costPrice: "",
   salePrice: "",
   stockQty: "0",
+  barcode: "",
+  serialized: false,
 };
 
 export default function UrunlerPage() {
   const role = usePanelRole();
   const isAdmin = role === "admin";
+  const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -51,28 +64,13 @@ export default function UrunlerPage() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState(blank);
+  const [notice, setNotice] = useState("");
 
-  const load = useCallback(async () => {
-    try {
-      setRows(await api<ProductRow[]>("/api/products"));
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [fieldScannerOpen, setFieldScannerOpen] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
 
-  useEffect(() => {
-    const t = setTimeout(load, 0);
-    return () => clearTimeout(t);
-  }, [load]);
-
-  const openCreate = () => {
-    setForm(blank);
-    setCreating(true);
-  };
-
-  const openEdit = (row: ProductRow) => {
+  const openEdit = useCallback((row: ProductRow) => {
     setForm({
       name: row.name,
       sku: row.sku,
@@ -81,8 +79,68 @@ export default function UrunlerPage() {
       costPrice: row.costPrice ?? "",
       salePrice: row.salePrice,
       stockQty: String(row.stockQty),
+      barcode: row.barcode ?? "",
+      serialized: row.serialized,
     });
+    setNotice("");
     setEditing(row);
+  }, []);
+
+  const load = useCallback(async () => {
+    try {
+      const data = await api<ProductRow[]>("/api/products");
+      setRows(data);
+      const editId = searchParams.get("edit");
+      if (editId) {
+        const target = data.find((p) => p.id === Number(editId));
+        if (target) openEdit(target);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openEdit]);
+
+  useEffect(() => {
+    const t = setTimeout(load, 0);
+    return () => clearTimeout(t);
+  }, [load]);
+
+  const openCreate = () => {
+    setForm(blank);
+    setNotice("");
+    setCreating(true);
+  };
+
+  const handleBarcodeScan = async (code: string) => {
+    setScannerOpen(false);
+    setLookingUp(true);
+    setError("");
+    try {
+      const res = await api<LookupResponse>(`/api/products/lookup?barcode=${encodeURIComponent(code)}`);
+      if (res.found && res.source === "local") {
+        openEdit(res.product);
+        setNotice(
+          res.product.serialized
+            ? "Bu ürün seri takipli — yeni gelen cihazları ürün detayından ekleyin."
+            : "Bu barkod zaten kayıtlı. Yeni gelen stoğu aşağıdan ekleyin."
+        );
+      } else if (res.found && res.source === "global") {
+        setForm({ ...blank, barcode: code, name: res.suggestion.name, category: res.suggestion.category });
+        setNotice("Genel ürün veritabanından önerildi — bilgileri kontrol edip kaydedin.");
+        setCreating(true);
+      } else {
+        setForm({ ...blank, barcode: code });
+        setNotice("Bu barkod hiçbir yerde bulunamadı — yeni ürün olarak ekleyin.");
+        setCreating(true);
+      }
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLookingUp(false);
+    }
   };
 
   const save = async (e: FormEvent) => {
@@ -101,6 +159,8 @@ export default function UrunlerPage() {
       costPrice: Number(form.costPrice) || 0,
       salePrice: Number(form.salePrice),
       stockQty: Number(form.stockQty) || 0,
+      barcode: form.barcode.trim(),
+      serialized: form.serialized,
     };
     try {
       if (editing) {
@@ -141,10 +201,16 @@ export default function UrunlerPage() {
           </p>
         </div>
         {isAdmin && (
-          <Btn onClick={openCreate}>
-            <Icon name="plus" className="h-4 w-4" />
-            Yeni Ürün
-          </Btn>
+          <div className="flex gap-2.5">
+            <Btn variant="ghost" onClick={() => setScannerOpen(true)} disabled={lookingUp}>
+              <Icon name="search" className="h-4 w-4" />
+              {lookingUp ? "Aranıyor…" : "Barkod Tara"}
+            </Btn>
+            <Btn onClick={openCreate}>
+              <Icon name="plus" className="h-4 w-4" />
+              Yeni Ürün
+            </Btn>
+          </div>
         )}
       </div>
 
@@ -157,7 +223,7 @@ export default function UrunlerPage() {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[720px] text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
                   <th className="px-5 py-3.5">Ürün</th>
@@ -178,9 +244,12 @@ export default function UrunlerPage() {
                   return (
                     <tr key={p.id} className="align-top hover:bg-ink/2">
                       <td className="px-5 py-4">
-                        <p className="font-bold text-ink">{p.name}</p>
+                        <Link href={`/panel/urunler/${p.id}`} className="font-bold text-ink hover:text-brand">
+                          {p.name}
+                        </Link>
                         <p className="text-xs text-ink/45">
                           {p.sku || "SKU yok"} · {p.unit}
+                          {p.serialized && " · seri takipli"}
                         </p>
                       </td>
                       <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
@@ -248,6 +317,13 @@ export default function UrunlerPage() {
         </div>
       )}
 
+      <BarcodeScannerModal
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleBarcodeScan}
+        title="Ürün Barkodu Tara"
+      />
+
       {(creating || editing) && isAdmin && (
         <Modal
           open
@@ -258,12 +334,28 @@ export default function UrunlerPage() {
           title={editing ? "Ürünü Düzenle" : "Yeni Ürün"}
         >
           <form onSubmit={save} className="space-y-4">
+            {notice && (
+              <p className="rounded-xl bg-brand/5 px-4 py-3 text-xs text-ink/60">{notice}</p>
+            )}
             <Field label="Ürün / hizmet adı">
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="Örn: Hikvision 4MP IP Kamera"
               />
+            </Field>
+            <Field label="Kutu barkodu (EAN/UPC)">
+              <div className="flex gap-2">
+                <Input
+                  value={form.barcode}
+                  onChange={(e) => setForm((f) => ({ ...f, barcode: e.target.value }))}
+                  placeholder="Opsiyonel — sonra da eklenebilir"
+                  className="flex-1"
+                />
+                <Btn type="button" variant="ghost" onClick={() => setFieldScannerOpen(true)}>
+                  <Icon name="search" className="h-4 w-4" />
+                </Btn>
+              </div>
             </Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Kategori">
@@ -301,13 +393,45 @@ export default function UrunlerPage() {
                 />
               </Field>
             </div>
-            <Field label="Stok adedi">
-              <Input
-                type="number"
-                value={form.stockQty}
-                onChange={(e) => setForm((f) => ({ ...f, stockQty: e.target.value }))}
+
+            <label className="flex items-center gap-2.5 rounded-xl border border-ink/10 bg-surface px-3.5 py-3">
+              <input
+                type="checkbox"
+                checked={form.serialized}
+                onChange={(e) => setForm((f) => ({ ...f, serialized: e.target.checked }))}
+                className="h-4 w-4 accent-brand"
               />
-            </Field>
+              <span className="text-sm text-ink">
+                <span className="font-semibold">Seri numaralı takip</span>
+                <span className="block text-xs text-ink/50">
+                  Her fiziksel cihaz ayrı seri numarasıyla izlenir (kamera, DVR/NVR gibi). Kablo/
+                  sarf malzemede kapalı bırakın.
+                </span>
+              </span>
+            </label>
+
+            {form.serialized ? (
+              <p className="rounded-xl bg-surface px-4 py-3 text-xs text-ink/55">
+                Stok adedi artık seri numaralarından otomatik hesaplanır.
+                {editing && (
+                  <>
+                    {" "}
+                    <Link href={`/panel/urunler/${editing.id}`} className="font-semibold text-brand">
+                      Seri numaralarını yönet →
+                    </Link>
+                  </>
+                )}
+              </p>
+            ) : (
+              <Field label="Stok adedi">
+                <Input
+                  type="number"
+                  value={form.stockQty}
+                  onChange={(e) => setForm((f) => ({ ...f, stockQty: e.target.value }))}
+                />
+              </Field>
+            )}
+
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn
                 variant="ghost"
@@ -325,6 +449,16 @@ export default function UrunlerPage() {
           </form>
         </Modal>
       )}
+
+      <BarcodeScannerModal
+        open={fieldScannerOpen}
+        onClose={() => setFieldScannerOpen(false)}
+        onScan={(code) => {
+          setForm((f) => ({ ...f, barcode: code }));
+          setFieldScannerOpen(false);
+        }}
+        title="Barkod Tara"
+      />
     </div>
   );
 }

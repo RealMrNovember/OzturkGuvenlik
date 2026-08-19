@@ -32,6 +32,7 @@ const nav = [
   { href: "/panel/kasa", label: "Kasa", icon: "wallet" as const },
   { href: "/panel/urunler", label: "Ürünler", icon: "box" as const },
   { href: "/panel/personel", label: "Personel", icon: "shield" as const },
+  { href: "/panel/ayarlar", label: "Site Ayarları", icon: "palette" as const, adminOnly: true },
 ];
 
 function SidebarLinks({
@@ -41,9 +42,10 @@ function SidebarLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
+  const role = usePanelRole();
   return (
     <nav className="flex flex-col gap-1" aria-label="Panel menüsü">
-      {nav.map((item) => {
+      {nav.filter((item) => !item.adminOnly || role === "admin").map((item) => {
         const active =
           item.href === "/panel" ? pathname === "/panel" : pathname.startsWith(item.href);
         return (

@@ -242,6 +242,14 @@ const paths: Record<IconName, React.ReactNode> = {
   wrench: (
     <path d="M14.7 6.3a4 4 0 0 0-5.6 5.6L2 19l3 3 7.1-7.1a4 4 0 0 0 5.6-5.6l-2.8 2.8-2-2z" />
   ),
+  palette: (
+    <>
+      <path d="M12 22a10 10 0 1 1 0-20 8 8 0 0 1 8 8c0 1.66-1.34 3-3 3h-2.17a1.83 1.83 0 0 0-1.3 3.12c.4.4.63.94.63 1.5 0 1.32-1.2 2.31-2.47 2.31Q12.5 22 12 22Z" />
+      <circle cx="6.5" cy="11.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="9.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+      <circle cx="14.5" cy="7.5" r="1.2" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {

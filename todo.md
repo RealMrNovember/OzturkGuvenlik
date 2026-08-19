@@ -130,7 +130,7 @@ mi, kaydırırken mi, yukarı mı aşağı mı yoksa yana mı) olduğunu
 söyle — canlı sistemde körlemesine daha fazla değişiklik yapmak yerine
 kesin sebebi bulup tek seferde doğru düzeltmek istiyorum.
 
-### 🔜 Faz 3c — Seri numaralı envanter takibi
+### ✅ Faz 3c — Seri numaralı envanter takibi (TAMAMLANDI — 2026-08-20)
 
 Müşteri senaryosu: 6 kamera + 1 DVR kurulacak. Hangi **fiziksel**
 cihazların (seri numarasına kadar) hangi işte kullanıldığını kayıt
@@ -181,10 +181,15 @@ servis kalem editöründe seri takipli ürün seçilince adet input'u
 yerine mevcut stoktaki seri numaralarının aranabilir çoklu seçim
 listesi.
 
-Mevcut basit adet sistemini **bozmadan** üstüne ekleniyor — seri
-takibi kapalı ürünlerde hiçbir şey değişmiyor.
+Mevcut basit adet sistemini **bozmadan** üstüne eklendi — seri
+takibi kapalı ürünlerde hiçbir şey değişmedi. Yukarıdaki tasarımın
+tamamı ([lib/stock.ts](lib/stock.ts), `product_units` tablosu,
+[JobItemsEditor.tsx](components/panel/JobItemsEditor.tsx) içindeki
+`SerialUnitPicker`) plana birebir uygun şekilde uygulandı; ek olarak
+`StockConflictError` ile eşzamanlı iki kullanıcının aynı seri
+numarasını seçmesi durumu 409 hatasıyla engellendi.
 
-### 🔜 Faz 3d — Barkod ile stok girişi (Faz 3c'ye bağımlı)
+### ✅ Faz 3d — Barkod ile stok girişi (TAMAMLANDI — 2026-08-20)
 
 İki ayrı barkod hedefi var, ikisi de aynı tarama bileşenini kullanır:
 
@@ -219,6 +224,49 @@ yoksa global sorgu sonucu döner (bulunamazsa `null`, form boş açılır).
 **UI:** Ürünler sayfasında "Barkod Tara" butonu (kamera erişimi ister),
 ürün formunda barkod alanı; iş/servis kalem editöründe seri no alanı
 için de aynı tarayıcı bileşeni.
+
+**Uygulamada planla tek farkı**: global sorgu için EAN-Search.org
+yerine [UPCitemdb.com](https://www.upcitemdb.com) trial uç noktası
+kullanıldı — API anahtarı gerektirmiyor (~100 sorgu/gün limit, bu
+hacim için yeterli), kullanıcı tarafında hesap açma adımı ortadan
+kalktı. Kamera taraması `html5-qrcode` paketiyle yapıldı
+([BarcodeScanner.tsx](components/panel/BarcodeScanner.tsx)),
+`continuous` modda art arda tarama destekliyor (toplu seri no girişi
+için). Kutu barkodu (`products.barcode`, ürün başına tekil) ile
+cihaz üzerindeki seri no (`product_units.serialNumber`, ürün+seri no
+birleşiminde tekil) veritabanı seviyesinde ayrı `UNIQUE` kısıtlarıyla
+korunuyor — plandaki "kutuda ki barkod ayrı, cihazdaki ayrı" ayrımı
+şema seviyesinde de netleştirildi.
+
+### ✅ Faz 3e — Marka görünürlüğü + Site Ayarları (TAMAMLANDI — 2026-08-20)
+
+- [x] **Anasayfa marka logoları**: eski siteden bulunan iş ortağı
+      logoları (UNV, ZKTeco, Seagate, Western Digital, TP-Link —
+      `public/images/brands/`, daha önce hazırlanmış ama hiç
+      kullanılmamışlar) anasayfada profesyonel bir statik şerit
+      olarak sergileniyor — hairline-divided grid, grayscale→renkli
+      hover geçişi. (İlk denemede eski sitedeki gibi kayan/marquee
+      bir tasarım yapıldı, kullanıcı "marquee değil, profesyonelce"
+      diye düzeltti — statik gösterime çevrildi.)
+      [BrandsShowcase.tsx](components/BrandsShowcase.tsx)
+- [x] **Site Ayarları paneli**: yeni `site_settings` tablosu (tekil
+      satır, id=1), admin-only `GET/PATCH /api/site-settings`,
+      `/panel/ayarlar` sayfası (nav'da yalnızca admin'e görünür) —
+      admin ana marka rengi ve açık/vurgu rengini renk seçici + hex
+      girişiyle değiştirebiliyor, canlı önizleme var.
+      [lib/site-settings.ts](lib/site-settings.ts)
+- [x] **Tema renginin siteye yayılması**: kayıtlı renkler root
+      layout'ta (`app/layout.tsx`) `<html>` elemanının inline
+      `style`'ına (`--color-brand`, `--color-brand-light`) yazılıyor
+      — Tailwind v4'ün `@theme` ile ürettiği tüm `bg-brand`/
+      `text-brand-light` sınıfları bu değişkenleri kullandığı için
+      hem public site hem panel aynı anda etkileniyor. Kayıt anında
+      `revalidatePath("/", "layout")` çağrılıyor, yeniden deploy
+      gerekmeden anında yayına yansıyor.
+- [x] Local'de uçtan uca doğrulandı: rengi kırmızıya çevirip CTA
+      butonunun gerçekten `rgb(192,57,43)` render ettiği
+      `getComputedStyle` ile teyit edildi, sonra varsayılana
+      döndürüldü.
 
 ### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
 

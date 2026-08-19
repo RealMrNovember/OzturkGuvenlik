@@ -10,6 +10,8 @@ import {
   numeric,
   jsonb,
   integer as pgInteger,
+  uniqueIndex,
+  type AnyPgColumn,
 } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
@@ -97,10 +99,38 @@ export const products = pgTable("products", {
   // maliyeti değil satış fiyatını görür.
   costPrice: numeric("cost_price", { precision: 12, scale: 2 }).notNull().default("0"),
   salePrice: numeric("sale_price", { precision: 12, scale: 2 }).notNull().default("0"),
+  // Seri takipsiz ürünlerde elle girilir. Seri takipli ürünlerde (serialized:
+  // true) bu alan artık kaynak değil — gerçek stok product_units'teki
+  // status='stokta' satır sayısından hesaplanır (bkz. app/api/products/route.ts).
   stockQty: integer("stock_qty").notNull().default(0),
+  // Kutu üzerindeki EAN/UPC — barkod taranınca ürünü eşleştirmek için.
+  barcode: varchar("barcode", { length: 64 }).unique(),
+  // true ise bu ürün tek tek fiziksel birim (seri no) olarak takip edilir
+  // (product_units), stok adedi elle değil taranan/eklenen seri sayısından gelir.
+  serialized: boolean("serialized").notNull().default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const productUnits = pgTable("product_units", {
+  id: serial("id").primaryKey(),
+  productId: integer("product_id")
+    .notNull()
+    .references(() => products.id, { onDelete: "cascade" }),
+  // Cihazın ÜZERİNDEKİ seri no/QR — kutu barkodundan (products.barcode) ayrı.
+  serialNumber: varchar("serial_number", { length: 120 }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("stokta"), // stokta | kuruldu | arizali | iade
+  jobId: integer("job_id").references((): AnyPgColumn => jobs.id, { onDelete: "set null" }),
+  serviceTicketId: integer("service_ticket_id").references(
+    (): AnyPgColumn => serviceTickets.id,
+    { onDelete: "set null" }
+  ),
+  note: text("note").default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  installedAt: timestamp("installed_at"),
+}, (table) => [
+  uniqueIndex("product_units_product_serial_unique").on(table.productId, table.serialNumber),
+]);
 
 export const offers = pgTable("offers", {
   id: serial("id").primaryKey(),
@@ -209,6 +239,14 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  brandColor: varchar("brand_color", { length: 7 }).notNull().default("#0e6fb8"),
+  brandLightColor: varchar("brand_light_color", { length: 7 }).notNull().default("#40a0e0"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Customer = typeof customers.$inferSelect;
@@ -223,9 +261,14 @@ export type ServiceTicket = typeof serviceTickets.$inferSelect;
 export type Invoice = typeof invoices.$inferSelect;
 export type Transaction = typeof transactions.$inferSelect;
 export type Product = typeof products.$inferSelect;
+export type ProductUnit = typeof productUnits.$inferSelect;
+export type SiteSettings = typeof siteSettings.$inferSelect;
 
 /** Bu adedin altındaki stok "kritik" sayılır (bkz. /panel/urunler, dashboard). */
 export const LOW_STOCK_THRESHOLD = 5;
+
+export const PRODUCT_UNIT_STATUSES = ["stokta", "kuruldu", "arizali", "iade"] as const;
+export type ProductUnitStatus = (typeof PRODUCT_UNIT_STATUSES)[number];
 
 export type OfferItem = {
   name: string;
@@ -238,6 +281,8 @@ export type JobItem = {
   productId: number;
   qty: number;
   name: string;
+  /** Seri takipli ürünlerde kullanılan product_units.id listesi — doluysa qty === unitIds.length. */
+  unitIds?: number[];
 };
 
 export const REQUEST_STATUSES = [

@@ -123,11 +123,18 @@ export const updateOfferSchema = z.object({
   note: z.string().trim().max(2000).optional(),
 });
 
-export const jobItemSchema = z.object({
-  productId: z.number().int().positive(),
-  qty: z.number().positive().max(100000),
-  name: z.string().trim().max(200).optional().default(""),
-});
+export const jobItemSchema = z
+  .object({
+    productId: z.number().int().positive(),
+    qty: z.number().positive().max(100000),
+    name: z.string().trim().max(200).optional().default(""),
+    // Seri takipli ürünlerde: kullanılan product_units.id listesi.
+    unitIds: z.array(z.number().int().positive()).max(500).optional(),
+  })
+  .refine((v) => !v.unitIds || v.unitIds.length === v.qty, {
+    message: "Seçilen seri numarası sayısı adetle eşleşmiyor",
+    path: ["unitIds"],
+  });
 
 export const createJobSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
@@ -256,6 +263,8 @@ export const createProductSchema = z.object({
   costPrice: z.number().nonnegative().max(100_000_000).optional().default(0),
   salePrice: z.number().nonnegative().max(100_000_000),
   stockQty: z.number().int().optional().default(0),
+  barcode: z.string().trim().max(64).optional().default(""),
+  serialized: z.boolean().optional().default(false),
   active: z.boolean().optional().default(true),
 });
 
@@ -267,7 +276,22 @@ export const updateProductSchema = z.object({
   costPrice: z.number().nonnegative().max(100_000_000).optional(),
   salePrice: z.number().nonnegative().max(100_000_000).optional(),
   stockQty: z.number().int().optional(),
+  barcode: z.string().trim().max(64).optional(),
+  serialized: z.boolean().optional(),
   active: z.boolean().optional(),
+});
+
+export const bulkAddProductUnitsSchema = z.object({
+  serialNumbers: z
+    .array(z.string().trim().min(1).max(120))
+    .min(1, "En az bir seri numarası gerekli")
+    .max(500),
+});
+
+export const updateProductUnitSchema = z.object({
+  serialNumber: z.string().trim().min(1).max(120).optional(),
+  status: z.enum(["stokta", "kuruldu", "arizali", "iade"]).optional(),
+  note: z.string().trim().max(1000).optional(),
 });
 
 export const createTransactionSchema = z.object({
@@ -315,4 +339,14 @@ export const updateTransactionSchema = z.object({
 export const loginSchema = z.object({
   email: z.string().email("E-posta geçersiz").max(190),
   password: z.string().min(1, "Şifre gerekli").max(100),
+});
+
+const hexColor = z
+  .string()
+  .trim()
+  .regex(/^#[0-9a-fA-F]{6}$/, "Renk #rrggbb formatında olmalı");
+
+export const updateSiteSettingsSchema = z.object({
+  brandColor: hexColor.optional(),
+  brandLightColor: hexColor.optional(),
 });

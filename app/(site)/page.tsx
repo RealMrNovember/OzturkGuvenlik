@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { SectionHeading } from "@/components/SectionHeading";
 import { ReviewsSection } from "@/components/ReviewsSection";
+import { BrandsShowcase } from "@/components/BrandsShowcase";
 import { CtaBand } from "@/components/CtaBand";
 
 export const metadata: Metadata = {
@@ -19,14 +20,6 @@ const trustChips = [
   { label: "Google 5.0 puan", icon: "star" as const },
   { label: "33+ gerçek yorum", icon: "whatsapp" as const },
   { label: "Yenibosna · İstanbul geneli", icon: "pin" as const },
-];
-
-const brands = [
-  { name: "UNV", src: "/images/brands/unv.png" },
-  { name: "ZKTeco", src: "/images/brands/zkteco.png" },
-  { name: "Seagate", src: "/images/brands/seagate.png" },
-  { name: "Western Digital", src: "/images/brands/wd.png" },
-  { name: "TP-Link", src: "/images/brands/tplink.png" },
 ];
 
 export default function HomePage() {
@@ -214,30 +207,7 @@ export default function HomePage() {
       <ReviewsSection />
 
       {/* BRANDS */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
-          <Reveal>
-            <p className="text-center text-xs font-semibold uppercase tracking-widest text-ink/40">
-              Kurulumlarımızda kullandığımız başlıca markalar
-            </p>
-            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              {brands.map((brand) => (
-                <div
-                  key={brand.name}
-                  className="flex h-16 w-32 items-center justify-center rounded-xl border border-ink/10 bg-surface px-5 grayscale transition-all duration-300 hover:grayscale-0 hover:border-ink/20 sm:w-36"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={brand.src}
-                    alt={brand.name}
-                    className="max-h-8 w-full object-contain"
-                  />
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </div>
-      </section>
+      <BrandsShowcase />
 
       {/* MAP + CONTACT */}
       <section id="adres" className="bg-surface">

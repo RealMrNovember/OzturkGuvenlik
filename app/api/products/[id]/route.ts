@@ -1,6 +1,6 @@
 import { db } from "@/lib/db";
 import { products } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { updateProductSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
@@ -20,6 +20,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   const parsed = updateProductSchema.safeParse(body);
   if (!parsed.success) {
     return jsonErr(parsed.error.issues[0]?.message ?? "Geçersiz istek");
+  }
+
+  if (parsed.data.barcode) {
+    const [existing] = await db
+      .select({ id: products.id })
+      .from(products)
+      .where(and(eq(products.barcode, parsed.data.barcode), ne(products.id, numericId)))
+      .limit(1);
+    if (existing) return jsonErr("Bu barkod zaten başka bir ürüne kayıtlı", 409);
   }
 
   const set: Record<string, unknown> = { ...parsed.data };
