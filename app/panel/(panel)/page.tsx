@@ -13,10 +13,21 @@ import {
   REQUEST_STATUS_LABEL,
   APPOINTMENT_STATUS_LABEL,
   fmtDateTime,
+  fmtDate,
+  fmtMoney,
 } from "@/components/panel/ui";
 
 type DashboardData = {
-  counts: { newRequests: number; awaitingCalls: number; activeJobs: number };
+  counts: {
+    newRequests: number;
+    awaitingCalls: number;
+    openJobs: number;
+    todayAppointments: number;
+    pendingOffers: number;
+    pendingInvoices: number;
+  };
+  finance: { monthIncome: number; monthExpense: number; monthNet: number };
+  pendingInvoices: { id: number; number: string; total: string; dueDate: string | null; customerName: string | null }[];
   recentRequests: {
     id: number;
     name: string;
@@ -59,25 +70,32 @@ export default function PanelPage() {
 
   const statCards = [
     {
-      label: "Yeni keşif talebi",
-      value: data.counts.newRequests,
-      href: "/panel/talepler?status=yeni",
-      icon: "arrow" as const,
-      tone: "bg-brand/10 text-brand",
-    },
-    {
-      label: "Aranacak talep",
-      value: data.counts.awaitingCalls,
-      href: "/panel/talepler?status=aranacak",
-      icon: "phone" as const,
-      tone: "bg-amber-500/10 text-amber-700",
-    },
-    {
-      label: "Devam eden iş",
-      value: data.counts.activeJobs,
+      label: "Açık iş",
+      value: data.counts.openJobs,
       href: "/panel/isler",
       icon: "briefcase" as const,
       tone: "bg-violet-500/10 text-violet-700",
+    },
+    {
+      label: "Bugünkü randevu",
+      value: data.counts.todayAppointments,
+      href: "/panel/randevular",
+      icon: "calendar" as const,
+      tone: "bg-brand/10 text-brand",
+    },
+    {
+      label: "Bekleyen teklif",
+      value: data.counts.pendingOffers,
+      href: "/panel/teklifler",
+      icon: "file" as const,
+      tone: "bg-amber-500/10 text-amber-700",
+    },
+    {
+      label: "Bekleyen tahsilat",
+      value: data.counts.pendingInvoices,
+      href: "/panel/faturalar",
+      icon: "receipt" as const,
+      tone: "bg-red-500/10 text-red-600",
     },
   ];
 
@@ -88,7 +106,7 @@ export default function PanelPage() {
         <p className="mt-1 text-sm text-ink/55">Bugüne genel bakış</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((s) => (
           <Link
             key={s.label}
@@ -104,6 +122,32 @@ export default function PanelPage() {
             </div>
           </Link>
         ))}
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Link
+          href="/panel/kasa"
+          className="rounded-2xl border border-ink/8 bg-ink p-6 shadow-sm transition-all hover:-translate-y-0.5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-white/50">Bu ay ciro</p>
+          <p className="mt-2 text-3xl font-black text-white">{fmtMoney(data.finance.monthIncome)}</p>
+        </Link>
+        <Link
+          href="/panel/kasa"
+          className="rounded-2xl border border-ink/8 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink/45">
+            Bu ay tahmini kâr
+          </p>
+          <p
+            className={`mt-2 text-3xl font-black ${data.finance.monthNet >= 0 ? "text-emerald-600" : "text-red-500"}`}
+          >
+            {fmtMoney(data.finance.monthNet)}
+          </p>
+          <p className="mt-1 text-xs text-ink/40">
+            Gelir {fmtMoney(data.finance.monthIncome)} − Gider {fmtMoney(data.finance.monthExpense)}
+          </p>
+        </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
@@ -123,6 +167,29 @@ export default function PanelPage() {
                 </div>
                 <StatusBadge status={a.status} labels={APPOINTMENT_STATUS_LABEL} />
               </div>
+            ))
+          )}
+        </Card>
+
+        <Card title="Tahsilat bekleyen faturalar" action={<Link href="/panel/faturalar" className="text-xs font-semibold text-brand">Tümü →</Link>}>
+          {data.pendingInvoices.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-ink/50">Bekleyen tahsilat yok.</div>
+          ) : (
+            data.pendingInvoices.map((inv) => (
+              <Link
+                key={inv.id}
+                href="/panel/faturalar"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink/2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{inv.number}</p>
+                  <p className="truncate text-xs text-ink/50">
+                    {inv.customerName ?? "Müşteri yok"}
+                    {inv.dueDate ? ` · Vade ${fmtDate(inv.dueDate)}` : ""}
+                  </p>
+                </div>
+                <p className="shrink-0 font-bold text-ink">{fmtMoney(inv.total)}</p>
+              </Link>
             ))
           )}
         </Card>
@@ -149,32 +216,32 @@ export default function PanelPage() {
             ))
           )}
         </Card>
-      </div>
 
-      <Card title="Önümüzdeki 7 gün — planlanan randevular">
-        {data.upcomingAppointments.length === 0 ? (
-          <div className="px-5 py-8 text-sm text-ink/50">
-            Önümüzdeki hafta planlanmış randevu yok.
-            <Link href="/panel/randevular" className="ml-2 font-semibold text-brand">
-              Randevu oluştur
-            </Link>
-          </div>
-        ) : (
-          data.upcomingAppointments.map((a) => (
-            <div key={a.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
-              <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-ink">
-                  {a.date} · {a.time} — {a.title || a.customerName || "Randevu"}
-                </p>
-                <p className="text-xs text-ink/50">
-                  {a.customerName ?? "Müşteri yok"} · {a.assignedName ?? "Atanmadı"}
-                </p>
-              </div>
-              <Badge tone="brand">Planlandı</Badge>
+        <Card title="Önümüzdeki 7 gün — planlanan randevular">
+          {data.upcomingAppointments.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-ink/50">
+              Önümüzdeki hafta planlanmış randevu yok.
+              <Link href="/panel/randevular" className="ml-2 font-semibold text-brand">
+                Randevu oluştur
+              </Link>
             </div>
-          ))
-        )}
-      </Card>
+          ) : (
+            data.upcomingAppointments.map((a) => (
+              <div key={a.id} className="flex items-center justify-between gap-3 px-5 py-3.5">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">
+                    {a.date} · {a.time} — {a.title || a.customerName || "Randevu"}
+                  </p>
+                  <p className="text-xs text-ink/50">
+                    {a.customerName ?? "Müşteri yok"} · {a.assignedName ?? "Atanmadı"}
+                  </p>
+                </div>
+                <Badge tone="brand">Planlandı</Badge>
+              </div>
+            ))
+          )}
+        </Card>
+      </div>
     </div>
   );
 }

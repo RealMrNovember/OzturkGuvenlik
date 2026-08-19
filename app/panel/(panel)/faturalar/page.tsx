@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
@@ -17,61 +16,72 @@ import {
   Select,
   StatusBadge,
   Textarea,
-  OFFER_STATUS_LABEL,
   fmtDate,
   fmtDateTime,
   fmtMoney,
 } from "@/components/panel/ui";
 
-type OfferRow = {
+const INVOICE_STATUS_LABEL: Record<string, string> = {
+  taslak: "Taslak",
+  gonderildi: "Gönderildi",
+  odendi: "Ödendi",
+  iptal: "İptal",
+};
+
+type InvoiceRow = {
   id: number;
+  number: string;
   customerId: number | null;
-  requestId: number | null;
-  title: string;
+  jobId: number | null;
+  offerId: number | null;
   items: { name: string; qty: number; unitPrice: number; productId?: number | null }[];
   taxRate: string;
   total: string;
   status: string;
-  sentDate: string | null;
+  issueDate: string;
+  dueDate: string | null;
+  paidDate: string | null;
   note: string;
   createdAt: string;
   customerName: string | null;
   customerPhone: string | null;
+  jobTitle: string | null;
 };
 
 type CustomerRow = { id: number; name: string; phone: string };
+type JobRow = { id: number; title: string };
 
-export default function TekliflerPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
-
-  const [rows, setRows] = useState<OfferRow[]>([]);
+export default function FaturalarPage() {
+  const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
+  const [jobs, setJobs] = useState<JobRow[]>([]);
   const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [editing, setEditing] = useState<OfferRow | null>(null);
+  const [editing, setEditing] = useState<InvoiceRow | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [viewing, setViewing] = useState<OfferRow | null>(null);
+  const [viewing, setViewing] = useState<InvoiceRow | null>(null);
 
-  const [title, setTitle] = useState("");
   const [customerId, setCustomerId] = useState("");
-  const [status, setStatus] = useState("tasarim");
-  const [sentDate, setSentDate] = useState("");
+  const [jobId, setJobId] = useState("");
+  const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
+  const [dueDate, setDueDate] = useState("");
   const [note, setNote] = useState("");
   const [taxRate, setTaxRate] = useState("20");
   const [items, setItems] = useState<ItemForm[]>([emptyItem()]);
 
   const load = useCallback(async () => {
     try {
-      const [offers, custs, prods] = await Promise.all([
-        api<OfferRow[]>("/api/offers"),
+      const [inv, custs, jobRows, prods] = await Promise.all([
+        api<InvoiceRow[]>("/api/invoices"),
         api<CustomerRow[]>("/api/customers"),
+        api<JobRow[]>("/api/jobs"),
         api<ProductOption[]>("/api/products"),
       ]);
-      setRows(offers);
+      setRows(inv);
       setCustomers(custs);
+      setJobs(jobRows);
       setProducts(prods);
     } catch (e) {
       setError((e as Error).message);
@@ -86,10 +96,10 @@ export default function TekliflerPage() {
   }, [load]);
 
   const resetForm = () => {
-    setTitle("");
     setCustomerId("");
-    setStatus("tasarim");
-    setSentDate("");
+    setJobId("");
+    setIssueDate(new Date().toISOString().slice(0, 10));
+    setDueDate("");
     setNote("");
     setTaxRate("20");
     setItems([emptyItem()]);
@@ -100,11 +110,11 @@ export default function TekliflerPage() {
     setCreating(true);
   };
 
-  const openEdit = (row: OfferRow) => {
-    setTitle(row.title);
+  const openEdit = (row: InvoiceRow) => {
     setCustomerId(row.customerId ? String(row.customerId) : "");
-    setStatus(row.status);
-    setSentDate(row.sentDate ?? "");
+    setJobId(row.jobId ? String(row.jobId) : "");
+    setIssueDate(row.issueDate);
+    setDueDate(row.dueDate ?? "");
     setNote(row.note);
     setTaxRate(row.taxRate);
     setItems(
@@ -135,22 +145,22 @@ export default function TekliflerPage() {
     setSaving(true);
     setError("");
     const payload = {
-      title,
       customerId: customerId ? Number(customerId) : null,
+      jobId: jobId ? Number(jobId) : null,
       items: cleanItems,
       taxRate: Number(taxRate) || 0,
-      status,
-      sentDate: sentDate || null,
+      issueDate,
+      dueDate: dueDate || null,
       note,
     };
     try {
       if (editing) {
-        await api(`/api/offers/${editing.id}`, {
+        await api(`/api/invoices/${editing.id}`, {
           method: "PATCH",
           body: JSON.stringify(payload),
         });
       } else {
-        await api("/api/offers", { method: "POST", body: JSON.stringify(payload) });
+        await api("/api/invoices", { method: "POST", body: JSON.stringify(payload) });
       }
       setCreating(false);
       setEditing(null);
@@ -162,10 +172,22 @@ export default function TekliflerPage() {
     }
   };
 
-  const remove = async (row: OfferRow) => {
-    if (!confirm(`${row.title || `#${row.id}`} silinsin mi?`)) return;
+  const remove = async (row: InvoiceRow) => {
+    if (!confirm(`${row.number} silinsin mi?`)) return;
     try {
-      await api(`/api/offers/${row.id}`, { method: "DELETE" });
+      await api(`/api/invoices/${row.id}`, { method: "DELETE" });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const setStatus = async (row: InvoiceRow, status: string) => {
+    try {
+      await api(`/api/invoices/${row.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ status }),
+      });
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -176,12 +198,12 @@ export default function TekliflerPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Teklifler</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Faturalar</h1>
           <p className="mt-1 text-sm text-ink/55">{rows.length} kayıt</p>
         </div>
         <Btn onClick={openCreate}>
           <Icon name="plus" className="h-4 w-4" />
-          Yeni Teklif
+          Yeni Fatura
         </Btn>
       </div>
 
@@ -190,73 +212,62 @@ export default function TekliflerPage() {
       {loading ? (
         <Loading />
       ) : rows.length === 0 ? (
-        <EmptyState title="Teklif yok" desc="Yeni teklif oluşturarak başlayın." />
+        <EmptyState title="Fatura yok" desc="Yeni fatura oluşturarak başlayın." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[780px] text-left text-sm">
+            <table className="w-full min-w-[860px] text-left text-sm">
               <thead>
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
-                  <th className="px-5 py-3.5">Teklif</th>
+                  <th className="px-5 py-3.5">Fatura No</th>
                   <th className="px-5 py-3.5">Müşteri</th>
                   <th className="px-5 py-3.5">Tutar</th>
                   <th className="px-5 py-3.5">Durum</th>
-                  <th className="px-5 py-3.5">Gönderim</th>
+                  <th className="px-5 py-3.5">Vade</th>
                   <th className="px-5 py-3.5 text-right">İşlem</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/6">
-                {rows.map((o) => (
-                  <tr key={o.id} className="align-top hover:bg-ink/2">
+                {rows.map((inv) => (
+                  <tr key={inv.id} className="align-top hover:bg-ink/2">
                     <td className="px-5 py-4">
-                      <button type="button" onClick={() => setViewing(o)} className="text-left">
-                        <p className="font-bold text-ink hover:text-brand">
-                          {o.title || `Teklif #${o.id}`}
-                        </p>
+                      <button type="button" onClick={() => setViewing(inv)} className="text-left">
+                        <p className="font-bold text-ink hover:text-brand">{inv.number}</p>
                         <p className="text-xs text-ink/45">
-                          {o.items.length} kalem · {fmtDateTime(o.createdAt)}
+                          {fmtDate(inv.issueDate)}
+                          {inv.jobTitle ? ` · ${inv.jobTitle}` : ""}
                         </p>
                       </button>
                     </td>
                     <td className="px-5 py-4">
-                      <p className="text-ink/85">{o.customerName ?? "-"}</p>
-                      {o.customerPhone && (
-                        <p className="text-xs text-ink/45">{o.customerPhone}</p>
+                      <p className="text-ink/85">{inv.customerName ?? "-"}</p>
+                      {inv.customerPhone && (
+                        <p className="text-xs text-ink/45">{inv.customerPhone}</p>
                       )}
                     </td>
-                    <td className="px-5 py-4 font-bold text-ink">{fmtMoney(o.total)}</td>
+                    <td className="px-5 py-4 font-bold text-ink">{fmtMoney(inv.total)}</td>
                     <td className="px-5 py-4">
                       <Select
-                        value={o.status}
-                        onChange={async (e) => {
-                          try {
-                            await api(`/api/offers/${o.id}`, {
-                              method: "PATCH",
-                              body: JSON.stringify({ status: e.target.value }),
-                            });
-                            await load();
-                          } catch (err) {
-                            setError((err as Error).message);
-                          }
-                        }}
+                        value={inv.status}
+                        onChange={(e) => setStatus(inv, e.target.value)}
                         className="w-36 py-1.5 text-xs"
                         aria-label="Durum"
                       >
-                        {Object.keys(OFFER_STATUS_LABEL).map((s) => (
+                        {Object.keys(INVOICE_STATUS_LABEL).map((s) => (
                           <option key={s} value={s}>
-                            {OFFER_STATUS_LABEL[s]}
+                            {INVOICE_STATUS_LABEL[s]}
                           </option>
                         ))}
                       </Select>
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-ink/55">
-                      {o.sentDate ? fmtDate(o.sentDate) : "-"}
+                      {inv.dueDate ? fmtDate(inv.dueDate) : "-"}
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-right">
                       <div className="flex justify-end gap-1.5">
                         <button
                           type="button"
-                          onClick={() => setViewing(o)}
+                          onClick={() => setViewing(inv)}
                           aria-label="Görüntüle"
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
                         >
@@ -264,22 +275,20 @@ export default function TekliflerPage() {
                         </button>
                         <button
                           type="button"
-                          onClick={() => openEdit(o)}
+                          onClick={() => openEdit(inv)}
                           aria-label="Düzenle"
                           className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
-                          <button
-                            type="button"
-                            onClick={() => remove(o)}
-                            aria-label="Sil"
-                            className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
-                          >
-                            <Icon name="trash" className="h-4 w-4" />
-                          </button>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => remove(inv)}
+                          aria-label="Sil"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -297,18 +306,11 @@ export default function TekliflerPage() {
             setCreating(false);
             setEditing(null);
           }}
-          title={editing ? "Teklifi Düzenle" : "Yeni Teklif"}
+          title={editing ? `${editing.number} Düzenle` : "Yeni Fatura"}
           wide
         >
           <form onSubmit={save} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Başlık">
-                <Input
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Örn: 8 kamera + NVR teklifi"
-                />
-              </Field>
               <Field label="Müşteri">
                 <CustomSelect
                   value={customerId}
@@ -318,6 +320,14 @@ export default function TekliflerPage() {
                     label: `${c.name}${c.phone ? ` · ${c.phone}` : ""}`,
                   }))}
                   placeholder="Müşteri seçin"
+                />
+              </Field>
+              <Field label="İlgili iş (opsiyonel)">
+                <CustomSelect
+                  value={jobId}
+                  onChange={setJobId}
+                  options={jobs.map((j) => ({ value: String(j.id), label: j.title || `İş #${j.id}` }))}
+                  placeholder="İş seçin"
                 />
               </Field>
             </div>
@@ -331,32 +341,23 @@ export default function TekliflerPage() {
             />
 
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Durum">
-                <Select value={status} onChange={(e) => setStatus(e.target.value)}>
-                  {Object.keys(OFFER_STATUS_LABEL).map((s) => (
-                    <option key={s} value={s}>
-                      {OFFER_STATUS_LABEL[s]}
-                    </option>
-                  ))}
-                </Select>
+              <Field label="Düzenleme tarihi">
+                <Input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} />
               </Field>
-              <Field label="Gönderim tarihi">
-                <Input
-                  type="date"
-                  value={sentDate}
-                  onChange={(e) => setSentDate(e.target.value)}
-                />
+              <Field label="Vade tarihi">
+                <Input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} />
               </Field>
               <div className="sm:col-span-2">
                 <Field label="Not">
-                  <Textarea
-                    rows={2}
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                  />
+                  <Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
                 </Field>
               </div>
             </div>
+
+            <p className="rounded-xl bg-brand/5 px-4 py-3 text-xs text-ink/60">
+              Fatura durumunu <strong>Ödendi</strong> yaptığınızda tahsilat otomatik olarak Kasa&apos;ya
+              gelir kaydı olarak düşer — ayrıca elle girmenize gerek yok.
+            </p>
 
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn
@@ -377,13 +378,14 @@ export default function TekliflerPage() {
       )}
 
       {viewing && (
-        <Modal open onClose={() => setViewing(null)} title={viewing.title || `Teklif #${viewing.id}`} wide>
+        <Modal open onClose={() => setViewing(null)} title={viewing.number} wide>
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <StatusBadge status={viewing.status} labels={OFFER_STATUS_LABEL} />
-              <p className="text-sm text-ink/55">
-                {viewing.customerName ?? "Müşteri belirtilmedi"}
-              </p>
+              <StatusBadge
+                status={viewing.status}
+                labels={INVOICE_STATUS_LABEL}
+              />
+              <p className="text-sm text-ink/55">{viewing.customerName ?? "Müşteri belirtilmedi"}</p>
             </div>
             <div className="overflow-hidden rounded-xl border border-ink/8">
               <table className="w-full text-left text-sm">
@@ -400,9 +402,7 @@ export default function TekliflerPage() {
                     <tr key={idx}>
                       <td className="px-4 py-2.5 text-ink/85">{i.name}</td>
                       <td className="px-4 py-2.5 text-center text-ink/70">{i.qty}</td>
-                      <td className="px-4 py-2.5 text-right text-ink/70">
-                        {fmtMoney(i.unitPrice)}
-                      </td>
+                      <td className="px-4 py-2.5 text-right text-ink/70">{fmtMoney(i.unitPrice)}</td>
                       <td className="px-4 py-2.5 text-right font-semibold text-ink">
                         {fmtMoney(i.qty * i.unitPrice)}
                       </td>
@@ -438,10 +438,14 @@ export default function TekliflerPage() {
                 </tfoot>
               </table>
             </div>
+            <div className="flex flex-wrap gap-4 text-xs text-ink/50">
+              <span>Düzenleme: {fmtDate(viewing.issueDate)}</span>
+              {viewing.dueDate && <span>Vade: {fmtDate(viewing.dueDate)}</span>}
+              {viewing.paidDate && <span>Ödeme: {fmtDate(viewing.paidDate)}</span>}
+              <span>Oluşturma: {fmtDateTime(viewing.createdAt)}</span>
+            </div>
             {viewing.note && (
-              <p className="rounded-xl bg-surface px-4 py-3 text-sm text-ink/70">
-                {viewing.note}
-              </p>
+              <p className="rounded-xl bg-surface px-4 py-3 text-sm text-ink/70">{viewing.note}</p>
             )}
           </div>
         </Modal>

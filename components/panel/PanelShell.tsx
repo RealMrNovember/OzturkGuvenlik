@@ -27,6 +27,9 @@ const nav = [
   { href: "/panel/musteriler", label: "Müşteriler", icon: "users" as const },
   { href: "/panel/teklifler", label: "Teklifler", icon: "file" as const },
   { href: "/panel/isler", label: "İşler", icon: "briefcase" as const },
+  { href: "/panel/faturalar", label: "Faturalar", icon: "receipt" as const },
+  { href: "/panel/kasa", label: "Kasa", icon: "wallet" as const },
+  { href: "/panel/urunler", label: "Ürünler", icon: "box" as const },
   { href: "/panel/personel", label: "Personel", icon: "shield" as const },
 ];
 
@@ -113,7 +116,7 @@ export function PanelShell({
         </div>
       )}
 
-      <div className="mx-auto flex max-w-6xl">
+      <div className="flex">
         {/* Masaüstü kenar çubuğu */}
         <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col bg-ink p-4 lg:flex">
           <Link href="/panel" className="flex items-center gap-2 px-3.5 py-3">
@@ -151,7 +154,9 @@ export function PanelShell({
           </div>
         </aside>
 
-        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:py-8">{children}</main>
+        <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:py-8">
+          <div className="mx-auto max-w-6xl">{children}</div>
+        </main>
       </div>
       </div>
     </PanelContext.Provider>

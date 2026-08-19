@@ -50,6 +50,7 @@ export const offerItemSchema = z.object({
   name: z.string().trim().min(1).max(200),
   qty: z.number().nonnegative().max(100000).default(1),
   unitPrice: z.number().nonnegative().max(100_000_000).default(0),
+  productId: z.number().int().positive().nullable().optional(),
 });
 
 export const createOfferSchema = z.object({
@@ -57,6 +58,7 @@ export const createOfferSchema = z.object({
   requestId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().max(200).optional().default(""),
   items: z.array(offerItemSchema).max(100).default([]),
+  taxRate: z.number().min(0).max(100).optional().default(20),
   status: z
     .enum(["tasarim", "gonderildi", "onaylandi", "reddedildi"])
     .optional()
@@ -109,6 +111,68 @@ export const updateUserSchema = z.object({
   active: z.boolean().optional(),
   newPassword: z.string().min(6, "Şifre en az 6 karakter").max(100).optional(),
 });
+
+export const createInvoiceSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  jobId: z.number().int().positive().nullable().optional(),
+  offerId: z.number().int().positive().nullable().optional(),
+  items: z.array(offerItemSchema).max(100).default([]),
+  taxRate: z.number().min(0).max(100).optional().default(20),
+  issueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz")
+    .optional(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  note: z.string().trim().max(2000).optional().default(""),
+});
+
+export const updateInvoiceSchema = z.object({
+  customerId: z.number().int().positive().nullable().optional(),
+  jobId: z.number().int().positive().nullable().optional(),
+  offerId: z.number().int().positive().nullable().optional(),
+  items: z.array(offerItemSchema).max(100).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  status: z.enum(["taslak", "gonderildi", "odendi", "iptal"]).optional(),
+  issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  paidDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+export const createProductSchema = z.object({
+  name: z.string().trim().min(2, "Ürün adı en az 2 karakter olmalı").max(200),
+  sku: z.string().trim().max(60).optional().default(""),
+  category: z.string().trim().max(60).optional().default(""),
+  unit: z.string().trim().min(1).max(20).optional().default("adet"),
+  costPrice: z.number().nonnegative().max(100_000_000).optional().default(0),
+  salePrice: z.number().nonnegative().max(100_000_000),
+  stockQty: z.number().int().optional().default(0),
+  active: z.boolean().optional().default(true),
+});
+
+export const updateProductSchema = createProductSchema.partial();
+
+export const createTransactionSchema = z.object({
+  type: z.enum(["gelir", "gider"], { message: "Tür gelir veya gider olmalı" }),
+  category: z.enum([
+    "is-tahsilati",
+    "diger-gelir",
+    "malzeme",
+    "yakit-ulasim",
+    "personel-maasi",
+    "kira",
+    "fatura-abonelik",
+    "diger-gider",
+  ]),
+  amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz"),
+  method: z.enum(["nakit", "havale", "kart"]).optional().default("nakit"),
+  description: z.string().trim().max(500).optional().default(""),
+  jobId: z.number().int().positive().nullable().optional(),
+  customerId: z.number().int().positive().nullable().optional(),
+});
+
+export const updateTransactionSchema = createTransactionSchema.partial();
 
 export const loginSchema = z.object({
   email: z.string().email("E-posta geçersiz").max(190),

@@ -74,6 +74,21 @@ export const appointments = pgTable("appointments", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  sku: varchar("sku", { length: 60 }).default(""),
+  category: varchar("category", { length: 60 }).default(""),
+  unit: varchar("unit", { length: 20 }).notNull().default("adet"),
+  // Alış fiyatı yalnızca admin'e döner (bkz. app/api/products/route.ts) — personel
+  // maliyeti değil satış fiyatını görür.
+  costPrice: numeric("cost_price", { precision: 12, scale: 2 }).notNull().default("0"),
+  salePrice: numeric("sale_price", { precision: 12, scale: 2 }).notNull().default("0"),
+  stockQty: integer("stock_qty").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const offers = pgTable("offers", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").references(() => customers.id, {
@@ -83,8 +98,9 @@ export const offers = pgTable("offers", {
     onDelete: "set null",
   }),
   title: varchar("title", { length: 200 }).default(""),
-  items: jsonb("items").notNull().default([]), // [{name, qty, unitPrice}]
-  total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"),
+  items: jsonb("items").notNull().default([]), // [{name, qty, unitPrice, productId?}]
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("20"),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"), // KDV dahil
   status: varchar("status", { length: 20 }).notNull().default("tasarim"), // tasarim | gonderildi | onaylandi | reddedildi
   sentDate: date("sent_date", { mode: "string" }),
   note: text("note").default(""),
@@ -114,6 +130,48 @@ export const jobs = pgTable("jobs", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  number: varchar("number", { length: 30 }).notNull().unique(),
+  customerId: integer("customer_id").references(() => customers.id, {
+    onDelete: "set null",
+  }),
+  jobId: integer("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  offerId: integer("offer_id").references(() => offers.id, {
+    onDelete: "set null",
+  }),
+  items: jsonb("items").notNull().default([]), // [{name, qty, unitPrice, productId?}]
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("20"),
+  total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"), // KDV dahil
+  status: varchar("status", { length: 20 }).notNull().default("taslak"), // taslak | gonderildi | odendi | iptal
+  issueDate: date("issue_date", { mode: "string" }).notNull(),
+  dueDate: date("due_date", { mode: "string" }),
+  paidDate: date("paid_date", { mode: "string" }),
+  note: text("note").default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const transactions = pgTable("transactions", {
+  id: serial("id").primaryKey(),
+  type: varchar("type", { length: 10 }).notNull(), // gelir | gider
+  category: varchar("category", { length: 30 }).notNull().default("diger-gider"),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  date: date("date", { mode: "string" }).notNull(),
+  method: varchar("method", { length: 20 }).notNull().default("nakit"), // nakit | havale | kart
+  description: text("description").default(""),
+  jobId: integer("job_id").references(() => jobs.id, { onDelete: "set null" }),
+  customerId: integer("customer_id").references(() => customers.id, {
+    onDelete: "set null",
+  }),
+  invoiceId: integer("invoice_id").references(() => invoices.id, {
+    onDelete: "set null",
+  }),
+  createdBy: integer("created_by").references(() => users.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Customer = typeof customers.$inferSelect;
@@ -121,8 +179,16 @@ export type ServiceRequest = typeof serviceRequests.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type Job = typeof jobs.$inferSelect;
+export type Invoice = typeof invoices.$inferSelect;
+export type Transaction = typeof transactions.$inferSelect;
+export type Product = typeof products.$inferSelect;
 
-export type OfferItem = { name: string; qty: number; unitPrice: number };
+export type OfferItem = {
+  name: string;
+  qty: number;
+  unitPrice: number;
+  productId?: number | null;
+};
 
 export const REQUEST_STATUSES = [
   "yeni",
@@ -154,3 +220,27 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 export const SOURCES = ["web", "whatsapp", "telefon", "referans", "panel"] as const;
 export type Source = (typeof SOURCES)[number];
+
+export const INVOICE_STATUSES = ["taslak", "gonderildi", "odendi", "iptal"] as const;
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+export const TRANSACTION_TYPES = ["gelir", "gider"] as const;
+export type TransactionType = (typeof TRANSACTION_TYPES)[number];
+
+export const TRANSACTION_METHODS = ["nakit", "havale", "kart"] as const;
+export type TransactionMethod = (typeof TRANSACTION_METHODS)[number];
+
+export const INCOME_CATEGORIES = ["is-tahsilati", "diger-gelir"] as const;
+export const EXPENSE_CATEGORIES = [
+  "malzeme",
+  "yakit-ulasim",
+  "personel-maasi",
+  "kira",
+  "fatura-abonelik",
+  "diger-gider",
+] as const;
+export const TRANSACTION_CATEGORIES = [
+  ...INCOME_CATEGORIES,
+  ...EXPENSE_CATEGORIES,
+] as const;
+export type TransactionCategory = (typeof TRANSACTION_CATEGORIES)[number];

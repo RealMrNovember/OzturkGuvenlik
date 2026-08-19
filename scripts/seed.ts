@@ -1,5 +1,5 @@
 import { db } from "../lib/db";
-import { customers, serviceRequests, users, appointments } from "../lib/db/schema";
+import { customers, serviceRequests, users, appointments, products } from "../lib/db/schema";
 import { eq, count } from "drizzle-orm";
 import { hashPassword } from "../lib/auth";
 
@@ -63,7 +63,24 @@ async function main() {
     }
   }
 
-  // 3) Örnek veriler (sadece veritabanı boşsa)
+  // 3) Ürün kataloğu başlangıç verisi (idempotent — sadece boşsa eklenir)
+  const [productCount] = await db.select({ n: count() }).from(products);
+  if (productCount.n === 0) {
+    await db.insert(products).values([
+      { name: "UNV 4MP IP Kamera", category: "Kamera", unit: "adet", costPrice: "1450", salePrice: "2200", stockQty: 24 },
+      { name: "UNV 8 Kanal NVR", category: "Kayıt Cihazı", unit: "adet", costPrice: "3200", salePrice: "4800", stockQty: 5 },
+      { name: "Seagate SkyHawk 2TB HDD", category: "Depolama", unit: "adet", costPrice: "1650", salePrice: "2400", stockQty: 12 },
+      { name: "TP-Link 8 Port PoE Switch", category: "Network", unit: "adet", costPrice: "2100", salePrice: "3100", stockQty: 6 },
+      { name: "ZKTeco Parmak İzi + Kart Okuyucu", category: "PDKS", unit: "adet", costPrice: "2800", salePrice: "4200", stockQty: 8 },
+      { name: "Kamera Kablolama (CAT6 + Güç)", category: "Malzeme", unit: "metre", costPrice: "12", salePrice: "22", stockQty: 850 },
+      { name: "Montaj İşçiliği", category: "Hizmet", unit: "hizmet", costPrice: "0", salePrice: "1500", stockQty: 0 },
+    ]);
+    console.log("[seed] Ürün kataloğu eklendi (7 kalem).");
+  } else {
+    console.log("[seed] Ürün kataloğu zaten var, atlanıyor.");
+  }
+
+  // 4) Örnek veriler (sadece veritabanı boşsa)
   const [reqCount] = await db.select({ n: count() }).from(serviceRequests);
   if (reqCount.n > 0) {
     console.log("[seed] Örnek veri eklenmedi (mevcut kayıtlar var).");

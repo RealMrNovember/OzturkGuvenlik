@@ -8,6 +8,13 @@
       "when": 1787156676587,
       "tag": "0000_flat_red_hulk",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1787166676747,
+      "tag": "0001_sudden_beyonder",
+      "breakpoints": true
     }
   ]
 }

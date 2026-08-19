@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { createOfferSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { itemsTotalWithTax } from "@/lib/money";
 
 export async function GET() {
   const session = await getSession();
@@ -16,6 +17,7 @@ export async function GET() {
       requestId: offers.requestId,
       title: offers.title,
       items: offers.items,
+      taxRate: offers.taxRate,
       total: offers.total,
       status: offers.status,
       sentDate: offers.sentDate,
@@ -42,14 +44,15 @@ export async function POST(req: Request) {
     return jsonErr(parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
 
-  const total = parsed.data.items.reduce(
-    (sum, item) => sum + item.qty * item.unitPrice,
-    0
-  );
+  const total = itemsTotalWithTax(parsed.data.items, parsed.data.taxRate);
 
   const [created] = await db
     .insert(offers)
-    .values({ ...parsed.data, total: String(Math.round(total * 100) / 100) })
+    .values({
+      ...parsed.data,
+      taxRate: String(parsed.data.taxRate),
+      total: String(total),
+    })
     .returning();
 
   return jsonOk(created);

@@ -21,7 +21,13 @@ const trustChips = [
   { label: "Yenibosna · İstanbul geneli", icon: "pin" as const },
 ];
 
-const brandNames = ["UNV", "ZKTeco", "Seagate", "Western Digital", "TP-Link"];
+const brands = [
+  { name: "UNV", src: "/images/brands/unv.png" },
+  { name: "ZKTeco", src: "/images/brands/zkteco.png" },
+  { name: "Seagate", src: "/images/brands/seagate.png" },
+  { name: "Western Digital", src: "/images/brands/wd.png" },
+  { name: "TP-Link", src: "/images/brands/tplink.png" },
+];
 
 export default function HomePage() {
   return (
@@ -214,14 +220,19 @@ export default function HomePage() {
             <p className="text-center text-xs font-semibold uppercase tracking-widest text-ink/40">
               Kurulumlarımızda kullandığımız başlıca markalar
             </p>
-            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-              {brandNames.map((brand) => (
-                <span
-                  key={brand}
-                  className="rounded-lg border border-ink/10 bg-surface px-5 py-2.5 text-sm font-bold text-ink/60"
+            <div className="mt-8 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+              {brands.map((brand) => (
+                <div
+                  key={brand.name}
+                  className="flex h-16 w-32 items-center justify-center rounded-xl border border-ink/10 bg-surface px-5 grayscale transition-all duration-300 hover:grayscale-0 hover:border-ink/20 sm:w-36"
                 >
-                  {brand}
-                </span>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={brand.src}
+                    alt={brand.name}
+                    className="max-h-8 w-full object-contain"
+                  />
+                </div>
               ))}
             </div>
           </Reveal>

@@ -5,8 +5,11 @@ import {
   serviceRequests,
   users,
   customers,
+  offers,
+  invoices,
+  transactions,
 } from "@/lib/db/schema";
-import { and, desc, eq, gte, lte } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lte } from "drizzle-orm";
 import { jsonOk, jsonErr } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 
@@ -18,21 +21,50 @@ export async function GET() {
   const weekFromNow = new Date(Date.now() + 7 * 24 * 3600 * 1000)
     .toISOString()
     .slice(0, 10);
+  const now = new Date();
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
-  const [newRequests, awaitingCalls, activeJobs] = await Promise.all([
-    db
-      .select({ id: serviceRequests.id })
-      .from(serviceRequests)
-      .where(eq(serviceRequests.status, "yeni")),
-    db
-      .select({ id: serviceRequests.id })
-      .from(serviceRequests)
-      .where(eq(serviceRequests.status, "aranacak")),
+  const [
+    newRequests,
+    awaitingCalls,
+    openJobs,
+    pendingOffers,
+    pendingInvoices,
+    monthTransactions,
+  ] = await Promise.all([
+    db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "yeni")),
+    db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "aranacak")),
     db
       .select({ id: jobs.id })
       .from(jobs)
-      .where(eq(jobs.status, "devam-ediyor")),
+      .where(inArray(jobs.status, ["planlandi", "devam-ediyor"])),
+    db
+      .select({ id: offers.id })
+      .from(offers)
+      .where(inArray(offers.status, ["tasarim", "gonderildi"])),
+    db
+      .select({
+        id: invoices.id,
+        number: invoices.number,
+        total: invoices.total,
+        dueDate: invoices.dueDate,
+        customerName: customers.name,
+      })
+      .from(invoices)
+      .leftJoin(customers, eq(invoices.customerId, customers.id))
+      .where(inArray(invoices.status, ["taslak", "gonderildi"])),
+    db
+      .select({ type: transactions.type, amount: transactions.amount })
+      .from(transactions)
+      .where(gte(transactions.date, monthStart)),
   ]);
+
+  const monthIncome = monthTransactions
+    .filter((t) => t.type === "gelir")
+    .reduce((s, t) => s + Number(t.amount), 0);
+  const monthExpense = monthTransactions
+    .filter((t) => t.type === "gider")
+    .reduce((s, t) => s + Number(t.amount), 0);
 
   const recentRequests = await db
     .select({
@@ -91,8 +123,17 @@ export async function GET() {
     counts: {
       newRequests: newRequests.length,
       awaitingCalls: awaitingCalls.length,
-      activeJobs: activeJobs.length,
+      openJobs: openJobs.length,
+      todayAppointments: todayAppointments.length,
+      pendingOffers: pendingOffers.length,
+      pendingInvoices: pendingInvoices.length,
     },
+    finance: {
+      monthIncome,
+      monthExpense,
+      monthNet: monthIncome - monthExpense,
+    },
+    pendingInvoices: pendingInvoices.slice(0, 6),
     recentRequests,
     todayAppointments,
     upcomingAppointments,
