@@ -120,6 +120,70 @@ veriyordu. `dvh` birimine geçildi, ayrı ve hızlı bir deploy ile hemen
 düzeltildi (diğer Faz 3b değişikliklerinden bağımsız, veritabanı
 migration'ı gerektirmediği için önce o gitti).
 
+**Ek mobil iyileştirme (2026-08-19)**: veri yüklenirken `Loading`
+göstergesi çok kısaydı (py-16), gerçek içerik gelince sayfa aniden
+uzuyordu — bu da "kayma" hissinin ayrı bir olası kaynağıydı. Artık
+`min-h-[50vh]` ile gerçek içeriğe yakın alan kaplıyor. **Eğer sorun
+hâlâ sürüyorsa**: tarayıcıyı sil/gizli sekmede dene (istemci önbelleği
+ihtimalini eler) ve tam olarak hangi ekranda, hangi anda (yüklenirken
+mi, kaydırırken mi, yukarı mı aşağı mı yoksa yana mı) olduğunu
+söyle — canlı sistemde körlemesine daha fazla değişiklik yapmak yerine
+kesin sebebi bulup tek seferde doğru düzeltmek istiyorum.
+
+### 🔜 Faz 3c — Seri numaralı envanter takibi
+
+Müşteri senaryosu: 6 kamera + 1 DVR kurulacak. Hangi **fiziksel**
+cihazların (seri numarasına kadar) hangi işte kullanıldığını kayıt
+altına almak ve otomatik olarak stoktan düşmek. Şu anki sistem
+yalnızca "kaç adet" düşüyor, "hangi cihaz" bilgisini tutmuyor.
+
+**Veri modeli:**
+- `products.serialized: boolean` (varsayılan `false`) — admin bu
+  ürünü seri numaralı takip edecek şekilde işaretler (kamera/DVR/NVR
+  gibi yüksek değerli, garantisi takip edilecek cihazlar için; kablo/
+  vida gibi sarf malzemede kapalı kalır — mevcut basit adet sistemi
+  bunlarda aynen çalışmaya devam eder, **geriye dönük uyumlu**).
+- Yeni `product_units` tablosu — ürünün her fiziksel adedi bir satır:
+  `id, productId, serialNumber (ürün başına benzersiz), status
+  (stokta | kuruldu | arizali | iade), jobId, serviceTicketId, note,
+  createdAt, installedAt`.
+- Seri takipli ürünlerde `products.stockQty` artık elle girilmiyor —
+  `product_units` içindeki `status='stokta'` sayısından otomatik
+  hesaplanıyor (tek doğruluk kaynağı, iki ayrı sayı sapmasın diye).
+
+**Stok girişi:** Ürünler sayfasında seri takipli bir üründe "Seri
+numaralarını yönet" ekranı — yeni gelen cihazların seri numaraları
+tek tek veya toplu (her satıra bir seri no) yapıştırılarak eklenir,
+durumları `stokta` olarak başlar.
+
+**İş/servis kaydında kullanım:** Bir işe/servis kaydına seri takipli
+bir ürün eklendiğinde, düz "adet" alanı yerine o ürünün `stokta`
+durumundaki seri numaralarından **çoklu seçim** listesi çıkar (örn.
+24 kamera stokta, kullanıcı bunlardan 6'sını işaretler). Kaydedilince:
+- seçilen `product_units` satırlarının durumu `kuruldu` olur,
+  `jobId`/`serviceTicketId` ve `installedAt` set edilir
+- iş/servis kaydı silinir veya o kalem kaldırılırsa durum otomatik
+  `stokta`'ya döner (Faz 2/3b'deki `lib/stock.ts` mantığının seri
+  numaralı sürümü — `applyStockDelta` unit-id listesi üzerinden
+  çalışacak şekilde genişletilecek)
+- iş/servis detayında "bu işe hangi seri numaralı cihazlar takıldı"
+  listesi otomatik görünür — garanti takibi ve ileride bir arıza
+  geldiğinde "bu cihazı biz mi taktık" sorgusu için temel oluşturur
+
+**API:** `app/api/products/[id]/units` (GET liste, POST toplu ekleme),
+`app/api/products/[id]/units/[unitId]` (PATCH durum/not, DELETE hatalı
+kayıt). `lib/stock.ts`'teki `JobItem` tipine opsiyonel `unitIds:
+number[]` eklenecek.
+
+**UI:** Ürünler'de "Seri numaralı" anahtarı + ürün detay sayfası
+(birim listesi, toplu ekleme, durum rozetleri); `JobItemsEditor` ve
+servis kalem editöründe seri takipli ürün seçilince adet input'u
+yerine mevcut stoktaki seri numaralarının aranabilir çoklu seçim
+listesi.
+
+Mevcut basit adet sistemini **bozmadan** üstüne ekleniyor — seri
+takibi kapalı ürünlerde hiçbir şey değişmiyor.
+
 ### 🔜 Faz 4 — Sözleşme/bakım + personel derinliği
 
 - [ ] `maintenance_contracts` tablosu — müşteri, sözleşme tipi, son bakım,
