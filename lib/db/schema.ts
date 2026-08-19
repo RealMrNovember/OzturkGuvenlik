@@ -239,10 +239,16 @@ export const transactions = pgTable("transactions", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+/** Sitenin orijinal marka renkleri — DB kolon varsayılanı ve panelin "Varsayılana Sıfırla" düğmesi aynı değerleri kullanır. */
+export const DEFAULT_BRAND_COLOR = "#0e6fb8";
+export const DEFAULT_BRAND_LIGHT_COLOR = "#40a0e0";
+
 export const siteSettings = pgTable("site_settings", {
   id: serial("id").primaryKey(),
-  brandColor: varchar("brand_color", { length: 7 }).notNull().default("#0e6fb8"),
-  brandLightColor: varchar("brand_light_color", { length: 7 }).notNull().default("#40a0e0"),
+  brandColor: varchar("brand_color", { length: 7 }).notNull().default(DEFAULT_BRAND_COLOR),
+  brandLightColor: varchar("brand_light_color", { length: 7 })
+    .notNull()
+    .default(DEFAULT_BRAND_LIGHT_COLOR),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });

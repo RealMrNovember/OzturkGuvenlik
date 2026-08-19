@@ -5,6 +5,7 @@ import { api } from "@/lib/fetch";
 import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { Btn, Card, ErrorBox, Field, Input, Loading } from "@/components/panel/ui";
+import { DEFAULT_BRAND_COLOR, DEFAULT_BRAND_LIGHT_COLOR } from "@/lib/db/schema";
 
 type SiteSettings = {
   id: number;
@@ -104,6 +105,12 @@ export default function SiteAyarlariPage() {
     }
   };
 
+  const resetToDefault = () => {
+    setBrandColor(DEFAULT_BRAND_COLOR);
+    setBrandLightColor(DEFAULT_BRAND_LIGHT_COLOR);
+    setSaved(false);
+  };
+
   if (!isAdmin) {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center">
@@ -120,6 +127,9 @@ export default function SiteAyarlariPage() {
   const dirty = settings
     ? brandColor !== settings.brandColor || brandLightColor !== settings.brandLightColor
     : false;
+  const isDefault =
+    brandColor.toLowerCase() === DEFAULT_BRAND_COLOR &&
+    brandLightColor.toLowerCase() === DEFAULT_BRAND_LIGHT_COLOR;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -174,6 +184,10 @@ export default function SiteAyarlariPage() {
           <div className="flex items-center gap-3 border-t border-ink/8 pt-4">
             <Btn type="submit" disabled={saving || !bothValid || !dirty}>
               {saving ? "Kaydediliyor…" : "Kaydet"}
+            </Btn>
+            <Btn variant="ghost" type="button" onClick={resetToDefault} disabled={saving || isDefault}>
+              <Icon name="refresh" className="h-3.5 w-3.5" />
+              Varsayılana Sıfırla
             </Btn>
             {saved && !dirty && (
               <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">

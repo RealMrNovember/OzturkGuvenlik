@@ -37,7 +37,8 @@ export type IconName =
   | "box"
   | "menu"
   | "wrench"
-  | "palette";
+  | "palette"
+  | "refresh";
 
 export type Service = {
   slug: string;
