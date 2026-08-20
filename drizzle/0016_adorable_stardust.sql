@@ -1,0 +1,1 @@
+ALTER TABLE "supplier_invoices" ADD COLUMN "scanned_file_url" text;

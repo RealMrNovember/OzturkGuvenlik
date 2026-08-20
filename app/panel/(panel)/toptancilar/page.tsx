@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
+import { CustomSelect } from "@/components/panel/form";
 import {
   Badge,
   Btn,
+  Card,
   EmptyState,
   ErrorBox,
   Field,
@@ -16,7 +18,9 @@ import {
   Loading,
   Modal,
   Textarea,
+  fmtDate,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type SupplierRow = {
@@ -42,6 +46,23 @@ const blank = {
   note: "",
 };
 
+type PurchaseLogRow = {
+  key: string;
+  invoiceId: number;
+  invoiceNumber: string;
+  issueDate: string;
+  status: "odenmedi" | "odendi";
+  received: boolean;
+  currency: string;
+  exchangeRate: string;
+  supplierId: number;
+  supplierName: string | null;
+  productId: number | null;
+  productName: string;
+  qty: number;
+  unitPrice: number;
+};
+
 export default function ToptancilarPage() {
   const canDelete = usePanelCan("delete_records");
   const searchParams = useSearchParams();
@@ -53,6 +74,17 @@ export default function ToptancilarPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const [q, setQ] = useState("");
+
+  const [log, setLog] = useState<PurchaseLogRow[]>([]);
+  const [logLoading, setLogLoading] = useState(true);
+  const [logSupplier, setLogSupplier] = useState("hepsi");
+  const [logProduct, setLogProduct] = useState("hepsi");
+  const [logQ, setLogQ] = useState("");
+  const [logMinPrice, setLogMinPrice] = useState("");
+  const [logMaxPrice, setLogMaxPrice] = useState("");
+  const [logFrom, setLogFrom] = useState("");
+  const [logTo, setLogTo] = useState("");
 
   const openCreate = () => {
     setForm(blank);
@@ -90,10 +122,53 @@ export default function ToptancilarPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const loadLog = useCallback(async () => {
+    setLogLoading(true);
+    try {
+      const data = await api<PurchaseLogRow[]>("/api/suppliers/purchase-log");
+      setLog(data);
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setLogLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const t = setTimeout(load, 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  useEffect(() => {
+    const t = setTimeout(loadLog, 0);
+    return () => clearTimeout(t);
+  }, [loadLog]);
+
+  const logProductOptions = useMemo(() => {
+    const names = new Set(log.map((r) => r.productName).filter(Boolean));
+    return Array.from(names).sort((a, b) => a.localeCompare(b, "tr"));
+  }, [log]);
+
+  const visibleLog = useMemo(() => {
+    const query = logQ.trim().toLowerCase();
+    const min = logMinPrice ? Number(logMinPrice) : null;
+    const max = logMaxPrice ? Number(logMaxPrice) : null;
+    return log.filter((r) => {
+      if (logSupplier !== "hepsi" && String(r.supplierId) !== logSupplier) return false;
+      if (logProduct !== "hepsi" && r.productName !== logProduct) return false;
+      if (min !== null && r.unitPrice < min) return false;
+      if (max !== null && r.unitPrice > max) return false;
+      if (logFrom && r.issueDate < logFrom) return false;
+      if (logTo && r.issueDate > logTo) return false;
+      if (query) {
+        const hay = `${r.productName} ${r.invoiceNumber} ${r.supplierName ?? ""}`.toLowerCase();
+        if (!hay.includes(query)) return false;
+      }
+      return true;
+    });
+  }, [log, logSupplier, logProduct, logQ, logMinPrice, logMaxPrice, logFrom, logTo]);
+
+  const logTotal = visibleLog.reduce((s, r) => s + r.qty * r.unitPrice * Number(r.exchangeRate), 0);
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -129,6 +204,14 @@ export default function ToptancilarPage() {
     }
   };
 
+  const visibleRows = useMemo(() => {
+    const query = q.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (!query) return true;
+      const haystack = `${r.name} ${r.phone} ${r.taxNumber} ${r.taxOffice}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [rows, q]);
   const totalDebt = rows.reduce((s, r) => s + Number(r.balance), 0);
 
   return (
@@ -137,13 +220,32 @@ export default function ToptancilarPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Toptancılar</h1>
           <p className="mt-1 text-sm text-ink/55">
-            {rows.length} kayıt · Toplam borç: <span className="font-bold text-ink">{fmtMoney(totalDebt)}</span>
+            {visibleRows.length === rows.length
+              ? `${rows.length} kayıt`
+              : `${visibleRows.length} / ${rows.length} kayıt`}{" "}
+            · Toplam borç: <span className="font-bold text-ink">{fmtMoney(totalDebt)}</span>
           </p>
         </div>
-        <Btn onClick={openCreate}>
-          <Icon name="plus" className="h-4 w-4" />
-          Yeni Toptancı
-        </Btn>
+        <div className="flex gap-2.5">
+          {rows.length > 0 && (
+            <div className="relative">
+              <Icon
+                name="search"
+                className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
+              />
+              <Input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Ad, telefon veya vergi no ara…"
+                className="w-64 pl-10"
+              />
+            </div>
+          )}
+          <Btn onClick={openCreate}>
+            <Icon name="plus" className="h-4 w-4" />
+            Yeni Toptancı
+          </Btn>
+        </div>
       </div>
 
       {error && <ErrorBox message={error} />}
@@ -152,6 +254,8 @@ export default function ToptancilarPage() {
         <Loading />
       ) : rows.length === 0 ? (
         <EmptyState title="Toptancı yok" desc="Yeni toptancı ekleyerek başlayın." />
+      ) : visibleRows.length === 0 ? (
+        <EmptyState title="Sonuç bulunamadı" desc="Aramayı değiştirmeyi deneyin." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -166,7 +270,7 @@ export default function ToptancilarPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/6">
-                {rows.map((s) => (
+                {visibleRows.map((s) => (
                   <tr key={s.id} className="align-top hover:bg-ink/2">
                     <td className="px-5 py-4">
                       <Link href={`/panel/toptancilar/${s.id}`} className="font-bold text-ink hover:text-brand">
@@ -228,6 +332,149 @@ export default function ToptancilarPage() {
           </div>
         </div>
       )}
+
+      <Card
+        title="Alım Kayıtları"
+        action={
+          visibleLog.length > 0 ? (
+            <span className="text-xs font-semibold text-ink/55">
+              {visibleLog.length} kalem · {fmtMoney(logTotal)}
+            </span>
+          ) : undefined
+        }
+      >
+        <div className="flex flex-wrap items-end gap-3 border-b border-ink/8 px-5 py-4">
+          <div className="relative">
+            <Icon
+              name="search"
+              className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35"
+            />
+            <Input
+              value={logQ}
+              onChange={(e) => setLogQ(e.target.value)}
+              placeholder="Ürün, fatura no, toptancı ara…"
+              className="w-56 pl-10"
+            />
+          </div>
+          <Field label="Toptancı">
+            <CustomSelect
+              value={logSupplier === "hepsi" ? "" : logSupplier}
+              onChange={(v) => setLogSupplier(v || "hepsi")}
+              options={rows.map((r) => ({ value: String(r.id), label: r.name }))}
+              placeholder="Tümü"
+              className="w-44"
+            />
+          </Field>
+          <Field label="Ürün">
+            <CustomSelect
+              value={logProduct === "hepsi" ? "" : logProduct}
+              onChange={(v) => setLogProduct(v || "hepsi")}
+              options={logProductOptions.map((p) => ({ value: p, label: p }))}
+              placeholder="Tümü"
+              className="w-44"
+            />
+          </Field>
+          <Field label="Min. fiyat">
+            <Input
+              type="number"
+              min="0"
+              value={logMinPrice}
+              onChange={(e) => setLogMinPrice(e.target.value)}
+              className="w-24"
+            />
+          </Field>
+          <Field label="Maks. fiyat">
+            <Input
+              type="number"
+              min="0"
+              value={logMaxPrice}
+              onChange={(e) => setLogMaxPrice(e.target.value)}
+              className="w-24"
+            />
+          </Field>
+          <Field label="Başlangıç">
+            <Input type="date" value={logFrom} onChange={(e) => setLogFrom(e.target.value)} className="w-40" />
+          </Field>
+          <Field label="Bitiş">
+            <Input type="date" value={logTo} onChange={(e) => setLogTo(e.target.value)} className="w-40" />
+          </Field>
+          {(logSupplier !== "hepsi" ||
+            logProduct !== "hepsi" ||
+            logQ ||
+            logMinPrice ||
+            logMaxPrice ||
+            logFrom ||
+            logTo) && (
+            <button
+              type="button"
+              onClick={() => {
+                setLogSupplier("hepsi");
+                setLogProduct("hepsi");
+                setLogQ("");
+                setLogMinPrice("");
+                setLogMaxPrice("");
+                setLogFrom("");
+                setLogTo("");
+              }}
+              className="text-xs font-semibold text-ink/45 hover:text-ink"
+            >
+              Filtreleri temizle
+            </button>
+          )}
+        </div>
+
+        {logLoading ? (
+          <Loading />
+        ) : log.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-ink/50">
+            Henüz alım kalemi yok — toptancı faturalarına kalem ekleyince burada görünür.
+          </div>
+        ) : visibleLog.length === 0 ? (
+          <div className="px-5 py-8 text-center text-sm text-ink/50">Filtreye uyan kayıt bulunamadı.</div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[820px] text-left text-sm">
+              <thead>
+                <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
+                  <th className="px-5 py-3">Ürün</th>
+                  <th className="px-5 py-3">Toptancı</th>
+                  <th className="px-5 py-3">Tarih</th>
+                  <th className="px-5 py-3">Adet</th>
+                  <th className="px-5 py-3">Birim Fiyat</th>
+                  <th className="px-5 py-3">Fatura</th>
+                  <th className="px-5 py-3">Durum</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-ink/6">
+                {visibleLog.map((r) => (
+                  <tr key={r.key} className="hover:bg-ink/2">
+                    <td className="px-5 py-3 font-semibold text-ink">{r.productName}</td>
+                    <td className="px-5 py-3">
+                      <Link href={`/panel/toptancilar/${r.supplierId}`} className="text-brand hover:underline">
+                        {r.supplierName ?? "-"}
+                      </Link>
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-3 text-ink/60">{fmtDate(r.issueDate)}</td>
+                    <td className="px-5 py-3 text-ink/70">{r.qty}</td>
+                    <td className="whitespace-nowrap px-5 py-3 font-semibold text-ink">
+                      {fmtMoneyWithTry(r.unitPrice, r.currency, r.exchangeRate)}
+                    </td>
+                    <td className="px-5 py-3 text-ink/55">{r.invoiceNumber || `#${r.invoiceId}`}</td>
+                    <td className="whitespace-nowrap px-5 py-3">
+                      <div className="flex flex-wrap gap-1.5">
+                        <Badge tone={r.status === "odendi" ? "green" : "amber"}>
+                          {r.status === "odendi" ? "Ödendi" : "Ödenmedi"}
+                        </Badge>
+                        {r.received && <Badge tone="brand">Teslim alındı</Badge>}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Card>
 
       {(creating || editing) && (
         <Modal

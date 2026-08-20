@@ -343,6 +343,11 @@ export const supplierInvoices = pgTable("supplier_invoices", {
   // mal sonra gelebilir). received true olunca stok bir kez otomatik artar.
   received: boolean("received").notNull().default(false),
   receivedAt: date("received_at", { mode: "string" }),
+  // Taranan orijinal belge (Vercel Blob, private) — denetim izi. Depolama
+  // maliyetini sınırlamak için en fazla son 10 taranan belge tutulur, daha
+  // eskiler otomatik silinir (bkz. lib/blob-retention.ts) — silinince bu
+  // alan null'a döner.
+  scannedFileUrl: text("scanned_file_url"),
   issueDate: date("issue_date", { mode: "string" }).notNull(),
   dueDate: date("due_date", { mode: "string" }),
   paidDate: date("paid_date", { mode: "string" }),

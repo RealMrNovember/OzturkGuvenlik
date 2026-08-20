@@ -510,6 +510,7 @@ export const createSupplierInvoiceSchema = z.object({
   status: z.enum(SUPPLIER_INVOICE_STATUSES).optional().default("odenmedi"),
   received: z.boolean().optional().default(false),
   receivedAt: isoDate.nullable().optional(),
+  scannedFileUrl: z.string().trim().max(2000).nullable().optional(),
   issueDate: isoDate,
   dueDate: isoDate.nullable().optional(),
   paidDate: isoDate.nullable().optional(),

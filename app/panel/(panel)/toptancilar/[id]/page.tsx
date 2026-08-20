@@ -8,6 +8,8 @@ import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CurrencyAmountInput, CurrencyPicker } from "@/components/panel/CurrencyAmountInput";
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
+import { InvoiceScanner } from "@/components/panel/InvoiceScanner";
+import type { ExtractedInvoice } from "@/lib/invoice-ocr";
 import {
   Badge,
   Btn,
@@ -46,6 +48,7 @@ type SupplierInvoice = {
   status: "odenmedi" | "odendi";
   received: boolean;
   receivedAt: string | null;
+  scannedFileUrl: string | null;
   issueDate: string;
   dueDate: string | null;
   paidDate: string | null;
@@ -64,6 +67,7 @@ const blankInvoice = {
   issueDate: today(),
   dueDate: "",
   note: "",
+  scannedFileUrl: null as string | null,
 };
 
 function isOverdue(inv: SupplierInvoice) {
@@ -84,6 +88,8 @@ export default function ToptanciDetayPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(blankInvoice);
   const [saving, setSaving] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanPreviewUrl, setScanPreviewUrl] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!Number.isInteger(supplierId)) return;
@@ -110,7 +116,41 @@ export default function ToptanciDetayPage() {
 
   const openCreate = () => {
     setForm(blankInvoice);
+    setScanPreviewUrl(null);
     setCreating(true);
+  };
+
+  const closeCreate = () => {
+    if (scanPreviewUrl) URL.revokeObjectURL(scanPreviewUrl);
+    setScanPreviewUrl(null);
+    setCreating(false);
+  };
+
+  const handleExtracted = (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string) => {
+    const items: ItemForm[] = result.items.map((i) => ({
+      name: i.name,
+      qty: String(i.qty),
+      unitPrice: String(i.unitPrice),
+      productId: i.productId,
+    }));
+    setForm({
+      ...blankInvoice,
+      invoiceNumber: result.invoiceNumber,
+      items,
+      issueDate: result.issueDate ?? today(),
+      dueDate: result.dueDate ?? "",
+      amount: items.length === 0 && result.totalGuess ? String(result.totalGuess) : "",
+      scannedFileUrl,
+    });
+    setScanPreviewUrl(previewUrl);
+    setScannerOpen(false);
+    setCreating(true);
+    const parts: string[] = [];
+    if (items.length > 0) parts.push(`${items.length} kalem bulundu`);
+    if (result.totalGuess) parts.push(`toplam ${result.totalGuess} tahmin edildi`);
+    setNotice(
+      `Belge tarandı — ${parts.length > 0 ? parts.join(", ") : "kalem/tutar bulunamadı"}. Kaydetmeden önce tüm alanları kontrol edin, gerekirse düzeltin.`
+    );
   };
 
   const save = async (e: FormEvent) => {
@@ -140,9 +180,10 @@ export default function ToptanciDetayPage() {
           issueDate: form.issueDate,
           dueDate: form.dueDate || null,
           note: form.note,
+          scannedFileUrl: form.scannedFileUrl,
         }),
       });
-      setCreating(false);
+      closeCreate();
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -248,7 +289,11 @@ export default function ToptanciDetayPage() {
       </div>
 
       <Card title={`Faturalar (${invoices.length})`}>
-        <div className="flex justify-end px-5 pt-4">
+        <div className="flex justify-end gap-2.5 px-5 pt-4">
+          <Btn variant="ghost" onClick={() => setScannerOpen(true)}>
+            <Icon name="camera" className="h-4 w-4" />
+            Fatura Tara
+          </Btn>
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
             Fatura ekle
@@ -274,6 +319,17 @@ export default function ToptanciDetayPage() {
                       : ""}
                     {inv.note ? ` · ${inv.note}` : ""}
                   </p>
+                  {inv.scannedFileUrl && (
+                    <a
+                      href={`/api/suppliers/${supplierId}/invoices/${inv.id}/scan`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-0.5 inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
+                    >
+                      <Icon name="eye" className="h-3.5 w-3.5" />
+                      Taranan belgeyi görüntüle
+                    </a>
+                  )}
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
                   {inv.status === "odendi" ? (
@@ -314,10 +370,36 @@ export default function ToptanciDetayPage() {
         )}
       </Card>
 
+      <InvoiceScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        suppliers={[{ id: supplier.id, name: supplier.name }]}
+        products={products}
+        onExtracted={handleExtracted}
+      />
+
       {creating && (
-        <Modal open onClose={() => setCreating(false)} title="Yeni Toptancı Faturası" wide>
+        <Modal open onClose={closeCreate} title="Yeni Toptancı Faturası" wide>
           <form onSubmit={save} className="space-y-4">
             {error && <ErrorBox message={error} />}
+            {scanPreviewUrl && (
+              <a
+                href={scanPreviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm font-semibold text-brand hover:underline"
+              >
+                <img
+                  src={scanPreviewUrl}
+                  alt=""
+                  className="h-16 w-16 rounded-lg border border-ink/10 object-cover shadow-sm"
+                  onError={(e) => {
+                    (e.currentTarget as HTMLImageElement).style.display = "none";
+                  }}
+                />
+                Taranan belgeyi aç
+              </a>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Fatura/proforma/makbuz no">
                 <Input
@@ -390,7 +472,7 @@ export default function ToptanciDetayPage() {
               </div>
             </div>
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
-              <Btn variant="ghost" onClick={() => setCreating(false)}>
+              <Btn variant="ghost" onClick={closeCreate}>
                 Vazgeç
               </Btn>
               <Btn type="submit" disabled={saving}>
