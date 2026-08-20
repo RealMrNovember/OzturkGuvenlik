@@ -192,6 +192,16 @@ export default function PersonelDetayPage() {
     }
   };
 
+  const removeNote = async (noteId: number) => {
+    if (!confirm("Bu not silinsin mi?")) return;
+    try {
+      await api(`/api/staff/${staffId}/notes/${noteId}`, { method: "DELETE" });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   const addTransaction = async (e: FormEvent) => {
     e.preventDefault();
     if (!txAmount || Number(txAmount) <= 0) {
@@ -353,12 +363,22 @@ export default function PersonelDetayPage() {
           <div className="px-5 py-6 text-sm text-ink/50">Henüz not yok.</div>
         ) : (
           notes.map((n) => (
-            <div key={n.id} className="px-5 py-3.5">
-              <span className="text-xs text-ink/40">
-                {fmtDateTime(n.createdAt)}
-                {n.authorName ? ` · ${n.authorName}` : ""}
-              </span>
-              <p className="mt-1 whitespace-pre-wrap text-sm text-ink/80">{n.note}</p>
+            <div key={n.id} className="flex items-start justify-between gap-3 px-5 py-3.5">
+              <div className="min-w-0">
+                <span className="text-xs text-ink/40">
+                  {fmtDateTime(n.createdAt)}
+                  {n.authorName ? ` · ${n.authorName}` : ""}
+                </span>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-ink/80">{n.note}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => removeNote(n.id)}
+                aria-label="Sil"
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
+              >
+                <Icon name="trash" className="h-4 w-4" />
+              </button>
             </div>
           ))
         )}
