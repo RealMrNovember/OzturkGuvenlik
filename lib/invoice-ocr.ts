@@ -16,8 +16,6 @@
  */
 import { round2 } from "@/lib/money";
 
-export type OcrWord = { text: string; bbox: { x0: number; y0: number; x1: number; y1: number } };
-
 export type Confidence = "high" | "medium" | "low" | "none";
 
 export type ExtractedItem = {
@@ -53,20 +51,6 @@ export type ExtractedInvoice = {
   qrVerified: boolean;
 };
 
-/** Tesseract.js'in Page.blocks ağacından düz kelime listesi çıkarır. */
-export function flattenWords(page: {
-  blocks: { paragraphs: { lines: { words: OcrWord[] }[] }[] }[] | null;
-}): OcrWord[] {
-  const words: OcrWord[] = [];
-  for (const block of page.blocks ?? []) {
-    for (const para of block.paragraphs) {
-      for (const line of para.lines) {
-        words.push(...line.words);
-      }
-    }
-  }
-  return words;
-}
 
 function normalize(s: string): string {
   return s
@@ -238,34 +222,28 @@ function extractTotalsAndCurrency(text: string): {
   return { totalGuess: null, currency: "TRY", exchangeRate: null };
 }
 
-/** Kelimeleri yaklaşık aynı yükseklikteki (y0) satırlara gruplar. */
-function groupWordsIntoRows(words: OcrWord[], yTolerance = 12): OcrWord[][] {
-  const sorted = [...words].sort((a, b) => a.bbox.y0 - b.bbox.y0);
-  const rows: OcrWord[][] = [];
-  for (const w of sorted) {
-    const row = rows.find((r) => Math.abs(r[0].bbox.y0 - w.bbox.y0) < yTolerance);
-    if (row) row.push(w);
-    else rows.push([w]);
-  }
-  rows.forEach((r) => r.sort((a, b) => a.bbox.x0 - b.bbox.x0));
-  return rows;
-}
-
 const UNIT_LABEL_RE = /^(adet|adt|ad|kg|gr|lt|mt|m2|m3|paket|kutu|koli|usd|eur|try|tl|gbp|kr)[.,;:]?$/i;
 
 /**
  * Kalem satırı çıkarımı — Türk fatura düzeninin sabit çapası "Miktar"
  * sütunundaki "N Adet" (ya da OCR'da sık görülen bitişik "21Adet") kalıbıdır:
- * çapanın SOLU ürün adı, SAĞINDAKİ İLK sayı birim fiyattır. Önceki
- * "satır sonundaki sayı kuyruğu" yaklaşımı gerçek taramalarda (%20,00 KDV
- * sütunu, bitişik "1Adet", satır başındaki sıra no) tamamen dağılıyordu —
- * kullanıcının gerçek fatura testinde kalemler hiç çıkmadı, bu yüzden
- * çapa-tabanlı bu yeniden yazım yapıldı.
+ * çapanın SOLU ürün adı, SAĞINDAKİ İLK sayı birim fiyattır.
+ *
+ * Satır kaynağı Tesseract'ın KENDİ satır bölümlemesidir (data.text'in
+ * satırları) — önceki sürüm kelimeleri piksel koordinatından sabit
+ * toleransla kendisi yeniden gruplamaya çalışıyordu ve yüksek çözünürlüklü
+ * gerçek taramalarda satırlar dağıldığı için kalemler hiç çıkmıyordu
+ * (kullanıcının gerçek testinde görüldü). Tablo kenarlıkları OCR'da "|"
+ * benzeri token'lara dönüşebildiği için harf/rakam içermeyen token'lar
+ * baştan elenir.
  */
-function extractItemRows(rows: OcrWord[][]): { name: string; qty: number; unitPrice: number }[] {
+function extractItemRows(textLines: string[]): { name: string; qty: number; unitPrice: number }[] {
   const items: { name: string; qty: number; unitPrice: number }[] = [];
-  for (const row of rows) {
-    const texts = row.map((w) => w.text.trim()).filter(Boolean);
+  for (const line of textLines) {
+    const texts = line
+      .split(/\s+/)
+      .map((t) => t.trim())
+      .filter((t) => t && /[\p{L}\p{N}]/u.test(t));
     if (texts.length < 3) continue;
 
     let qty = 0;
@@ -468,15 +446,13 @@ function guessSupplier(
 
 export function extractInvoiceData(
   ocrText: string,
-  words: OcrWord[],
   knownSuppliers: KnownSupplier[],
   knownProducts: { id: number; name: string }[]
 ): ExtractedInvoice {
   const dates = extractDates(ocrText);
   const invoiceNumber = extractInvoiceNumber(ocrText);
   const totals = extractTotalsAndCurrency(ocrText);
-  const rows = groupWordsIntoRows(words);
-  const rawItems = extractItemRows(rows);
+  const rawItems = extractItemRows(ocrText.split("\n"));
 
   const items: ExtractedItem[] = rawItems.map((ri) => {
     const { match, confidence } = bestMatch(ri.name, knownProducts, (p) => p.name);

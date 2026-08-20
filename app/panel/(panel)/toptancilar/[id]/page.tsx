@@ -239,18 +239,32 @@ export default function ToptanciDetayPage() {
   };
 
   const markReceived = async (inv: SupplierInvoice) => {
-    try {
-      const res = await api<{ needsSerialEntry: number[] }>(
-        `/api/suppliers/${supplierId}/invoices/${inv.id}`,
-        { method: "PATCH", body: JSON.stringify({ received: true }) }
+    // Kataloğa bağlı olmayan kalemler için kullanıcıya sor: yeni ürün olarak
+    // eklensin mi? (Onaylanırsa alış fiyatıyla kataloğa eklenir + stok girer;
+    // reddedilirse yalnızca kataloğa bağlı kalemler stoğa işlenir.)
+    const missingCount = inv.items.filter((i) => i.productId == null).length;
+    let createMissingProducts = false;
+    if (missingCount > 0) {
+      createMissingProducts = confirm(
+        `${missingCount} kalem ürün kataloğunda kayıtlı değil.\n\n` +
+          `Tamam: bu kalemler yeni ürün olarak kataloğa eklenir (alış fiyatıyla) ve stoğa işlenir.\n` +
+          `İptal: yalnızca kataloğa bağlı kalemler stoğa işlenir, diğerleri atlanır.`
       );
-      if (res.needsSerialEntry.length > 0) {
-        setNotice(
-          `Stok girildi. ${res.needsSerialEntry.length} kalem seri numaralı ürün — bunlar için Ürünler sayfasından seri numarası eklemeniz gerekiyor.`
+    }
+    try {
+      const res = await api<{ needsSerialEntry: number[]; createdProductCount: number }>(
+        `/api/suppliers/${supplierId}/invoices/${inv.id}`,
+        { method: "PATCH", body: JSON.stringify({ received: true, createMissingProducts }) }
+      );
+      const parts: string[] = [];
+      if (res.createdProductCount > 0)
+        parts.push(`${res.createdProductCount} yeni ürün kataloğa eklendi (satış fiyatlarını Ürünler sayfasından belirleyin)`);
+      parts.push("kalemler stoğa işlendi");
+      if (res.needsSerialEntry.length > 0)
+        parts.push(
+          `${res.needsSerialEntry.length} kalem seri numaralı ürün — bunlar için Ürünler sayfasından seri numarası eklemeniz gerekiyor`
         );
-      } else {
-        setNotice("Kalemler stoğa işlendi.");
-      }
+      setNotice(`Teslim alındı: ${parts.join(", ")}.`);
       await load();
     } catch (err) {
       setError((err as Error).message);

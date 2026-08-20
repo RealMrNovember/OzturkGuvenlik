@@ -525,6 +525,9 @@ export const updateSupplierInvoiceSchema = z.object({
   ...updateCurrencyFields,
   status: z.enum(SUPPLIER_INVOICE_STATUSES).optional(),
   received: z.boolean().optional(),
+  // Teslim alırken kataloğa bağlı OLMAYAN kalemler yeni ürün olarak
+  // oluşturulsun mu? (Alış fiyatıyla kataloğa eklenir + stoğa işlenir.)
+  createMissingProducts: z.boolean().optional(),
   receivedAt: isoDate.nullable().optional(),
   issueDate: isoDate.optional(),
   dueDate: isoDate.nullable().optional(),

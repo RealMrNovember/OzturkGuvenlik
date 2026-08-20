@@ -1,12 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import {
-  extractInvoiceData,
-  flattenWords,
-  type ExtractedInvoice,
-  type KnownSupplier,
-} from "@/lib/invoice-ocr";
+import { extractInvoiceData, type ExtractedInvoice, type KnownSupplier } from "@/lib/invoice-ocr";
 import { parseEArsivQr, mergeQrIntoExtraction } from "@/lib/invoice-qr";
 import { Btn, ErrorBox, Modal } from "@/components/panel/ui";
 import { Icon } from "@/components/icons";
@@ -113,8 +108,7 @@ export function InvoiceScanner({
       const { data } = await worker.recognize(ocrInput);
       await worker.terminate();
 
-      const words = flattenWords(data);
-      let extracted = extractInvoiceData(data.text, words, suppliers, products);
+      let extracted = extractInvoiceData(data.text, suppliers, products);
       if (qrData) extracted = mergeQrIntoExtraction(extracted, qrData, suppliers);
       console.log("[Fatura Tara] Ham OCR metni:", data.text);
 
