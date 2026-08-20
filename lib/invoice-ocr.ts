@@ -235,23 +235,52 @@ function extractItemRows(rows: OcrWord[][]): { name: string; qty: number; unitPr
   return items;
 }
 
-// Türkçe ticari unvanlarda neredeyse her zaman geçen ek/kısaltmalar —
-// bilinen tedarikçi listesinde eşleşme olmasa bile (ilk kez alım yapılan
-// yeni bir toptancı), belgedeki HAM unvan metnini bu ek üzerinden tahmin
-// edebiliriz.
-// JS'in \b sınırı yalnızca ASCII harfleri "kelime karakteri" sayar — Türkçe
-// harflerin (Ş, İ, Ü, Ğ, Ö, Ç) hemen yanında sessizce eşleşmeyi bozar
-// ("GÜV.SİSTEM.A.Ş" gibi bir unvanda "A.Ş" hiç yakalanmıyordu). Bunun yerine
-// Unicode harf sınıfına (\p{L}) göre negatif lookbehind/lookahead kullanılır.
-const COMPANY_SUFFIX_RE =
-  /(?<![\p{L}])(A\.?Ş\.?|LTD\.?\s*ŞTİ\.?|ŞTİ\.?|TİCARET|SANAYİ|ŞİRKETİ|A\.?S\.?)(?![\p{L}])/iu;
+// Türkçe ticari unvan ekleri OCR'da genelde nokta ile ayrılmış kısaltmalar
+// olarak geçer ("GÜV.SİSTEM.A.Ş") — bu yüzden regex \b (kelime sınırı,
+// yalnızca ASCII harf tanır) hem Türkçe harfler yüzünden hem de değişken
+// nokta/boşluk kullanımı yüzünden güvenilmez çıktı (denendi, gerçek
+// faturalarda hâlâ kaçırıyordu). Bunun yerine satır hem boşluktan hem
+// NOKTADAN token'lara bölünüyor — "A.Ş" böylece ["A","Ş"] bitişik token
+// çiftine dönüşüyor, hangi noktalama/boşluk kombinasyonuyla yazılırsa
+// yazılsın yakalanıyor.
+const SUFFIX_STANDALONE_TOKENS = new Set([
+  "ŞTİ", "STI", "LTD", "TİCARET", "TICARET", "SANAYİ", "SANAYI", "ŞİRKETİ", "SIRKETI",
+]);
+
+function lineHasCompanySuffix(line: string): boolean {
+  const tokens = line
+    .split(/[\s.]+/)
+    .map((t) => t.toLocaleUpperCase("tr-TR"))
+    .filter(Boolean);
+  for (let i = 0; i < tokens.length; i++) {
+    if (SUFFIX_STANDALONE_TOKENS.has(tokens[i])) return true;
+    if (tokens[i] === "A" && (tokens[i + 1] === "Ş" || tokens[i + 1] === "S")) return true;
+  }
+  return false;
+}
+
+// Bir unvan satırı neredeyse her zaman birden fazla kelime ve makul
+// uzunluktadır — "Merkez", "Şube", "Sayın" gibi tek kelimelik belge
+// etiketlerini eleyerek gerçek unvana ulaşmak için kullanılır.
+function isPlausibleCompanyNameLine(line: string): boolean {
+  const trimmed = line.trim();
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  return words.length >= 2 && trimmed.replace(/\s+/g, "").length >= 8;
+}
 
 /** Bilinen tedarikçi listesinden bağımsız — belgenin üst kısmındaki en
- * olası unvan satırını (ticari ek geçen satır, yoksa ilk anlamlı satır)
- * ham metin olarak, satır indeksiyle birlikte döndürür. */
+ * olası unvan satırını ham metin olarak, satır indeksiyle birlikte
+ * döndürür. Öncelik: ticari ek geçen makul (çok kelimeli) satır → ilk
+ * makul satır → hiçbiri yoksa ilk satır (en son çare). */
 function guessRawSupplierNameLine(topLines: string[]): { text: string; index: number } {
-  const suffixIdx = topLines.findIndex((l) => COMPANY_SUFFIX_RE.test(l));
-  if (suffixIdx >= 0) return { text: topLines[suffixIdx].trim(), index: suffixIdx };
+  const plausible = topLines
+    .map((line, index) => ({ line: line.trim(), index }))
+    .filter(({ line }) => isPlausibleCompanyNameLine(line));
+
+  const withSuffix = plausible.find(({ line }) => lineHasCompanySuffix(line));
+  if (withSuffix) return { text: withSuffix.line, index: withSuffix.index };
+  if (plausible.length > 0) return { text: plausible[0].line, index: plausible[0].index };
+
   return { text: topLines[0]?.trim() ?? "", index: 0 };
 }
 
