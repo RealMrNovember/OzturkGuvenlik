@@ -482,3 +482,8 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 - **Servis / Arıza Yönetimi** (2026-08-19, bkz. Faz 3b yukarıda)
 - **Mobilde panel kayması düzeltildi** (100vh → dvh)
 - **Gerçek alan adı canlıya alındı** (Cloudflare → Vercel) + yanlış canonical/sitemap domaini düzeltildi
+- **Servis formu PDF sistemi** (2026-08-20) — react-pdf ile ıslak imzaya uygun servis formu, kaydedilen bilgilerden otomatik oluşuyor
+- **Panel: gizli hata mesajı + modal scroll kilidi düzeltildi** (2026-08-20) — kayıt hatası artık modal içinde gösteriliyor (10 sayfada), modal sabit yükseklik + bağımsız scroll'a kavuştu
+- **Destek + Kurumsal menüler** (2026-08-20) — HDD/disk kapasitesi hesaplama aracı, SSS, Mobil Uygulamalar, Kalite ve Çevre Politikamız, Markalarımız, İş Ortaklarımız, Referanslarımız sayfaları
+- **Çoklu para birimi (₺/$/€)** (2026-08-20) — ürün/teklif/fatura/kasa/iş/servis kayıtlarında para birimi + kayıt anında kilitlenen otomatik kur (Frankfurter/ECB); maliyet ve dashboard toplamları her zaman ₺'ye normalize edilir
+- **Hizmet bazlı YouTube videoları** (2026-08-20) — her hizmet detay sayfasının başlık arkasında admin panelden yönetilebilen tanıtım videosu (`/panel/hizmet-medya`)
