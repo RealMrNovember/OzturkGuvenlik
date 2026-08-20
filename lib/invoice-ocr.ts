@@ -77,6 +77,19 @@ function levenshtein(a: string, b: string): number {
   return dp[m][n];
 }
 
+/**
+ * Türkçe metni küçük-harfli ASCII'ye indirger (uzunluk-korumalı).
+ * KRİTİK: JS regex'inde /iban/i deseni "İBAN"daki noktalı büyük İ (U+0130)
+ * ile EŞLEŞMEZ — /i bayrağının harf eşlemesi Türkçe İ/ı ayrımını bilmez.
+ * Bu yüzden gerçek taramada "İBAN NO: ..." satırları kara listeyi delip
+ * ürün sanılıyordu. Tüm anahtar-kelime/kara-liste aramaları bu katmandan
+ * geçirilmiş metin üzerinde, sade ASCII desenlerle yapılır.
+ */
+const TR_FOLD_MAP: Record<string, string> = { ç: "c", ğ: "g", ı: "i", ö: "o", ş: "s", ü: "u" };
+function foldTr(s: string): string {
+  return s.toLocaleLowerCase("tr-TR").replace(/[çğıöşü]/g, (c) => TR_FOLD_MAP[c]);
+}
+
 /** 0..1 arası benzerlik skoru (1 = birebir aynı). */
 function similarity(a: string, b: string): number {
   const na = normalize(a);
@@ -193,14 +206,14 @@ function extractTotalsAndCurrency(text: string): {
   exchangeRate: number | null;
 } {
   const lines = text.split("\n");
-  // OCR aksanları sık düşürür ("Ödenecek" → "Odenecek") — anahtar kelimeler
-  // aksan-toleranslı yazılır (gerçek Tesseract testinde birebir görüldü).
-  const kw = /genel\s*toplam|[öo]denecek\s*tutar|vergiler\s*dahil|toplam\s*tutar|net\s*toplam/i;
+  // OCR aksan/İ tutarsızlıkları için satırlar foldTr'lenerek aranır
+  // (gerçek Tesseract testinde "Odenecek"/"VERGİLER" birebir görüldü).
+  const kw = /genel\s*toplam|odenecek\s*tutar|vergiler\s*dahil|toplam\s*tutar|net\s*toplam/;
   let tl: number | null = null;
   let foreign: { amount: number; currency: string } | null = null;
 
   for (let i = lines.length - 1; i >= 0; i--) {
-    if (!kw.test(lines[i])) continue;
+    if (!kw.test(foldTr(lines[i]))) continue;
     const pairs = [...lines[i].matchAll(/([\d.,]+)\s*(usd|eur|tl|try|₺|\$|€)?/gi)]
       .map((m) => ({ n: parseTurkishNumber(m[1]), curRaw: m[2] }))
       .filter((p) => p.n !== null && p.n > 0);
@@ -215,7 +228,8 @@ function extractTotalsAndCurrency(text: string): {
     }
   }
 
-  const rateM = text.match(/d[öo]viz\s*kuru[^\n]*?([\d.,]+)/i);
+  // foldTr uzunluk-korumalı olduğu için sayısal yakalama aynen geçerlidir.
+  const rateM = foldTr(text).match(/doviz\s*kuru[^\n]*?([\d.,]+)/);
   const rate = rateM ? parseTurkishNumber(rateM[1]) : null;
 
   if (foreign && rate && rate > 0) return { totalGuess: foreign.amount, currency: foreign.currency, exchangeRate: rate };
@@ -296,10 +310,10 @@ function groupWordsIntoVisualRows(words: OcrWord[]): string[][] {
  * harfleri ayıkladığı için ("NEU-XVR232" → 232!) fiyat ararken bu ön kontrol şart. */
 const PURE_NUM_RE = /^\d[\d.,]*$/;
 
-// Yedek kalem deseninde ürün adı ASLA bir toplam/alan satırı olmamalı —
-// aksan-toleranslı kara liste.
+// Yedek kalem deseninde ürün adı ASLA bir toplam/banka/alan satırı olmamalı.
+// foldTr'lenmiş metne uygulanır — bu yüzden sade ASCII, /i bayraksız.
 const ITEM_NAME_BLOCK_RE =
-  /toplam|tutar|kdv|[iı]skonto|matrah|[öo]denecek|vergi|fatura|tarih|irsaliye|sipari[şs]|hesaplanan|d[öo]viz|kuru|iban|banka|hesa[bp]|sayın|adres|tel[:\s]|faks|fax|mersis|sicil|ettn|senaryo|[öo]zelle[şs]tirme/i;
+  /toplam|tutar|kdv|iskonto|matrah|odenecek|vergi|fatura|tarih|irsaliye|siparis|hesaplanan|doviz|kuru|iban|bank|hesab|hesap|sayin|adres|mersis|sicil|ettn|senaryo|ozellestirme|sube|swift|tel[:\s]|faks|fax|e-?posta|web/;
 
 /**
  * Kalem satırı çıkarımı, iki desenle:
@@ -348,12 +362,15 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
       }
       if (numIdxs.length < 2) continue;
       const firstNum = numIdxs[0];
+      // Baştaki-sıfırlı "sayı" ("0003", "0212") asla fiyat değildir —
+      // IBAN parçası/telefon numarasıdır, satır kalem olamaz.
+      if (/^0\d/.test(texts[firstNum])) continue;
       const nameTokens = texts.slice(0, firstNum);
       if (nameTokens.length > 0 && /^\d{1,3}$/.test(nameTokens[0])) nameTokens.shift();
       const name = nameTokens.join(" ").trim();
       if (name.length < 6) continue;
       if (!nameTokens.some((t) => /\p{L}{3}/u.test(t))) continue;
-      if (ITEM_NAME_BLOCK_RE.test(name)) continue;
+      if (ITEM_NAME_BLOCK_RE.test(foldTr(name))) continue;
       const price = parseTurkishNumber(texts[firstNum]);
       if (price === null || price <= 0) continue;
       items.push({ name, qty: 1, unitPrice: round2(price) });
@@ -368,14 +385,15 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
     const name = nameTokens.join(" ").trim();
     if (name.length < 3) continue;
 
-    // Çapadan sonraki ilk SAF sayı = birim fiyat. "%20,00" (KDV oranı) ve
-    // "TL"/"USD" gibi etiketler atlanır.
+    // Çapadan sonraki ilk SAF sayı = birim fiyat. "%20,00" (KDV oranı),
+    // "TL"/"USD" etiketleri ve baştaki-sıfırlı sayılar (fiyat olamaz) atlanır.
     let unitPrice: number | null = null;
     for (let j = anchor + 1; j < texts.length; j++) {
       const t = texts[j];
       if (t.startsWith("%")) continue;
       if (UNIT_LABEL_RE.test(t)) continue;
       if (!PURE_NUM_RE.test(t)) continue;
+      if (/^0\d/.test(t)) continue;
       const n = parseTurkishNumber(t);
       if (n !== null) {
         unitPrice = round2(n);
@@ -391,8 +409,9 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
 
 // Unvan satırı ASLA bu alan etiketlerini içermez — gerçek taramalarda
 // "Ticaret SİCİL No", "Vergi Dairesi" gibi satırlar unvan sanılıyordu.
+// foldTr'lenmiş metne uygulanır (İBAN/İ sorunu için bkz. foldTr).
 const NAME_BLOCK_RE =
-  /(vergi|vkn|tckn|mersis|sicil|tel\s*[:.]|faks|fax|e-?posta|e-?mail|web\s|sayın|fatura|tarih|irsaliye|belge|ettn|özelleştirme|senaryo|sipariş)/i;
+  /vergi|vkn|tckn|mersis|sicil|tel\s*[:.]|faks|fax|e-?posta|e-?mail|web\s|sayin|fatura|tarih|irsaliye|belge|ettn|ozellestirme|senaryo|siparis|iban|bank|hesab|hesap|sube|swift/;
 
 // Türkçe ticari unvan ekleri OCR'da genelde nokta ile ayrılmış kısaltmalar
 // olarak geçer ("GÜV.SİSTEM.A.Ş") — satır hem boşluktan hem NOKTADAN
@@ -416,7 +435,7 @@ function lineHasCompanySuffix(line: string): boolean {
 
 function isPlausibleCompanyNameLine(line: string): boolean {
   const trimmed = line.trim();
-  if (NAME_BLOCK_RE.test(trimmed)) return false;
+  if (NAME_BLOCK_RE.test(foldTr(trimmed))) return false;
   const words = trimmed.split(/\s+/).filter(Boolean);
   return words.length >= 2 && trimmed.replace(/\s+/g, "").length >= 8;
 }
@@ -435,8 +454,14 @@ function guessRawSupplierNameLine(topLines: string[]): { text: string; index: nu
 }
 
 function extractTaxOffice(text: string): string {
-  const m = text.match(/vergi\s*dairesi\s*[:.]?\s*([^\n]+)/i);
-  return m ? m[1].trim() : "";
+  // Arama foldTr'lenmiş metinde ("VERGİ DAİRESİ"nin İ'si /i bayrağıyla
+  // eşleşmez), değer ise ORİJİNAL metinden aynı konumdan alınır —
+  // foldTr uzunluk-korumalı olduğu için indeksler birebir örtüşür.
+  const folded = foldTr(text);
+  const m = /vergi\s*dairesi\s*[:.]?\s*([^\n]+)/.exec(folded);
+  if (!m) return "";
+  const start = m.index + (m[0].length - m[1].length);
+  return text.slice(start, start + m[1].length).trim();
 }
 
 function extractTaxNumber(text: string): string {
@@ -454,12 +479,12 @@ function extractPhone(text: string): string {
  * etiketine kadar olan satırları adres tahmini olarak birleştirir —
  * en kırılgan alan, sadece kaba bir başlangıç noktası. */
 function extractAddress(topLines: string[], companyLineIndex: number): string {
-  const stopRe = /^(tel|faks|fax|e-posta|e-mail|web|vergi|vkn|tckn|mersis|ticaret\s*sicil)/i;
+  const stopRe = /^(tel|faks|fax|e-posta|e-mail|web|vergi|vkn|tckn|mersis|ticaret\s*sicil)/;
   const parts: string[] = [];
   for (let i = companyLineIndex + 1; i < topLines.length && parts.length < 4; i++) {
     const line = topLines[i].trim();
     if (!line) continue;
-    if (stopRe.test(line)) break;
+    if (stopRe.test(foldTr(line))) break;
     parts.push(line);
   }
   return parts.join(" ").trim();
