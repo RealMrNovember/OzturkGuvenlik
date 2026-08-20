@@ -226,9 +226,14 @@ export default function ToptancilarPage() {
     router.push(`/panel/toptancilar/${supplierId}`);
   };
 
-  const handleExtracted = (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string) => {
+  const handleExtracted = (
+    result: ExtractedInvoice,
+    scannedFileUrl: string,
+    previewUrl: string,
+    rawText: string
+  ) => {
     setScannerOpen(false);
-    const handoff = { result, scannedFileUrl, previewUrl };
+    const handoff = { result, scannedFileUrl, previewUrl, rawText };
     if (result.supplierId) {
       goToSupplierWithScan(result.supplierId, handoff);
       return;
@@ -604,6 +609,14 @@ export default function ToptancilarPage() {
                   {pendingScan.result.supplierAddress && <p>Adres: {pendingScan.result.supplierAddress}</p>}
                 </div>
               )}
+              <details className="rounded-xl border border-ink/8 p-3 text-xs text-ink/55">
+                <summary className="cursor-pointer font-semibold text-ink/70">
+                  Tahmin yanlışsa: OCR'ın belgeden okuduğu ham metin
+                </summary>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-[11px] text-ink/60">
+                  {pendingScan.rawText || "(boş)"}
+                </pre>
+              </details>
               <div className="flex justify-end gap-3">
                 <Btn variant="ghost" onClick={() => setPendingScan(null)}>
                   Vazgeç

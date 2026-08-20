@@ -91,6 +91,7 @@ export default function ToptanciDetayPage() {
   const [saving, setSaving] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanPreviewUrl, setScanPreviewUrl] = useState<string | null>(null);
+  const [scanRawText, setScanRawText] = useState("");
 
   const load = useCallback(async () => {
     if (!Number.isInteger(supplierId)) return;
@@ -124,10 +125,16 @@ export default function ToptanciDetayPage() {
   const closeCreate = () => {
     if (scanPreviewUrl) URL.revokeObjectURL(scanPreviewUrl);
     setScanPreviewUrl(null);
+    setScanRawText("");
     setCreating(false);
   };
 
-  const handleExtracted = (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string) => {
+  const handleExtracted = (
+    result: ExtractedInvoice,
+    scannedFileUrl: string,
+    previewUrl: string,
+    rawText: string
+  ) => {
     const items: ItemForm[] = result.items.map((i) => ({
       name: i.name,
       qty: String(i.qty),
@@ -144,6 +151,7 @@ export default function ToptanciDetayPage() {
       scannedFileUrl,
     });
     setScanPreviewUrl(previewUrl);
+    setScanRawText(rawText);
     setScannerOpen(false);
     setCreating(true);
     const parts: string[] = [];
@@ -164,7 +172,7 @@ export default function ToptanciDetayPage() {
     const t = setTimeout(() => {
       try {
         const handoff = JSON.parse(raw) as ScanHandoff;
-        handleExtracted(handoff.result, handoff.scannedFileUrl, handoff.previewUrl);
+        handleExtracted(handoff.result, handoff.scannedFileUrl, handoff.previewUrl, handoff.rawText);
       } catch {
         // taşınan veri bozuksa sessizce yok say — kullanıcı elle fatura ekleyebilir
       }
@@ -418,6 +426,16 @@ export default function ToptanciDetayPage() {
                 />
                 Taranan belgeyi aç
               </a>
+            )}
+            {scanRawText && (
+              <details className="rounded-xl border border-ink/8 p-3 text-xs text-ink/55">
+                <summary className="cursor-pointer font-semibold text-ink/70">
+                  Tahmin yanlışsa: OCR'ın belgeden okuduğu ham metin
+                </summary>
+                <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-[11px] text-ink/60">
+                  {scanRawText}
+                </pre>
+              </details>
             )}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Fatura/proforma/makbuz no">

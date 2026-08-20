@@ -12,4 +12,5 @@ export type ScanHandoff = {
   result: ExtractedInvoice;
   scannedFileUrl: string;
   previewUrl: string;
+  rawText: string;
 };

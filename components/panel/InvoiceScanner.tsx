@@ -41,7 +41,7 @@ export function InvoiceScanner({
   onClose: () => void;
   suppliers: SupplierOption[];
   products: ProductOption[];
-  onExtracted: (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string) => void;
+  onExtracted: (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string, rawText: string) => void;
 }) {
   const [status, setStatus] = useState<"idle" | "ocr" | "uploading">("idle");
   const [progress, setProgress] = useState(0);
@@ -68,6 +68,7 @@ export function InvoiceScanner({
 
       const words = flattenWords(data);
       const extracted = extractInvoiceData(data.text, words, suppliers, products);
+      console.log("[Fatura Tara] Ham OCR metni:", data.text);
 
       setStatus("uploading");
       const form = new FormData();
@@ -76,7 +77,7 @@ export function InvoiceScanner({
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error ?? "Yükleme başarısız");
 
-      onExtracted(extracted, json.data.url as string, previewUrl);
+      onExtracted(extracted, json.data.url as string, previewUrl, data.text);
       setStatus("idle");
     } catch (err) {
       setError((err as Error).message || "Tarama başarısız oldu — kalemleri elle girebilirsiniz.");
