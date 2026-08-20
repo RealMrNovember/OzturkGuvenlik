@@ -36,6 +36,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (parsed.data.costPrice !== undefined) set.costPrice = String(parsed.data.costPrice);
   if (parsed.data.salePrice !== undefined) set.salePrice = String(parsed.data.salePrice);
   if (parsed.data.exchangeRate !== undefined) set.exchangeRate = String(parsed.data.exchangeRate);
+  // "" değil null: barcode unique kısıtlı — bkz. POST /api/products'taki not.
+  if (parsed.data.barcode !== undefined) set.barcode = parsed.data.barcode || null;
 
   const [updated] = await db
     .update(products)

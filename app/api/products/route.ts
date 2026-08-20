@@ -87,6 +87,9 @@ export async function POST(req: Request) {
       // Seri takipli üründe stok elle girilmez, ilk seri numaraları
       // eklenince kendiliğinden oluşur.
       stockQty: parsed.data.serialized ? 0 : parsed.data.stockQty,
+      // "" değil null: barcode unique kısıtlı — boş string ile kaydedilirse
+      // barkodsuz ikinci bir ürün eklenirken "duplicate key" hatası verir.
+      barcode: parsed.data.barcode || null,
     })
     .returning();
 
