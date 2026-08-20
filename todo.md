@@ -445,6 +445,84 @@ logoları + Aypro + KNX Future.
       kalanından (personel izin/masraf, granüler yetki UI'ı — bu ikisi
       zaten ayrı yapıldı) sonra ele alınacak.
 
+- [ ] **Toptancılar — fatura/proforma/makbuz tarama ile otomatik stok girişi
+      (OCR, kullanıcı isteği — 2026-08-20)**: yukarıdaki kalem bazlı
+      Toptancılar modülünün üzerine oturan bir katman. Kullanıcı kamerayla
+      tarar ya da dosya (JPG/PDF) yükler, sistem tedarikçiyi, kalemleri ve
+      toplamı **otomatik tahmin edip formu önceden doldurur** — kullanıcı
+      **her alanı serbestçe düzeltip/değiştirip** onaylayınca stoğa işlenir.
+      **Karar (kullanıcı ile netleşti): hiçbir ücretli/dış API kullanılmayacak**
+      (Claude/OpenAI görsel API'leri vb. reddedildi — bu yüzden yapay zeka
+      görsel modeli değil, **ücretsiz/self-hosted OCR + kural bazlı çıkarım**
+      kullanılacak).
+
+      **Teknik yaklaşım — tamamen ücretsiz, dış servise bağımlı değil:**
+      - **Tesseract.js** (MIT lisanslı, açık kaynak) — mevcut
+        [BarcodeScanner.tsx](components/panel/BarcodeScanner.tsx)'te
+        kamera erişimi zaten çözülmüş desenle aynı şekilde, **tarayıcıda
+        (client-side, WASM)** çalışacak. Sunucu maliyeti yok, API anahtarı
+        yok, kullanım başına ücret yok. Türkçe dil paketi (`tur.traineddata`)
+        harici bir CDN'e bağımlı kalmaması için `public/`'a self-hosted
+        olarak konacak (mevcut projede zaten dış CDN'lere bağımlılığı
+        azaltma yönünde bir alışkanlık var).
+      - PDF girişleri için **pdf.js** (açık kaynak, ücretsiz) ile önce
+        sayfa görsele render edilip sonra Tesseract'a verilecek.
+      - Tesseract kelime bazlı **konum (bounding box)** bilgisi de
+        döndürüyor — bu, tablo/kalem satırlarını (ürün adı ~ adet ~ birim
+        fiyat ~ tutar sütunları) satır/sütun hizasına göre ayırt etmek için
+        kullanılacak (`lib/invoice-ocr.ts`, yeni).
+
+      **Çıkarım kuralları (rule-based, ML eğitimi gerektirmez):**
+      - Tarih: Türkçe tarih formatları için regex (`gg.aa.yyyy`, `gg/aa/yyyy`).
+      - Fatura/proforma/makbuz no: "Fatura No", "Belge No" gibi anahtar
+        kelimelerin yakınındaki alfanümerik değer.
+      - Toplam tutar: "TOPLAM", "GENEL TOPLAM", "ÖDENECEK TUTAR" anahtar
+        kelimeleri + Türkçe sayı biçimi ayrıştırma (`1.234,56` → `1234.56`).
+      - **Tedarikçi eşleştirme**: OCR'dan çıkan metin, mevcut `suppliers.name`
+        listesiyle **bulanık eşleştirme** (basit bir Levenshtein/benzerlik
+        fonksiyonu, ekstra kütüphane gerekmez) ile karşılaştırılır — tedarikçi
+        listesi zaten sınırlı/bilindiği için bu adım şaşırtıcı derecede
+        güvenilir çalışır. Eşleşme düşükse alan boş bırakılır, kullanıcı
+        elle seçer.
+      - **Ürün eşleştirme**: her kalem satırının açıklaması aynı bulanık
+        eşleştirmeyle `products.name`/`sku` kataloğuna karşı denenir;
+        eşleşmeyen kalemler "yeni ürün" veya "serbest metin kalem" olarak
+        işaretlenip kullanıcıya bırakılır.
+      - Her çıkarılan alana bir **güven seviyesi** (yüksek/orta/düşük)
+        atanır (eşleşme skoruna/regex kesinliğine göre) — düşük güvenli
+        alanlar gözden geçirme ekranında görsel olarak vurgulanır, kullanıcının
+        gözü doğrudan oraya gitsin diye.
+
+      **Gözden geçirme/düzenleme ekranı (kritik — otomatik commit YOK):**
+      taranan görsel bir tarafta (yakınlaştırılabilir), çıkarılan veri diğer
+      tarafta **tamamen düzenlenebilir bir form** olarak gösterilir: tedarikçi
+      (aranabilir dropdown, en iyi eşleşme önceden seçili ama değiştirilebilir),
+      fatura no, tarih, kalemler (mevcut `ItemsEditor.tsx` bileşeniyle —
+      satır ekle/sil/düzenle, adet/fiyat değiştir, kataloğa bağla/bağlama).
+      Kullanıcı **"Onayla ve Stoğa İşle"** demeden hiçbir şey kalıcı
+      olarak kaydedilmez/stoğa işlenmez. Taranan orijinal dosya, oluşan
+      `supplier_invoices` kaydına ek olarak saklanır (denetim izi için —
+      bu, dosya depolama altyapısı gerektirir, bkz. Faz 2'deki iş fotoğrafı
+      için ertelenen Vercel Blob ihtiyacıyla aynı bağımlılık).
+
+      **Dürüst beklenti yönetimi (kullanıcıya önceden söylenmeli):**
+      ücretsiz/kural-bazlı OCR, ücretli bir yapay zeka görsel modeline göre
+      **daha düşük isabet oranına** sahip olacak — özellikle el yazısı
+      makbuzlarda veya düşük ışıkta/eğik çekilmiş telefon fotoğraflarında.
+      Düzgün ışıklandırılmış, matbu fatura/proforma'da iyi çalışması
+      beklenir; el yazısı makbuzda muhtemelen yalnızca tarih/toplam gibi
+      basit alanlarda yardımcı olur, kalemler büyük ölçüde elle girilir.
+      Kalem/tablo çıkarımı rule-based OCR'ın en zayıf noktası — bu yüzden
+      gözden geçirme ekranı bir "nice to have" değil, sistemin **güvenlik
+      ağı**dır. Maliyet yok ama doğruluk bedeli kullanıcı düzeltme
+      süresinde ödenir — "no fee" kısıtı göz önüne alındığında makul bir
+      denge, ve zorunlu onay adımı OCR kalitesinden bağımsız olarak stoğun
+      bozulmasını engeller.
+      **İyileştirme yolu (mimari değişmeden)**: kullanıcı düzeltmeleri
+      (OCR'ın ne okuduğu vs. kullanıcının neye çevirdiği) zamanla loglanıp
+      kural/eşleştirme eşiklerini elle iyileştirmek için kullanılabilir —
+      makine öğrenmesi eğitimi gerekmez, sadece örüntü ince ayarı.
+
 ### 🔜 Faz 5 — Otomasyon ve dış yüz
 
 - [ ] Teklif/fatura PDF çıktısı
