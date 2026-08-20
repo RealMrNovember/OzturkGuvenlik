@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
+import Link from "next/link";
 import { api } from "@/lib/fetch";
 import { usePanelRole, usePanelSession } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
@@ -215,6 +216,14 @@ export default function PersonelPage() {
                 </p>
 
                 <div className="mt-4 flex gap-2 border-t border-ink/8 pt-3">
+                  {isAdmin && (
+                    <Link
+                      href={`/panel/personel/${p.id}`}
+                      className="flex-1 rounded-full border border-ink/15 px-3 py-2 text-center text-xs font-semibold text-ink transition-colors hover:border-ink/40"
+                    >
+                      Detay
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={() => openEdit(p)}

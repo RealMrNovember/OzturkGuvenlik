@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { extractYouTubeId } from "@/lib/youtube";
 import { CURRENCIES } from "@/lib/currency";
+import { STAFF_LEAVE_TYPES, STAFF_LEAVE_STATUSES } from "@/lib/db/schema";
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
 
@@ -339,18 +340,22 @@ export const updateProductUnitSchema = z.object({
   note: z.string().trim().max(1000).optional(),
 });
 
+export const TRANSACTION_CATEGORIES = [
+  "is-tahsilati",
+  "diger-gelir",
+  "malzeme",
+  "yakit-ulasim",
+  "personel-maasi",
+  "personel-masrafi",
+  "personel-primi",
+  "kira",
+  "fatura-abonelik",
+  "diger-gider",
+] as const;
+
 export const createTransactionSchema = z.object({
   type: z.enum(["gelir", "gider"], { message: "Tür gelir veya gider olmalı" }),
-  category: z.enum([
-    "is-tahsilati",
-    "diger-gelir",
-    "malzeme",
-    "yakit-ulasim",
-    "personel-maasi",
-    "kira",
-    "fatura-abonelik",
-    "diger-gider",
-  ]),
+  category: z.enum(TRANSACTION_CATEGORIES),
   amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000),
   ...createCurrencyFields,
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz"),
@@ -358,27 +363,18 @@ export const createTransactionSchema = z.object({
   description: z.string().trim().max(500).optional().default(""),
   jobId: z.number().int().positive().nullable().optional(),
   customerId: z.number().int().positive().nullable().optional(),
+  staffId: z.number().int().positive().nullable().optional(),
 });
 
 export const updateTransactionSchema = z.object({
   type: z.enum(["gelir", "gider"]).optional(),
-  category: z
-    .enum([
-      "is-tahsilati",
-      "diger-gelir",
-      "malzeme",
-      "yakit-ulasim",
-      "personel-maasi",
-      "kira",
-      "fatura-abonelik",
-      "diger-gider",
-    ])
-    .optional(),
+  category: z.enum(TRANSACTION_CATEGORIES).optional(),
   amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000).optional(),
   ...updateCurrencyFields,
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz").optional(),
   method: z.enum(["nakit", "havale", "kart"]).optional(),
   description: z.string().trim().max(500).optional(),
+  staffId: z.number().int().positive().nullable().optional(),
   jobId: z.number().int().positive().nullable().optional(),
   customerId: z.number().int().positive().nullable().optional(),
 });
@@ -459,4 +455,24 @@ export const updateMaintenanceContractSchema = z.object({
   intervalMonths: z.number().int().min(1).max(60).optional(),
   note: z.string().trim().max(2000).optional(),
   active: z.boolean().optional(),
+});
+
+export const createStaffLeaveSchema = z.object({
+  type: z.enum(STAFF_LEAVE_TYPES).optional().default("yillik"),
+  startDate: isoDate,
+  endDate: isoDate,
+  status: z.enum(STAFF_LEAVE_STATUSES).optional().default("bekliyor"),
+  note: z.string().trim().max(1000).optional().default(""),
+});
+
+export const updateStaffLeaveSchema = z.object({
+  type: z.enum(STAFF_LEAVE_TYPES).optional(),
+  startDate: isoDate.optional(),
+  endDate: isoDate.optional(),
+  status: z.enum(STAFF_LEAVE_STATUSES).optional(),
+  note: z.string().trim().max(1000).optional(),
+});
+
+export const createStaffNoteSchema = z.object({
+  note: z.string().trim().min(1, "Not boş olamaz").max(2000),
 });

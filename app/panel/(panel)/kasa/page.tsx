@@ -28,16 +28,22 @@ const CATEGORY_LABEL: Record<string, string> = {
   malzeme: "Malzeme",
   "yakit-ulasim": "Yakıt / Ulaşım",
   "personel-maasi": "Personel maaşı",
+  "personel-masrafi": "Personel masrafı",
+  "personel-primi": "Personel primi",
   kira: "Kira",
   "fatura-abonelik": "Fatura / Abonelik",
   "diger-gider": "Diğer gider",
 };
+
+const STAFF_CATEGORIES = ["personel-maasi", "personel-masrafi", "personel-primi"];
 
 const INCOME_CATEGORIES = ["is-tahsilati", "diger-gelir"];
 const EXPENSE_CATEGORIES = [
   "malzeme",
   "yakit-ulasim",
   "personel-maasi",
+  "personel-masrafi",
+  "personel-primi",
   "kira",
   "fatura-abonelik",
   "diger-gider",
@@ -62,16 +68,21 @@ type TxRow = {
   jobId: number | null;
   customerId: number | null;
   invoiceId: number | null;
+  staffId: number | null;
   createdAt: string;
   customerName: string | null;
   jobTitle: string | null;
+  staffName: string | null;
 };
+
+type StaffRow = { id: number; name: string };
 
 export default function KasaPage() {
   const role = usePanelRole();
   const isAdmin = role === "admin";
 
   const [rows, setRows] = useState<TxRow[]>([]);
+  const [staff, setStaff] = useState<StaffRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [creating, setCreating] = useState(false);
@@ -86,11 +97,16 @@ export default function KasaPage() {
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState("nakit");
   const [description, setDescription] = useState("");
+  const [staffId, setStaffId] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const tx = await api<TxRow[]>("/api/transactions");
+      const [tx, staffList] = await Promise.all([
+        api<TxRow[]>("/api/transactions"),
+        api<StaffRow[]>("/api/staff"),
+      ]);
       setRows(tx);
+      setStaff(staffList);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -127,6 +143,7 @@ export default function KasaPage() {
     setDate(new Date().toISOString().slice(0, 10));
     setMethod("nakit");
     setDescription("");
+    setStaffId("");
   };
 
   const openCreate = (initialType: "gelir" | "gider") => {
@@ -156,6 +173,7 @@ export default function KasaPage() {
           date,
           method,
           description,
+          staffId: STAFF_CATEGORIES.includes(category) && staffId ? Number(staffId) : null,
         }),
       });
       setCreating(false);
@@ -247,6 +265,7 @@ export default function KasaPage() {
                   {METHOD_LABEL[r.method] ?? r.method}
                   {r.customerName ? ` · ${r.customerName}` : ""}
                   {r.jobTitle ? ` · ${r.jobTitle}` : ""}
+                  {r.staffName ? ` · ${r.staffName}` : ""}
                 </p>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -303,6 +322,17 @@ export default function KasaPage() {
                 ))}
               </Select>
             </Field>
+
+            {STAFF_CATEGORIES.includes(category) && (
+              <Field label="Personel">
+                <CustomSelect
+                  value={staffId}
+                  onChange={setStaffId}
+                  options={staff.map((s) => ({ value: String(s.id), label: s.name }))}
+                  placeholder="Personel seçin"
+                />
+              </Field>
+            )}
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tutar">

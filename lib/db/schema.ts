@@ -50,6 +50,35 @@ export const customerNotes = pgTable("customer_notes", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const STAFF_LEAVE_TYPES = ["yillik", "hastalik", "ucretsiz", "diger"] as const;
+export type StaffLeaveType = (typeof STAFF_LEAVE_TYPES)[number];
+export const STAFF_LEAVE_STATUSES = ["bekliyor", "onaylandi", "reddedildi"] as const;
+export type StaffLeaveStatus = (typeof STAFF_LEAVE_STATUSES)[number];
+
+export const staffLeaves = pgTable("staff_leaves", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 20 }).notNull().default("yillik"), // yillik | hastalik | ucretsiz | diger
+  startDate: date("start_date", { mode: "string" }).notNull(),
+  endDate: date("end_date", { mode: "string" }).notNull(),
+  status: varchar("status", { length: 20 }).notNull().default("bekliyor"), // bekliyor | onaylandi | reddedildi
+  note: text("note").default(""),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const staffNotes = pgTable("staff_notes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  note: text("note").notNull(),
+  createdBy: integer("created_by").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const serviceRequests = pgTable("service_requests", {
   id: serial("id").primaryKey(),
   customerId: integer("customer_id").references(() => customers.id, {
@@ -252,6 +281,8 @@ export const transactions = pgTable("transactions", {
   invoiceId: integer("invoice_id").references(() => invoices.id, {
     onDelete: "set null",
   }),
+  // personel-maasi | personel-masrafi | personel-primi kategorilerinde hangi personele ait olduğu
+  staffId: integer("staff_id").references(() => users.id, { onDelete: "set null" }),
   createdBy: integer("created_by").references(() => users.id, {
     onDelete: "set null",
   }),
@@ -316,6 +347,8 @@ export type CustomerContact = { name: string; phone: string; title: string };
 export type CustomerLocation = { label: string; address: string };
 export type CustomerNote = typeof customerNotes.$inferSelect;
 export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type StaffLeave = typeof staffLeaves.$inferSelect;
+export type StaffNote = typeof staffNotes.$inferSelect;
 export type Appointment = typeof appointments.$inferSelect;
 export type Offer = typeof offers.$inferSelect;
 export type Job = typeof jobs.$inferSelect;

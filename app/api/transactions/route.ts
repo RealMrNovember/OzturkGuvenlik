@@ -1,13 +1,19 @@
 import { db } from "@/lib/db";
-import { transactions, customers, jobs } from "@/lib/db/schema";
+import { transactions, customers, jobs, users } from "@/lib/db/schema";
 import { desc, eq } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { createTransactionSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 
-export async function GET() {
+const staffUsers = alias(users, "staff_users");
+
+export async function GET(req: Request) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
+
+  const staffIdParam = new URL(req.url).searchParams.get("staffId");
+  const staffIdFilter = staffIdParam ? Number(staffIdParam) : null;
 
   const rows = await db
     .select({
@@ -23,13 +29,17 @@ export async function GET() {
       jobId: transactions.jobId,
       customerId: transactions.customerId,
       invoiceId: transactions.invoiceId,
+      staffId: transactions.staffId,
       createdAt: transactions.createdAt,
       customerName: customers.name,
       jobTitle: jobs.title,
+      staffName: staffUsers.name,
     })
     .from(transactions)
     .leftJoin(customers, eq(transactions.customerId, customers.id))
     .leftJoin(jobs, eq(transactions.jobId, jobs.id))
+    .leftJoin(staffUsers, eq(transactions.staffId, staffUsers.id))
+    .where(staffIdFilter ? eq(transactions.staffId, staffIdFilter) : undefined)
     .orderBy(desc(transactions.date), desc(transactions.id))
     .limit(500);
 
