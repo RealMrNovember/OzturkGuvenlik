@@ -193,6 +193,11 @@ export const serviceTickets = pgTable("service_tickets", {
   items: jsonb("items").notNull().default([]), // [{productId, qty, name}] — kullanılan parça, stok otomatik düşer
   costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // yalnızca admin'e döner
   fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"), // servis ücreti
+  category: varchar("category", { length: 30 }).default(""), // video-izleme | hirsiz-alarm | yangin-algilama | seslendirme | gecis-kontrol | diger — servis formu PDF'i için
+  requestType: varchar("request_type", { length: 20 }).default(""), // montaj | onarim | bakim | kesif | servis | demontaj
+  billingType: varchar("billing_type", { length: 20 }).default(""), // garanti | ucretli | sozlesmeli
+  startTime: varchar("start_time", { length: 5 }).default(""), // "HH:MM"
+  endTime: varchar("end_time", { length: 5 }).default(""), // "HH:MM"
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -351,6 +356,30 @@ export const SERVICE_TICKET_STATUSES = [
   "iptal",
 ] as const;
 export type ServiceTicketStatus = (typeof SERVICE_TICKET_STATUSES)[number];
+
+/** Servis formu PDF'indeki üst checkbox satırı. */
+export const SERVICE_TICKET_CATEGORIES = [
+  "video-izleme",
+  "hirsiz-alarm",
+  "yangin-algilama",
+  "seslendirme",
+  "gecis-kontrol",
+  "diger",
+] as const;
+export type ServiceTicketCategory = (typeof SERVICE_TICKET_CATEGORIES)[number];
+
+export const SERVICE_TICKET_REQUEST_TYPES = [
+  "montaj",
+  "onarim",
+  "bakim",
+  "kesif",
+  "servis",
+  "demontaj",
+] as const;
+export type ServiceTicketRequestType = (typeof SERVICE_TICKET_REQUEST_TYPES)[number];
+
+export const SERVICE_TICKET_BILLING_TYPES = ["garanti", "ucretli", "sozlesmeli"] as const;
+export type ServiceTicketBillingType = (typeof SERVICE_TICKET_BILLING_TYPES)[number];
 
 export const SOURCES = ["web", "whatsapp", "telefon", "referans", "panel"] as const;
 export type Source = (typeof SOURCES)[number];

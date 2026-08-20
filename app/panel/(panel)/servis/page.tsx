@@ -37,11 +37,40 @@ type TicketRow = {
   items: { productId: number; qty: number; name: string; unitIds?: number[] }[];
   costTotal?: string;
   fee: string;
+  category: string;
+  requestType: string;
+  billingType: string;
+  startTime: string;
+  endTime: string;
   createdAt: string;
   updatedAt: string;
   customerName: string | null;
   customerPhone: string | null;
   assignedName: string | null;
+};
+
+const CATEGORY_LABEL: Record<string, string> = {
+  "video-izleme": "Video İzleme",
+  "hirsiz-alarm": "Hırsız Alarm",
+  "yangin-algilama": "Yangın Algılama",
+  seslendirme: "Seslendirme",
+  "gecis-kontrol": "Geçiş Kontrol",
+  diger: "Diğer",
+};
+
+const REQUEST_TYPE_LABEL: Record<string, string> = {
+  montaj: "Montaj",
+  onarim: "Onarım",
+  bakim: "Bakım",
+  kesif: "Keşif",
+  servis: "Servis",
+  demontaj: "Demontaj",
+};
+
+const BILLING_TYPE_LABEL: Record<string, string> = {
+  garanti: "Garanti Kapsamında",
+  ucretli: "Ücretli",
+  sozlesmeli: "Sözleşmeli",
 };
 
 type CustomerRow = { id: number; name: string; phone: string; address: string };
@@ -58,6 +87,11 @@ const blank = {
   assignedTo: null as number | null,
   items: [emptyJobItem()],
   fee: "",
+  category: "diger",
+  requestType: "servis",
+  billingType: "ucretli",
+  startTime: "",
+  endTime: "",
 };
 
 export default function ServisPage() {
@@ -121,6 +155,11 @@ export default function ServisPage() {
         unitIds: i.unitIds,
       })),
       fee: row.fee,
+      category: row.category || "diger",
+      requestType: row.requestType || "servis",
+      billingType: row.billingType || "ucretli",
+      startTime: row.startTime || "",
+      endTime: row.endTime || "",
     });
     setEditing(row);
   };
@@ -156,6 +195,11 @@ export default function ServisPage() {
       assignedTo: form.assignedTo,
       items: cleanItems,
       fee: Number(form.fee) || 0,
+      category: form.category,
+      requestType: form.requestType,
+      billingType: form.billingType,
+      startTime: form.startTime,
+      endTime: form.endTime,
     };
     try {
       if (editing) {
@@ -256,6 +300,14 @@ export default function ServisPage() {
                     </td>
                     <td className="whitespace-nowrap px-5 py-4 text-right">
                       <div className="flex justify-end gap-1.5">
+                        <a
+                          href={`/api/service-tickets/${t.id}/pdf`}
+                          aria-label="Servis Formu PDF İndir"
+                          title="Servis Formu PDF İndir"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
+                        >
+                          <Icon name="download" className="h-4 w-4" />
+                        </a>
                         <button
                           type="button"
                           onClick={() => setViewing(t)}
@@ -373,6 +425,56 @@ export default function ServisPage() {
                   placeholder="₺"
                 />
               </Field>
+              <Field label="Sistem kategorisi (form için)">
+                <Select
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                >
+                  {Object.keys(CATEGORY_LABEL).map((k) => (
+                    <option key={k} value={k}>
+                      {CATEGORY_LABEL[k]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Talep türü (form için)">
+                <Select
+                  value={form.requestType}
+                  onChange={(e) => setForm({ ...form, requestType: e.target.value })}
+                >
+                  {Object.keys(REQUEST_TYPE_LABEL).map((k) => (
+                    <option key={k} value={k}>
+                      {REQUEST_TYPE_LABEL[k]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Fatura tipi (form için)">
+                <Select
+                  value={form.billingType}
+                  onChange={(e) => setForm({ ...form, billingType: e.target.value })}
+                >
+                  {Object.keys(BILLING_TYPE_LABEL).map((k) => (
+                    <option key={k} value={k}>
+                      {BILLING_TYPE_LABEL[k]}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+              <Field label="Başlangıç saati">
+                <Input
+                  type="time"
+                  value={form.startTime}
+                  onChange={(e) => setForm({ ...form, startTime: e.target.value })}
+                />
+              </Field>
+              <Field label="Bitiş saati">
+                <Input
+                  type="time"
+                  value={form.endTime}
+                  onChange={(e) => setForm({ ...form, endTime: e.target.value })}
+                />
+              </Field>
             </div>
 
             <JobItemsEditor
@@ -466,6 +568,15 @@ export default function ServisPage() {
                 <dd className="mt-0.5 text-ink/80">{fmtDate(viewing.updatedAt.slice(0, 10))}</dd>
               </div>
             </dl>
+            <div className="flex justify-end border-t border-ink/8 pt-4">
+              <a
+                href={`/api/service-tickets/${viewing.id}/pdf`}
+                className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-light"
+              >
+                <Icon name="download" className="h-4 w-4" />
+                Servis Formu PDF İndir
+              </a>
+            </div>
           </div>
         </Modal>
       )}

@@ -64,6 +64,13 @@
       "when": 1787181319820,
       "tag": "0008_overrated_tarantula",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1787184708054,
+      "tag": "0009_misty_sprite",
+      "breakpoints": true
     }
   ]
 }

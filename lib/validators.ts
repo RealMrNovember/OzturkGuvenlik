@@ -182,6 +182,18 @@ export const updateJobSchema = z.object({
   staffIds: z.array(z.number().int().positive()).max(20).optional(),
 });
 
+const serviceTicketCategory = z.enum([
+  "video-izleme",
+  "hirsiz-alarm",
+  "yangin-algilama",
+  "seslendirme",
+  "gecis-kontrol",
+  "diger",
+]);
+const serviceTicketRequestType = z.enum(["montaj", "onarim", "bakim", "kesif", "servis", "demontaj"]);
+const serviceTicketBillingType = z.enum(["garanti", "ucretli", "sozlesmeli"]);
+const timeString = z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/, "Saat SS:DD formatında olmalı");
+
 export const createServiceTicketSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
   appointmentId: z.number().int().positive().nullable().optional(),
@@ -193,6 +205,11 @@ export const createServiceTicketSchema = z.object({
   assignedTo: z.number().int().positive().nullable().optional(),
   items: z.array(jobItemSchema).max(200).optional().default([]),
   fee: z.number().nonnegative().max(100_000_000).optional().default(0),
+  category: serviceTicketCategory.optional().default("diger"),
+  requestType: serviceTicketRequestType.optional().default("servis"),
+  billingType: serviceTicketBillingType.optional().default("ucretli"),
+  startTime: timeString.or(z.literal("")).optional().default(""),
+  endTime: timeString.or(z.literal("")).optional().default(""),
 });
 
 // NOT createServiceTicketSchema.partial() — bkz. updateJobSchema notu.
@@ -207,6 +224,11 @@ export const updateServiceTicketSchema = z.object({
   assignedTo: z.number().int().positive().nullable().optional(),
   items: z.array(jobItemSchema).max(200).optional(),
   fee: z.number().nonnegative().max(100_000_000).optional(),
+  category: serviceTicketCategory.optional(),
+  requestType: serviceTicketRequestType.optional(),
+  billingType: serviceTicketBillingType.optional(),
+  startTime: timeString.or(z.literal("")).optional(),
+  endTime: timeString.or(z.literal("")).optional(),
 });
 
 export const createUserSchema = z.object({

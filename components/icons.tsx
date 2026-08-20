@@ -258,6 +258,13 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M3 21v-5h5" />
     </>
   ),
+  download: (
+    <>
+      <path d="M12 3v12" />
+      <path d="m7 10 5 5 5-5" />
+      <path d="M4 19.5h16" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {
