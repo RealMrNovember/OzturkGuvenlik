@@ -1,11 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { extractInvoiceData, flattenWords, type ExtractedInvoice } from "@/lib/invoice-ocr";
+import {
+  extractInvoiceData,
+  flattenWords,
+  type ExtractedInvoice,
+  type KnownSupplier,
+} from "@/lib/invoice-ocr";
+import { parseEArsivQr, mergeQrIntoExtraction } from "@/lib/invoice-qr";
 import { Btn, ErrorBox, Modal } from "@/components/panel/ui";
 import { Icon } from "@/components/icons";
 
-type SupplierOption = { id: number; name: string };
 type ProductOption = { id: number; name: string };
 
 async function fileToOcrInput(file: File): Promise<HTMLCanvasElement | File> {
@@ -30,6 +35,41 @@ async function fileToOcrInput(file: File): Promise<HTMLCanvasElement | File> {
   return canvas;
 }
 
+function canvasToFile(canvas: HTMLCanvasElement): Promise<File> {
+  return new Promise((resolve, reject) => {
+    canvas.toBlob((blob) => {
+      if (blob) resolve(new File([blob], "page.png", { type: "image/png" }));
+      else reject(new Error("Sayfa görüntüsü oluşturulamadı"));
+    }, "image/png");
+  });
+}
+
+/**
+ * e-Arşiv faturalarının üzerindeki QR kodu çözmeyi dener — başarılıysa
+ * fatura no/tarih/VKN/tutar OCR tahmini yerine bu kesin veriden gelir.
+ * QR yoksa/okunamadıysa sessizce null döner, OCR tek başına devam eder.
+ * (html5-qrcode zaten barkod tarama için projede kurulu — ek bağımlılık yok.)
+ */
+async function tryDecodeQr(imageFile: File): Promise<string | null> {
+  const host = document.createElement("div");
+  host.id = `invoice-qr-scan-${Date.now()}`;
+  host.style.display = "none";
+  document.body.appendChild(host);
+  try {
+    const { Html5Qrcode } = await import("html5-qrcode");
+    const qr = new Html5Qrcode(host.id);
+    try {
+      return await qr.scanFile(imageFile, false);
+    } finally {
+      qr.clear();
+    }
+  } catch {
+    return null;
+  } finally {
+    host.remove();
+  }
+}
+
 export function InvoiceScanner({
   open,
   onClose,
@@ -39,7 +79,7 @@ export function InvoiceScanner({
 }: {
   open: boolean;
   onClose: () => void;
-  suppliers: SupplierOption[];
+  suppliers: KnownSupplier[];
   products: ProductOption[];
   onExtracted: (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string, rawText: string) => void;
 }) {
@@ -57,6 +97,13 @@ export function InvoiceScanner({
     try {
       const ocrInput = await fileToOcrInput(file);
 
+      // Öncelik: e-Arşiv QR kodu — makine-okunur kesin veri, OCR tahmini değil.
+      // PDF'lerde QR, render edilmiş sayfa görüntüsünden aranır.
+      const qrSource = ocrInput instanceof HTMLCanvasElement ? await canvasToFile(ocrInput) : file;
+      const qrRaw = await tryDecodeQr(qrSource);
+      const qrData = qrRaw ? parseEArsivQr(qrRaw) : null;
+      console.log("[Fatura Tara] QR kodu:", qrRaw ? (qrData ? "çözüldü (e-Arşiv verisi)" : "çözüldü ama e-Arşiv biçiminde değil") : "bulunamadı/okunamadı");
+
       const { createWorker } = await import("tesseract.js");
       const worker = await createWorker("tur", 1, {
         logger: (m) => {
@@ -67,7 +114,8 @@ export function InvoiceScanner({
       await worker.terminate();
 
       const words = flattenWords(data);
-      const extracted = extractInvoiceData(data.text, words, suppliers, products);
+      let extracted = extractInvoiceData(data.text, words, suppliers, products);
+      if (qrData) extracted = mergeQrIntoExtraction(extracted, qrData, suppliers);
       console.log("[Fatura Tara] Ham OCR metni:", data.text);
 
       setStatus("uploading");

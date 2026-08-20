@@ -141,13 +141,19 @@ export default function ToptanciDetayPage() {
       unitPrice: String(i.unitPrice),
       productId: i.productId,
     }));
+    // Tutar her zaman en fazla 2 ondalık haneyle doldurulur — OCR gürültüsü
+    // ("TL"nin rakam sanılması gibi) 590,161 benzeri, formun step=0.01
+    // doğrulamasına takılan değerler üretebiliyor (gerçek testte görüldü).
+    const roundedTotal = result.totalGuess !== null ? Math.round(result.totalGuess * 100) / 100 : null;
     setForm({
       ...blankInvoice,
       invoiceNumber: result.invoiceNumber,
       items,
       issueDate: result.issueDate ?? today(),
       dueDate: result.dueDate ?? "",
-      amount: items.length === 0 && result.totalGuess ? String(result.totalGuess) : "",
+      amount: items.length === 0 && roundedTotal ? String(roundedTotal) : "",
+      currency: result.currency || "TRY",
+      exchangeRate: result.exchangeRate ?? 1,
       scannedFileUrl,
     });
     setScanPreviewUrl(previewUrl);
@@ -155,8 +161,9 @@ export default function ToptanciDetayPage() {
     setScannerOpen(false);
     setCreating(true);
     const parts: string[] = [];
+    if (result.qrVerified) parts.push("fatura no/tarih/tutar belgedeki e-Arşiv QR kodundan doğrulandı");
     if (items.length > 0) parts.push(`${items.length} kalem bulundu`);
-    if (result.totalGuess) parts.push(`toplam ${result.totalGuess} tahmin edildi`);
+    if (roundedTotal) parts.push(`toplam ${roundedTotal} ${result.currency || "TRY"}`);
     setNotice(
       `Belge tarandı — ${parts.length > 0 ? parts.join(", ") : "kalem/tutar bulunamadı"}. Kaydetmeden önce tüm alanları kontrol edin, gerekirse düzeltin.`
     );
@@ -400,7 +407,7 @@ export default function ToptanciDetayPage() {
       <InvoiceScanner
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
-        suppliers={[{ id: supplier.id, name: supplier.name }]}
+        suppliers={[{ id: supplier.id, name: supplier.name, taxNumber: supplier.taxNumber }]}
         products={products}
         onExtracted={handleExtracted}
       />
