@@ -310,7 +310,9 @@ export const createProductSchema = z.object({
   model: z.string().trim().max(120).optional().default(""),
   unit: z.string().trim().min(1).max(20).optional().default("adet"),
   costPrice: z.number().nonnegative().max(100_000_000).optional().default(0),
-  salePrice: z.number().nonnegative().max(100_000_000),
+  // Satış fiyatı zorunlu değil — henüz fiyatlanmamış ürün stokta 0 satış
+  // fiyatıyla durabilir; panel listede "Satış fiyatı yok" uyarısı gösterir.
+  salePrice: z.number().nonnegative().max(100_000_000).optional().default(0),
   ...createCurrencyFields,
   stockQty: z.number().int().optional().default(0),
   barcode: z.string().trim().max(64).optional().default(""),

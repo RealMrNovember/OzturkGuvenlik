@@ -191,21 +191,25 @@ export default function UrunlerPage() {
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.salePrice) {
-      setError("Ürün adı ve satış fiyatı zorunlu.");
+    // Ad boşsa marka + model'den türetilir ("Dahua IPC-HFW1230TC1") —
+    // marka/model girildiğinde ayrıca ad yazmak gereksiz (kullanıcı isteği).
+    const composedName =
+      form.name.trim() || [form.brand.trim(), form.model.trim()].filter(Boolean).join(" ");
+    if (composedName.length < 2) {
+      setError("Ürün adı ya da marka/model girin.");
       return;
     }
     setSaving(true);
     setError("");
     const payload = {
-      name: form.name.trim(),
+      name: composedName,
       sku: form.sku.trim(),
       category: form.category.trim(),
       brand: form.brand.trim(),
       model: form.model.trim(),
       unit: form.unit.trim() || "adet",
       costPrice: Number(form.costPrice) || 0,
-      salePrice: Number(form.salePrice),
+      salePrice: Number(form.salePrice) || 0,
       currency: form.currency,
       exchangeRate: form.exchangeRate,
       stockQty: Number(form.stockQty) || 0,
@@ -369,7 +373,11 @@ export default function UrunlerPage() {
                         </td>
                       )}
                       <td className="px-5 py-4 text-right font-bold text-ink">
-                        {fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)}
+                        {Number(p.salePrice) > 0 ? (
+                          fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)
+                        ) : (
+                          <Badge tone="amber">Satış fiyatı yok</Badge>
+                        )}
                       </td>
                       {canViewCosts && (
                         <td className="px-5 py-4 text-right">
@@ -448,7 +456,7 @@ export default function UrunlerPage() {
             {notice && (
               <p className="rounded-xl bg-brand/5 px-4 py-3 text-xs text-ink/60">{notice}</p>
             )}
-            <Field label="Ürün / hizmet adı">
+            <Field label="Ürün / hizmet adı (boş bırakılırsa marka + model kullanılır)">
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
