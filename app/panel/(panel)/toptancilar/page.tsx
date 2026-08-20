@@ -2,11 +2,15 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
+import { InvoiceScanner } from "@/components/panel/InvoiceScanner";
+import { SCAN_HANDOFF_KEY, type ScanHandoff } from "@/lib/scan-handoff";
+import type { ExtractedInvoice } from "@/lib/invoice-ocr";
+import type { ProductOption } from "@/components/panel/ItemsEditor";
 import {
   Badge,
   Btn,
@@ -65,9 +69,12 @@ type PurchaseLogRow = {
 
 export default function ToptancilarPage() {
   const canDelete = usePanelCan("delete_records");
+  const canViewCosts = usePanelCan("view_costs");
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const [rows, setRows] = useState<SupplierRow[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<SupplierRow | null>(null);
@@ -75,6 +82,11 @@ export default function ToptancilarPage() {
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
   const [q, setQ] = useState("");
+
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [pendingScan, setPendingScan] = useState<ScanHandoff | null>(null);
+  const [pendingNewName, setPendingNewName] = useState("");
+  const [pendingSaving, setPendingSaving] = useState(false);
 
   const [log, setLog] = useState<PurchaseLogRow[]>([]);
   const [logLoading, setLogLoading] = useState(true);
@@ -114,13 +126,18 @@ export default function ToptancilarPage() {
         const target = data.find((s) => s.id === Number(editId));
         if (target) openEdit(target);
       }
+      if (canViewCosts) {
+        api<ProductOption[]>("/api/products")
+          .then(setProducts)
+          .catch(() => {});
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [canViewCosts]);
 
   const loadLog = useCallback(async () => {
     setLogLoading(true);
@@ -204,6 +221,49 @@ export default function ToptancilarPage() {
     }
   };
 
+  const goToSupplierWithScan = (supplierId: number, handoff: ScanHandoff) => {
+    sessionStorage.setItem(SCAN_HANDOFF_KEY, JSON.stringify(handoff));
+    router.push(`/panel/toptancilar/${supplierId}`);
+  };
+
+  const handleExtracted = (result: ExtractedInvoice, scannedFileUrl: string, previewUrl: string) => {
+    setScannerOpen(false);
+    const handoff = { result, scannedFileUrl, previewUrl };
+    if (result.supplierId) {
+      goToSupplierWithScan(result.supplierId, handoff);
+      return;
+    }
+    // Tedarikçi güvenle tanınamadı — kullanıcı mevcut listeden seçsin ya da
+    // yeni toptancı oluştursun, sonra tarama sonucu o sayfaya taşınır.
+    setPendingScan(handoff);
+    setPendingNewName(result.supplierNameGuess);
+  };
+
+  const proceedWithExistingSupplier = (supplierId: string) => {
+    if (!pendingScan || !supplierId) return;
+    goToSupplierWithScan(Number(supplierId), pendingScan);
+    setPendingScan(null);
+  };
+
+  const proceedWithNewSupplier = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!pendingScan || !pendingNewName.trim()) return;
+    setPendingSaving(true);
+    setError("");
+    try {
+      const created = await api<SupplierRow>("/api/suppliers", {
+        method: "POST",
+        body: JSON.stringify({ name: pendingNewName.trim() }),
+      });
+      goToSupplierWithScan(created.id, pendingScan);
+      setPendingScan(null);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setPendingSaving(false);
+    }
+  };
+
   const visibleRows = useMemo(() => {
     const query = q.trim().toLowerCase();
     return rows.filter((r) => {
@@ -240,6 +300,12 @@ export default function ToptancilarPage() {
                 className="w-64 pl-10"
               />
             </div>
+          )}
+          {canViewCosts && (
+            <Btn variant="ghost" onClick={() => setScannerOpen(true)}>
+              <Icon name="camera" className="h-4 w-4" />
+              Fatura Tara
+            </Btn>
           )}
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
@@ -475,6 +541,54 @@ export default function ToptancilarPage() {
           </div>
         )}
       </Card>
+
+      {canViewCosts && (
+        <InvoiceScanner
+          open={scannerOpen}
+          onClose={() => setScannerOpen(false)}
+          suppliers={rows}
+          products={products}
+          onExtracted={handleExtracted}
+        />
+      )}
+
+      {pendingScan && (
+        <Modal open onClose={() => setPendingScan(null)} title="Toptancıyı Seçin">
+          <div className="space-y-4">
+            <p className="text-sm text-ink/60">
+              Belgeden tedarikçi otomatik tanınamadı — mevcut bir toptancı seçin ya da yeni oluşturun.
+            </p>
+            {rows.length > 0 && (
+              <Field label="Mevcut toptancılardan seç">
+                <CustomSelect
+                  value=""
+                  onChange={proceedWithExistingSupplier}
+                  options={rows.map((r) => ({ value: String(r.id), label: r.name }))}
+                  placeholder="Toptancı seçin"
+                />
+              </Field>
+            )}
+            <form onSubmit={proceedWithNewSupplier} className="space-y-3 border-t border-ink/8 pt-4">
+              <Field label="Ya da yeni toptancı oluştur">
+                <Input
+                  required
+                  value={pendingNewName}
+                  onChange={(e) => setPendingNewName(e.target.value)}
+                  placeholder="Firma adı"
+                />
+              </Field>
+              <div className="flex justify-end gap-3">
+                <Btn variant="ghost" onClick={() => setPendingScan(null)}>
+                  Vazgeç
+                </Btn>
+                <Btn type="submit" disabled={pendingSaving || !pendingNewName.trim()}>
+                  {pendingSaving ? "Oluşturuluyor…" : "Oluştur ve Devam Et"}
+                </Btn>
+              </div>
+            </form>
+          </div>
+        </Modal>
+      )}
 
       {(creating || editing) && (
         <Modal

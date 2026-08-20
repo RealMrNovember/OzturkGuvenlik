@@ -10,6 +10,7 @@ import { CurrencyAmountInput, CurrencyPicker } from "@/components/panel/Currency
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
 import { InvoiceScanner } from "@/components/panel/InvoiceScanner";
 import type { ExtractedInvoice } from "@/lib/invoice-ocr";
+import { SCAN_HANDOFF_KEY, type ScanHandoff } from "@/lib/scan-handoff";
 import {
   Badge,
   Btn,
@@ -152,6 +153,24 @@ export default function ToptanciDetayPage() {
       `Belge tarandı — ${parts.length > 0 ? parts.join(", ") : "kalem/tutar bulunamadı"}. Kaydetmeden önce tüm alanları kontrol edin, gerekirse düzeltin.`
     );
   };
+
+  // Toptancılar liste sayfasında (henüz toptancı seçmeden) taranan bir
+  // belge varsa — o taramanın hedefi bu sayfaya yönlendirilmiştir, burada
+  // devralınıp forma işlenir (bkz. lib/scan-handoff.ts).
+  useEffect(() => {
+    const raw = sessionStorage.getItem(SCAN_HANDOFF_KEY);
+    if (!raw) return;
+    sessionStorage.removeItem(SCAN_HANDOFF_KEY);
+    const t = setTimeout(() => {
+      try {
+        const handoff = JSON.parse(raw) as ScanHandoff;
+        handleExtracted(handoff.result, handoff.scannedFileUrl, handoff.previewUrl);
+      } catch {
+        // taşınan veri bozuksa sessizce yok say — kullanıcı elle fatura ekleyebilir
+      }
+    }, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
