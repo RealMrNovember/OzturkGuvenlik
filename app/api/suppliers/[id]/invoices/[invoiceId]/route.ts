@@ -1,3 +1,4 @@
+import { del } from "@vercel/blob";
 import { db } from "@/lib/db";
 import { supplierInvoices, suppliers, transactions, type OfferItem } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -106,7 +107,10 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const [deleted] = await db
     .delete(supplierInvoices)
     .where(eq(supplierInvoices.id, numericId))
-    .returning({ id: supplierInvoices.id });
+    .returning({ id: supplierInvoices.id, scannedFileUrl: supplierInvoices.scannedFileUrl });
   if (!deleted) return jsonErr("Fatura bulunamadı", 404);
+  if (deleted.scannedFileUrl) {
+    await del(deleted.scannedFileUrl).catch(() => {});
+  }
   return jsonOk({ id: deleted.id });
 }

@@ -123,7 +123,9 @@ export function parseTurkishNumber(raw: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const DATE_RE = /(\d{1,2})[.\/](\d{1,2})[.\/](\d{2,4})/g;
+// Ayraç olarak nokta/slash/tire kabul edilir; OCR satır kaymalarında
+// tire etrafında boşluk da sık görülür ("24- 06- 2026").
+const DATE_RE = /(\d{1,2})\s*[.\-/]\s*(\d{1,2})\s*[.\-/]\s*(\d{2,4})/g;
 
 function extractDates(text: string): string[] {
   const results: string[] = [];
@@ -162,6 +164,20 @@ function isNumericToken(s: string): boolean {
   return /\d/.test(s) && /^[\d.,]+$/.test(s);
 }
 
+// Türkçe faturalarda adet/tutar hemen ardından birim/para birimi etiketi
+// gelir ("5 Adet", "30,0000 USD", "% 20,00") — bu etiketler sayısal
+// kuyruğun İÇİNDE atlanabilir kabul edilir, yoksa satır sonu "USD"/"TL"/
+// "Adet" gibi bir metinle bittiği için kuyruk hiç bulunamaz (gerçek
+// faturalarda hemen her satır böyle biter).
+const UNIT_LABELS = new Set([
+  "adet", "adt", "ad", "kg", "gr", "lt", "mt", "m2", "m3",
+  "paket", "kutu", "koli", "usd", "eur", "try", "tl", "gbp", "kr", "%",
+]);
+
+function isUnitLabel(s: string): boolean {
+  return UNIT_LABELS.has(s.toLowerCase().replace(/[.,]/g, ""));
+}
+
 /** Kelimeleri yaklaşık aynı yükseklikteki (y0) satırlara gruplar. */
 function groupWordsIntoRows(words: OcrWord[], yTolerance = 12): OcrWord[][] {
   const sorted = [...words].sort((a, b) => a.bbox.y0 - b.bbox.y0);
@@ -189,12 +205,17 @@ function extractItemRows(rows: OcrWord[][]): { name: string; qty: number; unitPr
     if (texts.length < 3) continue;
 
     let splitIdx = texts.length;
-    while (splitIdx > 0 && isNumericToken(texts[splitIdx - 1])) splitIdx--;
+    while (
+      splitIdx > 0 &&
+      (isNumericToken(texts[splitIdx - 1]) || isUnitLabel(texts[splitIdx - 1]))
+    ) {
+      splitIdx--;
+    }
     const nameTokens = texts.slice(0, splitIdx);
-    const numTokens = texts.slice(splitIdx);
-    if (nameTokens.length === 0 || numTokens.length < 2) continue;
+    const tailTokens = texts.slice(splitIdx);
+    if (nameTokens.length === 0 || tailTokens.length === 0) continue;
 
-    const nums = numTokens.map(parseTurkishNumber).filter((n): n is number => n !== null);
+    const nums = tailTokens.map(parseTurkishNumber).filter((n): n is number => n !== null);
     if (nums.length < 2) continue;
 
     const [qty, unitPrice] = nums;

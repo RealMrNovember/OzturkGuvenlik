@@ -1,6 +1,7 @@
+import { del } from "@vercel/blob";
 import { db } from "@/lib/db";
-import { suppliers } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { suppliers, supplierInvoices } from "@/lib/db/schema";
+import { eq, isNotNull, and } from "drizzle-orm";
 import { updateSupplierSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
@@ -40,10 +41,22 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const numericId = Number(id);
   if (!Number.isInteger(numericId)) return jsonErr("Geçersiz ID", 400);
 
+  // Faturalar ON DELETE CASCADE ile DB seviyesinde silinir — taranan belge
+  // blob'ları bu cascade'in dışında kaldığı için önce elle toplanıp,
+  // tedarikçi silindikten sonra ayrıca temizlenir.
+  const scannedUrls = await db
+    .select({ url: supplierInvoices.scannedFileUrl })
+    .from(supplierInvoices)
+    .where(and(eq(supplierInvoices.supplierId, numericId), isNotNull(supplierInvoices.scannedFileUrl)));
+
   const [deleted] = await db
     .delete(suppliers)
     .where(eq(suppliers.id, numericId))
     .returning({ id: suppliers.id });
   if (!deleted) return jsonErr("Tedarikçi bulunamadı", 404);
+
+  const urls = scannedUrls.map((r) => r.url).filter((u): u is string => !!u);
+  if (urls.length > 0) await del(urls).catch(() => {});
+
   return jsonOk({ id: deleted.id });
 }
