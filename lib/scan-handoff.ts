@@ -13,4 +13,9 @@ export type ScanHandoff = {
   scannedFileUrl: string;
   previewUrl: string;
   rawText: string;
+  /** Bu tarama akışı içinde OTOMATİK oluşturulmuş toptancının id'si —
+   * kullanıcı fatura formunu kaydetmeden iptal ederse bu toptancı da geri
+   * silinir ("İptal diyorsam iptal olmalı": tarama hiçbir kalıcı kayıt
+   * bırakmamalı). Mevcut/elle seçilmiş toptancıya taramada bulunmaz. */
+  autoCreatedSupplierId?: number;
 };

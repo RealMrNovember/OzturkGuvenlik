@@ -240,13 +240,50 @@ function extractTotalsAndCurrency(text: string): {
 
 const UNIT_LABEL_RE = /^(adet|adt|ad|kg|gr|lt|mt|m2|m3|paket|kutu|koli|usd|eur|try|tl|gbp|kr)[.,;:]?$/i;
 
+/** Token kenarlarındaki OCR artıklarını ("|", "!", "]"…) temizler —
+ * iç noktalama (model kodlarındaki tire, sayılardaki nokta/virgül) korunur. */
+function stripEdges(t: string): string {
+  return t.replace(/^[^\p{L}\p{N}%]+/gu, "").replace(/[^\p{L}\p{N}]+$/gu, "");
+}
+
 /** Tablo kenarlıkları OCR'da "|" benzeri token'lara dönüşebildiği için
- * harf/rakam içermeyen token'lar baştan elenir. */
+ * harf/rakam içermeyen token'lar baştan elenir, kalanların kenarları temizlenir. */
 function tokenizeLine(line: string): string[] {
   return line
     .split(/\s+/)
-    .map((t) => t.trim())
+    .map((t) => stripEdges(t.trim()))
     .filter((t) => t && /[\p{L}\p{N}]/u.test(t));
+}
+
+/**
+ * Para token'ı ayrıştırma: "491,80", "491,80TL", "1.129,20 USD" kuyruğu
+ * bitişik gelebilir — para birimi eki soyulur. "%…" (KDV oranı) ve baştaki
+ * sıfırlı sayılar ("0006" IBAN parçası, "0212" telefon) fiyat OLAMAZ.
+ */
+function parseMoneyToken(raw: string): number | null {
+  if (raw.startsWith("%")) return null;
+  const t = stripEdges(raw);
+  const m = /^(\d[\d.,]*)(tl|try|usd|eur|₺|\$|€)?$/i.exec(t);
+  if (!m) return null;
+  if (/^0\d/.test(m[1])) return null;
+  const n = parseTurkishNumber(m[1]);
+  return n !== null && n > 0 ? round2(n) : null;
+}
+
+/** "Adet" çapası eşleme — OCR toleranslı: bitişik "21Adet", noktalama
+ * artıkları ve tek harflik OCR hatası ("Adel", "Adei") kabul edilir. */
+function matchAdetAnchor(token: string): { glued: number | null; standalone: boolean } {
+  const low = foldTr(stripEdges(token));
+  const glued = /^(\d{1,6})(ade[a-z]|adet)$/.exec(low);
+  if (glued && lev1Adet(glued[2])) return { glued: Number(glued[1]), standalone: false };
+  return { glued: null, standalone: lev1Adet(low) };
+}
+function lev1Adet(s: string): boolean {
+  if (s === "adet") return true;
+  if (s.length !== 4) return false;
+  let diff = 0;
+  for (let i = 0; i < 4; i++) if (s[i] !== "adet"[i]) diff++;
+  return diff === 1 && /^\p{L}+$/u.test(s);
 }
 
 export type OcrWord = { text: string; bbox: { x0: number; y0: number; x1: number; y1: number } };
@@ -301,14 +338,10 @@ function groupWordsIntoVisualRows(words: OcrWord[]): string[][] {
   return rows.map((r) =>
     r.words
       .sort((a, b) => a.bbox.x0 - b.bbox.x0)
-      .map((w) => w.text.trim())
+      .map((w) => stripEdges(w.text.trim()))
       .filter((t) => t && /[\p{L}\p{N}]/u.test(t))
   );
 }
-
-/** Yalnızca rakam/nokta/virgülden oluşan "saf sayı" token'ı — parseTurkishNumber
- * harfleri ayıkladığı için ("NEU-XVR232" → 232!) fiyat ararken bu ön kontrol şart. */
-const PURE_NUM_RE = /^\d[\d.,]*$/;
 
 // Yedek kalem deseninde ürün adı ASLA bir toplam/banka/adres/alan satırı
 // olmamalı. foldTr'lenmiş metne uygulanır — bu yüzden sade ASCII, /i
@@ -338,14 +371,13 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
     let anchor = -1;
     let anchorSpansPrev = false;
     for (let i = 0; i < texts.length; i++) {
-      const low = texts[i].toLocaleLowerCase("tr-TR").replace(/[.,;:]+$/, "");
-      const glued = /^(\d{1,6})adet$/.exec(low);
-      if (glued) {
-        qty = Number(glued[1]);
+      const a = matchAdetAnchor(texts[i]);
+      if (a.glued !== null) {
+        qty = a.glued;
         anchor = i;
         break;
       }
-      if (low === "adet" && i > 0) {
+      if (a.standalone && i > 0) {
         const n = parseTurkishNumber(texts[i - 1]);
         if (n !== null && Number.isInteger(n) && n > 0 && n <= 100_000) {
           qty = n;
@@ -357,25 +389,26 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
     }
 
     if (anchor < 0) {
-      // Yedek desen: "Adet" OCR'da kaybolmuş olabilir.
-      const numIdxs: number[] = [];
+      // Yedek desen: "Adet" OCR'da kaybolmuş olabilir — ürün adı + ≥2 para
+      // token'ı düzeni, adet=1 varsayımıyla.
+      let firstMoney = -1;
+      let moneyCount = 0;
       for (let i = 0; i < texts.length; i++) {
-        if (PURE_NUM_RE.test(texts[i])) numIdxs.push(i);
+        if (parseMoneyToken(texts[i]) !== null) {
+          moneyCount++;
+          if (firstMoney < 0) firstMoney = i;
+        }
       }
-      if (numIdxs.length < 2) continue;
-      const firstNum = numIdxs[0];
-      // Baştaki-sıfırlı "sayı" ("0003", "0212") asla fiyat değildir —
-      // IBAN parçası/telefon numarasıdır, satır kalem olamaz.
-      if (/^0\d/.test(texts[firstNum])) continue;
-      const nameTokens = texts.slice(0, firstNum);
+      if (moneyCount < 2 || firstMoney < 1) continue;
+      const nameTokens = texts.slice(0, firstMoney);
       if (nameTokens.length > 0 && /^\d{1,3}$/.test(nameTokens[0])) nameTokens.shift();
       const name = nameTokens.join(" ").trim();
       if (name.length < 6) continue;
       if (!nameTokens.some((t) => /\p{L}{3}/u.test(t))) continue;
       if (ITEM_NAME_BLOCK_RE.test(foldTr(name))) continue;
-      const price = parseTurkishNumber(texts[firstNum]);
-      if (price === null || price <= 0) continue;
-      items.push({ name, qty: 1, unitPrice: round2(price) });
+      const price = parseMoneyToken(texts[firstMoney]);
+      if (price === null) continue;
+      items.push({ name, qty: 1, unitPrice: price });
       continue;
     }
 
@@ -387,24 +420,103 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
     const name = nameTokens.join(" ").trim();
     if (name.length < 3) continue;
 
-    // Çapadan sonraki ilk SAF sayı = birim fiyat. "%20,00" (KDV oranı),
-    // "TL"/"USD" etiketleri ve baştaki-sıfırlı sayılar (fiyat olamaz) atlanır.
+    // Çapadan sonraki ilk para token'ı = birim fiyat ("491,80TL" bitişiği
+    // dahil). "%20,00" ve etiketler parseMoneyToken içinde elenir.
     let unitPrice: number | null = null;
     for (let j = anchor + 1; j < texts.length; j++) {
-      const t = texts[j];
-      if (t.startsWith("%")) continue;
-      if (UNIT_LABEL_RE.test(t)) continue;
-      if (!PURE_NUM_RE.test(t)) continue;
-      if (/^0\d/.test(t)) continue;
-      const n = parseTurkishNumber(t);
+      if (UNIT_LABEL_RE.test(texts[j])) continue;
+      const n = parseMoneyToken(texts[j]);
       if (n !== null) {
-        unitPrice = round2(n);
+        unitPrice = n;
         break;
       }
     }
-    if (unitPrice === null || unitPrice < 0) continue;
+    if (unitPrice === null) continue;
 
     items.push({ name, qty, unitPrice });
+  }
+  return items;
+}
+
+/**
+ * Çapa-merkezli, EĞİM-TOLERANSLI kalem çıkarımı — doğrudan kelime
+ * koordinatları üzerinde. Telefon fotoğraflarında 1-2 derecelik eğim bile
+ * satır bandını sayfa genişliğinde ~50px kaydırdığı için küresel satır
+ * kurma fiyat hücresini çapadan koparabiliyor (gerçek Tesseract'la
+ * eğik-görüntü deneyinde birebir görüldü). Burada her "N Adet" çapasının
+ * YEREL komşuluğuna bakılır: sağındaki en yakın para token'ı birim fiyat,
+ * solundaki yakın-bant kelimeler ürün adıdır — eğim yerel mesafede küçük
+ * kaldığı için dayanıklıdır.
+ */
+function extractItemsFromWordAnchors(
+  words: OcrWord[]
+): { name: string; qty: number; unitPrice: number }[] {
+  const items: { name: string; qty: number; unitPrice: number }[] = [];
+  const cy = (w: OcrWord) => (w.bbox.y0 + w.bbox.y1) / 2;
+  const hh = (w: OcrWord) => w.bbox.y1 - w.bbox.y0;
+
+  for (const w of words) {
+    const a = matchAdetAnchor(w.text);
+    let qty: number | null = null;
+    let qtyWord: OcrWord | null = null;
+    if (a.glued !== null) {
+      qty = a.glued;
+    } else if (a.standalone) {
+      // Solundaki en yakın, aynı yerel bantta duran tam sayı = adet.
+      let best: { w: OcrWord; dx: number } | null = null;
+      for (const c of words) {
+        if (c === w || c.bbox.x1 > w.bbox.x0 + 5) continue;
+        if (Math.abs(cy(c) - cy(w)) > Math.max(hh(w), hh(c)) * 1.2) continue;
+        const n = parseTurkishNumber(stripEdges(c.text));
+        if (n === null || !Number.isInteger(n) || n <= 0 || n > 100_000) continue;
+        const dx = w.bbox.x0 - c.bbox.x1;
+        if (dx > hh(w) * 4) continue; // adet sayısı çapaya bitişik durur
+        if (!best || dx < best.dx) best = { w: c, dx };
+      }
+      if (best) {
+        qty = parseTurkishNumber(stripEdges(best.w.text));
+        qtyWord = best.w;
+      }
+    }
+    if (qty === null || qty <= 0) continue;
+
+    const priceBand = Math.max(hh(w), 12) * 1.6;
+    // Ad bandı bilerek DAR tutulur (aynı taban çizgisi) — ağır eğimde üst
+    // başlık satırının kelimeleri ada karışıyordu; hücre içinde alt satıra
+    // sarılmış ad parçasını kaybetmek, çöp karıştırmaktan iyidir.
+    const nameBand = Math.max(hh(w), 12) * 0.8;
+
+    // Sağdaki en yakın para token'ı = birim fiyat.
+    let price: { value: number; dx: number } | null = null;
+    for (const c of words) {
+      if (c.bbox.x0 < w.bbox.x1 - 5) continue;
+      if (Math.abs(cy(c) - cy(w)) > priceBand) continue;
+      const n = parseMoneyToken(c.text);
+      if (n === null) continue;
+      const dx = c.bbox.x0 - w.bbox.x1;
+      if (!price || dx < price.dx) price = { value: n, dx };
+    }
+    if (!price) continue;
+
+    // Soldaki yakın-bant kelimeler (adet sayısı hariç) = ürün adı.
+    const nameWords = words
+      .filter(
+        (c) =>
+          c !== w &&
+          c !== qtyWord &&
+          c.bbox.x1 <= w.bbox.x0 + 5 &&
+          Math.abs(cy(c) - cy(w)) <= nameBand
+      )
+      .sort((x, y) => x.bbox.x0 - y.bbox.x0)
+      .map((c) => stripEdges(c.text))
+      .filter((t) => t && /[\p{L}\p{N}]/u.test(t));
+    if (nameWords.length > 0 && /^\d{1,3}$/.test(nameWords[0])) nameWords.shift();
+    const name = nameWords.join(" ").trim();
+    if (name.length < 3) continue;
+    if (!nameWords.some((t) => /\p{L}{2}/u.test(t))) continue;
+    if (ITEM_NAME_BLOCK_RE.test(foldTr(name))) continue;
+
+    items.push({ name, qty, unitPrice: price.value });
   }
   return items;
 }
@@ -575,23 +687,29 @@ export function extractInvoiceData(
   const invoiceNumber = extractInvoiceNumber(ocrText);
   const totals = extractTotalsAndCurrency(ocrText);
 
-  // Kalemler iki bağımsız yoldan aranır: (1) kelime koordinatlarından
-  // yeniden kurulan görsel satırlar — kenarlıklı tablolarda tek çalışan
-  // yol, (2) Tesseract'ın metin satırları — kenarlıksız/serbest düzen
-  // belgeler için. Sonuçlar BİRLEŞTİRİLİR (isim bazında tekrarsız) —
-  // önceki "hangisi çok bulduysa o" seçimi, bir yolun gerçek kalemi diğer
-  // yolun çöpü bulduğu beraberlikte yanlış tarafı seçebiliyordu (gerçek
-  // taramada görüldü: görsel yol adres satırını, metin yolu gerçek ürünü
-  // bulmuştu ve adres kazanmıştı).
+  // Kalemler üç bağımsız yoldan aranır ve sonuçlar BİRLEŞTİRİLİR:
+  // (1) çapa-merkezli yerel arama (kelime koordinatları) — telefon
+  //     fotoğrafındaki eğime dayanıklı, en güvenilir yol,
+  // (2) görsel satırlar — kenarlıklı tablo + düz tarama,
+  // (3) metin satırları — kenarlıksız/serbest düzen belgeler.
+  // Tekrarlar isim KAPSAMASINA göre elenir (aynı ürünün "KAMERA RT-C6C..."
+  // ve "RT-C6C..." gibi kısmi-ad çeşitleri tek kayda iner) — kapsayan/daha
+  // erken yolun kaydı kazanır.
+  const fromAnchors = words.length > 0 ? extractItemsFromWordAnchors(words) : [];
   const fromVisualRows = words.length > 0 ? extractItemRows(groupWordsIntoVisualRows(words)) : [];
   const fromTextLines = extractItemRows(ocrText.split("\n").map(tokenizeLine));
-  const seenNames = new Set<string>();
+  const tokset = (s: string) => new Set(foldTr(s).split(/\s+/).filter(Boolean));
   const rawItems: { name: string; qty: number; unitPrice: number }[] = [];
-  for (const item of [...fromVisualRows, ...fromTextLines]) {
-    const key = foldTr(item.name).replace(/\s+/g, " ");
-    if (seenNames.has(key)) continue;
-    seenNames.add(key);
-    rawItems.push(item);
+  for (const item of [...fromAnchors, ...fromVisualRows, ...fromTextLines]) {
+    const key = tokset(item.name);
+    // Kelime-kümesi kapsaması: küçük kümenin tüm kelimeleri büyükte varsa
+    // aynı ürünün ad çeşididir ("KAMERA RT-C6C ..." vs "RT-C6C ...").
+    const dup = rawItems.some((kept) => {
+      const kk = tokset(kept.name);
+      const [small, big] = key.size <= kk.size ? [key, kk] : [kk, key];
+      return small.size > 0 && [...small].every((t) => big.has(t));
+    });
+    if (!dup) rawItems.push(item);
   }
 
   const items: ExtractedItem[] = rawItems.map((ri) => {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
@@ -78,7 +78,12 @@ function isOverdue(inv: SupplierInvoice) {
 export default function ToptanciDetayPage() {
   const params = useParams<{ id: string }>();
   const supplierId = Number(params.id);
+  const router = useRouter();
   const canDelete = usePanelCan("delete_records");
+  // Bu toptancı, tarama akışında otomatik oluşturulduysa ve kullanıcı fatura
+  // formunu KAYDETMEDEN kapatırsa toptancı da geri silinir — tarama iptal
+  // edilince ortada hiçbir kalıcı kayıt kalmamalı (kullanıcı isteği).
+  const autoCreatedRef = useRef(false);
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
@@ -127,6 +132,14 @@ export default function ToptanciDetayPage() {
     setScanPreviewUrl(null);
     setScanRawText("");
     setCreating(false);
+    // Tarama bu toptancıyı otomatik oluşturduysa ve fatura kaydedilmeden
+    // vazgeçildiyse: toptancıyı da geri sil, listeye dön — iptal, iptal olsun.
+    if (autoCreatedRef.current) {
+      autoCreatedRef.current = false;
+      api(`/api/suppliers/${supplierId}`, { method: "DELETE" })
+        .catch(() => {})
+        .finally(() => router.replace("/panel/toptancilar"));
+    }
   };
 
   const handleExtracted = (
@@ -179,13 +192,14 @@ export default function ToptanciDetayPage() {
     const t = setTimeout(() => {
       try {
         const handoff = JSON.parse(raw) as ScanHandoff;
+        if (handoff.autoCreatedSupplierId === supplierId) autoCreatedRef.current = true;
         handleExtracted(handoff.result, handoff.scannedFileUrl, handoff.previewUrl, handoff.rawText);
       } catch {
         // taşınan veri bozuksa sessizce yok say — kullanıcı elle fatura ekleyebilir
       }
     }, 0);
     return () => clearTimeout(t);
-  }, []);
+  }, [supplierId]);
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -217,6 +231,9 @@ export default function ToptanciDetayPage() {
           scannedFileUrl: form.scannedFileUrl,
         }),
       });
+      // Fatura kaydedildi — taramayla otomatik oluşan toptancı artık kalıcı,
+      // formu kapatmak onu silmemeli.
+      autoCreatedRef.current = false;
       closeCreate();
       await load();
     } catch (err) {

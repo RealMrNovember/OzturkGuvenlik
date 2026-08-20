@@ -269,7 +269,7 @@ export default function ToptancilarPage() {
           address: pendingScan.result.supplierAddress,
         }),
       });
-      goToSupplierWithScan(created.id, pendingScan);
+      goToSupplierWithScan(created.id, { ...pendingScan, autoCreatedSupplierId: created.id });
       setPendingScan(null);
     } catch (err) {
       setError((err as Error).message);
