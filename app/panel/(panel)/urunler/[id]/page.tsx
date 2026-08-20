@@ -18,6 +18,7 @@ import {
   fmtDate,
   fmtDateTime,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type Product = {
@@ -47,6 +48,18 @@ type UnitRow = {
   installedAt: string | null;
 };
 
+type PurchaseHistoryRow = {
+  invoiceId: number;
+  invoiceNumber: string;
+  issueDate: string;
+  currency: string;
+  exchangeRate: string;
+  supplierId: number;
+  supplierName: string | null;
+  qty: number;
+  unitPrice: number;
+};
+
 const UNIT_STATUS_LABEL: Record<string, string> = {
   stokta: "Stokta",
   kuruldu: "Kuruldu",
@@ -69,6 +82,7 @@ export default function UrunDetayPage() {
   const [adding, setAdding] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanCount, setScanCount] = useState(0);
+  const [purchaseHistory, setPurchaseHistory] = useState<PurchaseHistoryRow[]>([]);
 
   const load = useCallback(async () => {
     if (!Number.isInteger(productId)) return;
@@ -90,6 +104,13 @@ export default function UrunDetayPage() {
     const t = setTimeout(load, 0);
     return () => clearTimeout(t);
   }, [load]);
+
+  useEffect(() => {
+    if (!canViewCosts || !Number.isInteger(productId)) return;
+    api<PurchaseHistoryRow[]>(`/api/products/${productId}/purchase-history`)
+      .then(setPurchaseHistory)
+      .catch(() => {});
+  }, [canViewCosts, productId]);
 
   const addSerials = async (serialNumbers: string[]) => {
     if (serialNumbers.length === 0) return;
@@ -207,6 +228,39 @@ export default function UrunDetayPage() {
           <p className="mt-1 text-2xl font-black text-ink">{product.stockQty}</p>
         </div>
       </div>
+
+      {canViewCosts && (
+        <Card title="Alım geçmişi">
+          {purchaseHistory.length === 0 ? (
+            <div className="px-5 py-8 text-center text-sm text-ink/50">
+              Bu ürün henüz bir toptancı faturasında kalem olarak geçmedi.
+            </div>
+          ) : (
+            <div className="divide-y divide-ink/6">
+              {purchaseHistory.map((h) => (
+                <Link
+                  key={`${h.invoiceId}-${h.supplierId}`}
+                  href={`/panel/toptancilar/${h.supplierId}`}
+                  className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink/2"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-semibold text-ink">
+                      {h.supplierName ?? "Toptancı"}
+                    </p>
+                    <p className="text-xs text-ink/45">
+                      {fmtDate(h.issueDate)}
+                      {h.invoiceNumber ? ` · ${h.invoiceNumber}` : ""} · {h.qty} adet
+                    </p>
+                  </div>
+                  <p className="shrink-0 font-bold text-ink">
+                    {fmtMoneyWithTry(h.unitPrice, h.currency, h.exchangeRate)}/adet
+                  </p>
+                </Link>
+              ))}
+            </div>
+          )}
+        </Card>
+      )}
 
       {!product.serialized ? (
         <Card>

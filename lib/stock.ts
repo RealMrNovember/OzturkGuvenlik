@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { products, productUnits, type JobItem } from "@/lib/db/schema";
+import { products, productUnits, type JobItem, type OfferItem } from "@/lib/db/schema";
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { round2 } from "@/lib/money";
 
@@ -16,6 +16,42 @@ export async function costTotalForItems(tx: Tx, items: JobItem[]): Promise<numbe
     .where(inArray(products.id, ids));
   const costMap = new Map(rows.map((r) => [r.id, Number(r.costPrice) * Number(r.exchangeRate)]));
   return round2(items.reduce((sum, i) => sum + i.qty * (costMap.get(i.productId) ?? 0), 0));
+}
+
+/**
+ * Bir toptancı alış faturası "teslim alındı" işaretlendiğinde kalemleri
+ * stoğa işler — applyStockDelta'nın tersi yönü (düşüm değil, artış).
+ * Yalnızca kataloğa bağlı (productId dolu) ve seri takipsiz ürünler için
+ * `stockQty` doğrudan artırılır; seri takipli ürünlerde adet otomatik
+ * artmaz (fiziksel seri numaraları tek tek girilmeli) — bu kalemlerin
+ * ürün id'leri, çağıran tarafın "seri no girin" uyarısı gösterebilmesi
+ * için geri döndürülür.
+ */
+export async function receiveStock(tx: Tx, items: OfferItem[]): Promise<{ needsSerialEntry: number[] }> {
+  const linked = items.filter((i) => i.productId != null);
+  if (linked.length === 0) return { needsSerialEntry: [] };
+
+  const ids = [...new Set(linked.map((i) => i.productId as number))];
+  const rows = await tx
+    .select({ id: products.id, serialized: products.serialized })
+    .from(products)
+    .where(inArray(products.id, ids));
+  const serializedIds = new Set(rows.filter((r) => r.serialized).map((r) => r.id));
+
+  const qtyDelta = new Map<number, number>();
+  for (const i of linked) {
+    const productId = i.productId as number;
+    if (serializedIds.has(productId)) continue;
+    qtyDelta.set(productId, (qtyDelta.get(productId) ?? 0) + i.qty);
+  }
+  for (const [productId, delta] of qtyDelta) {
+    await tx
+      .update(products)
+      .set({ stockQty: sql`${products.stockQty} + ${delta}` })
+      .where(eq(products.id, productId));
+  }
+
+  return { needsSerialEntry: [...new Set(linked.map((i) => i.productId as number))].filter((id) => serializedIds.has(id)) };
 }
 
 type StockRef = { jobId?: number | null; serviceTicketId?: number | null };

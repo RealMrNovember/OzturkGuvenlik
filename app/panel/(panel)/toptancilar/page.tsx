@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
@@ -23,15 +24,27 @@ type SupplierRow = {
   name: string;
   phone: string;
   address: string;
+  taxOffice: string;
+  taxNumber: string;
+  paymentTermDays: number | null;
   note: string;
   balance: string;
   createdAt: string;
 };
 
-const blank = { name: "", phone: "", address: "", note: "" };
+const blank = {
+  name: "",
+  phone: "",
+  address: "",
+  taxOffice: "",
+  taxNumber: "",
+  paymentTermDays: "",
+  note: "",
+};
 
-export default function TedarikcilerPage() {
+export default function ToptancilarPage() {
   const canDelete = usePanelCan("delete_records");
+  const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<SupplierRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +60,15 @@ export default function TedarikcilerPage() {
   };
 
   const openEdit = (row: SupplierRow) => {
-    setForm({ name: row.name, phone: row.phone, address: row.address, note: row.note });
+    setForm({
+      name: row.name,
+      phone: row.phone,
+      address: row.address,
+      taxOffice: row.taxOffice,
+      taxNumber: row.taxNumber,
+      paymentTermDays: row.paymentTermDays != null ? String(row.paymentTermDays) : "",
+      note: row.note,
+    });
     setEditing(row);
   };
 
@@ -56,11 +77,17 @@ export default function TedarikcilerPage() {
     try {
       const data = await api<SupplierRow[]>("/api/suppliers");
       setRows(data);
+      const editId = searchParams.get("edit");
+      if (editId) {
+        const target = data.find((s) => s.id === Number(editId));
+        if (target) openEdit(target);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
       setLoading(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -73,10 +100,14 @@ export default function TedarikcilerPage() {
     setSaving(true);
     setError("");
     try {
+      const payload = {
+        ...form,
+        paymentTermDays: form.paymentTermDays ? Number(form.paymentTermDays) : null,
+      };
       if (editing) {
-        await api(`/api/suppliers/${editing.id}`, { method: "PATCH", body: JSON.stringify(form) });
+        await api(`/api/suppliers/${editing.id}`, { method: "PATCH", body: JSON.stringify(payload) });
       } else {
-        await api("/api/suppliers", { method: "POST", body: JSON.stringify(form) });
+        await api("/api/suppliers", { method: "POST", body: JSON.stringify(payload) });
       }
       setCreating(false);
       setEditing(null);
@@ -104,14 +135,14 @@ export default function TedarikcilerPage() {
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Tedarikçiler</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Toptancılar</h1>
           <p className="mt-1 text-sm text-ink/55">
             {rows.length} kayıt · Toplam borç: <span className="font-bold text-ink">{fmtMoney(totalDebt)}</span>
           </p>
         </div>
         <Btn onClick={openCreate}>
           <Icon name="plus" className="h-4 w-4" />
-          Yeni Tedarikçi
+          Yeni Toptancı
         </Btn>
       </div>
 
@@ -120,15 +151,16 @@ export default function TedarikcilerPage() {
       {loading ? (
         <Loading />
       ) : rows.length === 0 ? (
-        <EmptyState title="Tedarikçi yok" desc="Yeni tedarikçi ekleyerek başlayın." />
+        <EmptyState title="Toptancı yok" desc="Yeni toptancı ekleyerek başlayın." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[680px] text-left text-sm">
+            <table className="w-full min-w-[720px] text-left text-sm">
               <thead>
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
-                  <th className="px-5 py-3.5">Tedarikçi</th>
+                  <th className="px-5 py-3.5">Toptancı</th>
                   <th className="px-5 py-3.5">İletişim</th>
+                  <th className="px-5 py-3.5">Vergi No</th>
                   <th className="px-5 py-3.5">Borcumuz</th>
                   <th className="px-5 py-3.5 text-right">İşlem</th>
                 </tr>
@@ -137,7 +169,7 @@ export default function TedarikcilerPage() {
                 {rows.map((s) => (
                   <tr key={s.id} className="align-top hover:bg-ink/2">
                     <td className="px-5 py-4">
-                      <Link href={`/panel/tedarikciler/${s.id}`} className="font-bold text-ink hover:text-brand">
+                      <Link href={`/panel/toptancilar/${s.id}`} className="font-bold text-ink hover:text-brand">
                         {s.name}
                       </Link>
                       {s.address && (
@@ -155,6 +187,10 @@ export default function TedarikcilerPage() {
                       ) : (
                         <span className="text-ink/45">-</span>
                       )}
+                    </td>
+                    <td className="px-5 py-4 text-ink/70">
+                      {s.taxNumber || "-"}
+                      {s.taxOffice && <p className="text-xs text-ink/45">{s.taxOffice}</p>}
                     </td>
                     <td className="px-5 py-4">
                       {Number(s.balance) > 0 ? (
@@ -200,7 +236,7 @@ export default function TedarikcilerPage() {
             setCreating(false);
             setEditing(null);
           }}
-          title={editing ? "Tedarikçiyi Düzenle" : "Yeni Tedarikçi"}
+          title={editing ? "Toptancıyı Düzenle" : "Yeni Toptancı"}
           wide
         >
           <form onSubmit={save} className="space-y-4">
@@ -214,6 +250,27 @@ export default function TedarikcilerPage() {
                   value={form.phone}
                   onChange={(e) => setForm({ ...form, phone: e.target.value })}
                   placeholder="0212 XXX XX XX"
+                />
+              </Field>
+              <Field label="Vergi Dairesi">
+                <Input
+                  value={form.taxOffice}
+                  onChange={(e) => setForm({ ...form, taxOffice: e.target.value })}
+                />
+              </Field>
+              <Field label="Vergi No">
+                <Input
+                  value={form.taxNumber}
+                  onChange={(e) => setForm({ ...form, taxNumber: e.target.value })}
+                />
+              </Field>
+              <Field label="Ödeme vadesi (gün)">
+                <Input
+                  type="number"
+                  min="0"
+                  value={form.paymentTermDays}
+                  onChange={(e) => setForm({ ...form, paymentTermDays: e.target.value })}
+                  placeholder="örn. 30"
                 />
               </Field>
               <div className="sm:col-span-2">

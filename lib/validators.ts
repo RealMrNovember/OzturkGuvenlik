@@ -485,6 +485,9 @@ export const createSupplierSchema = z.object({
   name: z.string().trim().min(2, "Ad en az 2 karakter olmalı").max(160),
   phone: z.string().trim().max(30).optional().default(""),
   address: z.string().trim().max(1000).optional().default(""),
+  taxOffice: z.string().trim().max(100).optional().default(""),
+  taxNumber: z.string().trim().max(20).optional().default(""),
+  paymentTermDays: z.number().int().min(0).max(365).nullable().optional(),
   note: z.string().trim().max(2000).optional().default(""),
 });
 
@@ -492,14 +495,21 @@ export const updateSupplierSchema = z.object({
   name: z.string().trim().min(2).max(160).optional(),
   phone: z.string().trim().max(30).optional(),
   address: z.string().trim().max(1000).optional(),
+  taxOffice: z.string().trim().max(100).optional(),
+  taxNumber: z.string().trim().max(20).optional(),
+  paymentTermDays: z.number().int().min(0).max(365).nullable().optional(),
   note: z.string().trim().max(2000).optional(),
 });
 
 export const createSupplierInvoiceSchema = z.object({
   invoiceNumber: z.string().trim().max(60).optional().default(""),
-  amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000),
+  items: z.array(offerItemSchema).max(200).optional().default([]),
+  taxRate: z.number().min(0).max(100).optional().default(20),
+  amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000).optional().default(0),
   ...createCurrencyFields,
   status: z.enum(SUPPLIER_INVOICE_STATUSES).optional().default("odenmedi"),
+  received: z.boolean().optional().default(false),
+  receivedAt: isoDate.nullable().optional(),
   issueDate: isoDate,
   dueDate: isoDate.nullable().optional(),
   paidDate: isoDate.nullable().optional(),
@@ -508,9 +518,13 @@ export const createSupplierInvoiceSchema = z.object({
 
 export const updateSupplierInvoiceSchema = z.object({
   invoiceNumber: z.string().trim().max(60).optional(),
+  items: z.array(offerItemSchema).max(200).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
   amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000).optional(),
   ...updateCurrencyFields,
   status: z.enum(SUPPLIER_INVOICE_STATUSES).optional(),
+  received: z.boolean().optional(),
+  receivedAt: isoDate.nullable().optional(),
   issueDate: isoDate.optional(),
   dueDate: isoDate.nullable().optional(),
   paidDate: isoDate.nullable().optional(),

@@ -6,7 +6,8 @@ import Link from "next/link";
 import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
-import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
+import { CurrencyAmountInput, CurrencyPicker } from "@/components/panel/CurrencyAmountInput";
+import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
 import {
   Badge,
   Btn,
@@ -27,6 +28,9 @@ type Supplier = {
   name: string;
   phone: string;
   address: string;
+  taxOffice: string;
+  taxNumber: string;
+  paymentTermDays: number | null;
   note: string;
 };
 
@@ -34,10 +38,14 @@ type SupplierInvoice = {
   id: number;
   supplierId: number;
   invoiceNumber: string;
+  items: { name: string; qty: number; unitPrice: number; productId?: number | null }[];
+  taxRate: string;
   amount: string;
   currency: string;
   exchangeRate: string;
   status: "odenmedi" | "odendi";
+  received: boolean;
+  receivedAt: string | null;
   issueDate: string;
   dueDate: string | null;
   paidDate: string | null;
@@ -48,6 +56,8 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 const blankInvoice = {
   invoiceNumber: "",
+  items: [] as ItemForm[],
+  taxRate: "20",
   amount: "",
   currency: "TRY",
   exchangeRate: 1,
@@ -60,15 +70,17 @@ function isOverdue(inv: SupplierInvoice) {
   return inv.status !== "odendi" && !!inv.dueDate && inv.dueDate < today();
 }
 
-export default function TedarikciDetayPage() {
+export default function ToptanciDetayPage() {
   const params = useParams<{ id: string }>();
   const supplierId = Number(params.id);
   const canDelete = usePanelCan("delete_records");
 
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [invoices, setInvoices] = useState<SupplierInvoice[]>([]);
+  const [products, setProducts] = useState<ProductOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(blankInvoice);
   const [saving, setSaving] = useState(false);
@@ -76,12 +88,14 @@ export default function TedarikciDetayPage() {
   const load = useCallback(async () => {
     if (!Number.isInteger(supplierId)) return;
     try {
-      const [suppliersList, invoiceRows] = await Promise.all([
+      const [suppliersList, invoiceRows, productRows] = await Promise.all([
         api<Supplier[]>("/api/suppliers"),
         api<SupplierInvoice[]>(`/api/suppliers/${supplierId}/invoices`),
+        api<ProductOption[]>("/api/products"),
       ]);
       setSupplier(suppliersList.find((s) => s.id === supplierId) ?? null);
       setInvoices(invoiceRows);
+      setProducts(productRows);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -101,8 +115,9 @@ export default function TedarikciDetayPage() {
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
-    if (!form.amount || Number(form.amount) <= 0) {
-      setError("Tutar 0'dan büyük olmalı.");
+    const hasItems = form.items.length > 0;
+    if (!hasItems && (!form.amount || Number(form.amount) <= 0)) {
+      setError("Ya kalem ekleyin ya da 0'dan büyük bir toplam tutar girin.");
       return;
     }
     setSaving(true);
@@ -110,7 +125,22 @@ export default function TedarikciDetayPage() {
     try {
       await api(`/api/suppliers/${supplierId}/invoices`, {
         method: "POST",
-        body: JSON.stringify({ ...form, amount: Number(form.amount), dueDate: form.dueDate || null }),
+        body: JSON.stringify({
+          invoiceNumber: form.invoiceNumber,
+          items: form.items.map((i) => ({
+            name: i.name,
+            qty: Number(i.qty) || 0,
+            unitPrice: Number(i.unitPrice) || 0,
+            productId: i.productId ?? null,
+          })),
+          taxRate: Number(form.taxRate) || 0,
+          amount: hasItems ? undefined : Number(form.amount),
+          currency: form.currency,
+          exchangeRate: form.exchangeRate,
+          issueDate: form.issueDate,
+          dueDate: form.dueDate || null,
+          note: form.note,
+        }),
       });
       setCreating(false);
       await load();
@@ -133,6 +163,25 @@ export default function TedarikciDetayPage() {
     }
   };
 
+  const markReceived = async (inv: SupplierInvoice) => {
+    try {
+      const res = await api<{ needsSerialEntry: number[] }>(
+        `/api/suppliers/${supplierId}/invoices/${inv.id}`,
+        { method: "PATCH", body: JSON.stringify({ received: true }) }
+      );
+      if (res.needsSerialEntry.length > 0) {
+        setNotice(
+          `Stok girildi. ${res.needsSerialEntry.length} kalem seri numaralı ürün — bunlar için Ürünler sayfasından seri numarası eklemeniz gerekiyor.`
+        );
+      } else {
+        setNotice("Kalemler stoğa işlendi.");
+      }
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
   const remove = async (inv: SupplierInvoice) => {
     if (!confirm("Bu fatura silinsin mi?")) return;
     try {
@@ -144,20 +193,22 @@ export default function TedarikciDetayPage() {
   };
 
   if (loading) return <Loading />;
-  if (!supplier) return <ErrorBox message={error || "Tedarikçi bulunamadı"} />;
+  if (!supplier) return <ErrorBox message={error || "Toptancı bulunamadı"} />;
 
   const unpaid = invoices.filter((i) => i.status !== "odendi");
   const balance = unpaid.reduce((s, i) => s + Number(i.amount) * Number(i.exchangeRate), 0);
   const overdueCount = unpaid.filter(isOverdue).length;
+  const hasItems = form.items.length > 0;
 
   return (
     <div className="space-y-5">
-      <Link href="/panel/tedarikciler" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/55 hover:text-ink">
+      <Link href="/panel/toptancilar" className="inline-flex items-center gap-1.5 text-sm font-semibold text-ink/55 hover:text-ink">
         <Icon name="arrow" className="h-4 w-4 rotate-180" />
-        Tedarikçiler
+        Toptancılar
       </Link>
 
       {error && <ErrorBox message={error} />}
+      {notice && <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm text-ink/70">{notice}</p>}
 
       <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-ink/8 bg-white p-6 shadow-sm">
         <div>
@@ -165,9 +216,22 @@ export default function TedarikciDetayPage() {
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink/60">
             {supplier.phone && <span>{supplier.phone}</span>}
             {supplier.address && <span>{supplier.address}</span>}
+            {supplier.taxNumber && (
+              <span>
+                VN: {supplier.taxNumber}
+                {supplier.taxOffice ? ` (${supplier.taxOffice})` : ""}
+              </span>
+            )}
+            {supplier.paymentTermDays != null && <span>Vade: {supplier.paymentTermDays} gün</span>}
           </div>
           {supplier.note && <p className="mt-2 text-sm text-ink/50">{supplier.note}</p>}
         </div>
+        <Link href={`/panel/toptancilar?edit=${supplier.id}`}>
+          <Btn variant="ghost">
+            <Icon name="pen" className="h-4 w-4" />
+            Düzenle
+          </Btn>
+        </Link>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -205,16 +269,28 @@ export default function TedarikciDetayPage() {
                     Kesim: {fmtDate(inv.issueDate)}
                     {inv.dueDate ? ` · Vade: ${fmtDate(inv.dueDate)}` : ""}
                     {inv.paidDate ? ` · Ödendi: ${fmtDate(inv.paidDate)}` : ""}
+                    {inv.items.length > 0
+                      ? ` · ${inv.items.length} kalem (${inv.items.reduce((s, i) => s + i.qty, 0)} adet)`
+                      : ""}
                     {inv.note ? ` · ${inv.note}` : ""}
                   </p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {inv.status === "odendi" ? (
                     <Badge tone="green">Ödendi</Badge>
                   ) : isOverdue(inv) ? (
                     <Badge tone="red">Vadesi geçti</Badge>
                   ) : (
                     <Badge tone="amber">Ödenmedi</Badge>
+                  )}
+                  {inv.received ? (
+                    <Badge tone="brand">Teslim alındı</Badge>
+                  ) : (
+                    inv.items.length > 0 && (
+                      <Btn variant="ghost" onClick={() => markReceived(inv)}>
+                        Teslim alındı — stoğa işle
+                      </Btn>
+                    )
                   )}
                   {inv.status !== "odendi" && (
                     <Btn variant="ghost" onClick={() => markPaid(inv)}>
@@ -239,17 +315,43 @@ export default function TedarikciDetayPage() {
       </Card>
 
       {creating && (
-        <Modal open onClose={() => setCreating(false)} title="Yeni Tedarikçi Faturası" wide>
+        <Modal open onClose={() => setCreating(false)} title="Yeni Toptancı Faturası" wide>
           <form onSubmit={save} className="space-y-4">
             {error && <ErrorBox message={error} />}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Fatura no">
+              <Field label="Fatura/proforma/makbuz no">
                 <Input
                   value={form.invoiceNumber}
                   onChange={(e) => setForm({ ...form, invoiceNumber: e.target.value })}
                 />
               </Field>
-              <Field label="Tutar">
+              <Field label="Para birimi">
+                <CurrencyPicker
+                  currency={form.currency}
+                  onChange={(patch) => setForm({ ...form, currency: patch.currency, exchangeRate: patch.exchangeRate })}
+                />
+              </Field>
+            </div>
+
+            <ItemsEditor
+              items={form.items}
+              onChange={(items) => setForm({ ...form, items })}
+              products={products}
+              taxRate={form.taxRate}
+              onTaxRateChange={(taxRate) => setForm({ ...form, taxRate })}
+              priceField="costPrice"
+            />
+            {form.items.length === 0 && (
+              <button
+                type="button"
+                onClick={() => setForm({ ...form, items: [emptyItem()] })}
+                className="text-sm font-semibold text-brand hover:underline"
+              >
+                Kalem eklemek yerine yalnızca toplam tutar girmek için tıklayın →
+              </button>
+            )}
+            {!hasItems && (
+              <Field label="Toplam tutar (kalemsiz — makbuz gibi basit belgeler için)">
                 <CurrencyAmountInput
                   amount={form.amount}
                   currency={form.currency}
@@ -264,6 +366,9 @@ export default function TedarikciDetayPage() {
                   }
                 />
               </Field>
+            )}
+
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Kesim tarihi">
                 <Input
                   type="date"

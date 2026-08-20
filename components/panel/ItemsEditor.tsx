@@ -11,7 +11,13 @@ export type ItemForm = {
   productId?: number | null;
 };
 
-export type ProductOption = { id: number; name: string; unit: string; salePrice: string };
+export type ProductOption = {
+  id: number;
+  name: string;
+  unit: string;
+  salePrice: string;
+  costPrice?: string;
+};
 
 export const emptyItem = (): ItemForm => ({ name: "", qty: "1", unitPrice: "", productId: null });
 
@@ -21,12 +27,16 @@ export function ItemsEditor({
   products,
   taxRate,
   onTaxRateChange,
+  priceField = "salePrice",
 }: {
   items: ItemForm[];
   onChange: (items: ItemForm[]) => void;
   products: ProductOption[];
   taxRate: string;
   onTaxRateChange: (value: string) => void;
+  /** "costPrice" ile toptancı/alış faturası kalemlerinde kataloğu seçince
+   * satış fiyatı değil alış fiyatı önceden doldurulur. */
+  priceField?: "salePrice" | "costPrice";
 }) {
   const setItem = (idx: number, patch: Partial<ItemForm>) =>
     onChange(items.map((item, i) => (i === idx ? { ...item, ...patch } : item)));
@@ -37,7 +47,11 @@ export function ItemsEditor({
       setItem(idx, { productId: null });
       return;
     }
-    setItem(idx, { productId: product.id, name: product.name, unitPrice: product.salePrice });
+    setItem(idx, {
+      productId: product.id,
+      name: product.name,
+      unitPrice: (priceField === "costPrice" ? product.costPrice : product.salePrice) ?? "",
+    });
   };
 
   const addItem = () => onChange([...items, emptyItem()]);
@@ -60,7 +74,7 @@ export function ItemsEditor({
               onChange={(v) => pickProduct(idx, v)}
               options={products.map((p) => ({
                 value: String(p.id),
-                label: `${p.name} · ${fmtMoney(p.salePrice)}/${p.unit}`,
+                label: `${p.name} · ${fmtMoney((priceField === "costPrice" ? p.costPrice : p.salePrice) ?? 0)}/${p.unit}`,
               }))}
               placeholder="Kataloğdan seç…"
               className="w-full sm:w-56"

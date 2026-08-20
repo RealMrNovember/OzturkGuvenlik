@@ -311,6 +311,11 @@ export const suppliers = pgTable("suppliers", {
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 30 }).default(""),
   address: text("address").default(""),
+  // Türkiye B2B faturalaşması için: irsaliye/fatura eşleştirmesi ve muhasebe
+  // entegrasyonunda kullanılır.
+  taxOffice: varchar("tax_office", { length: 100 }).default(""),
+  taxNumber: varchar("tax_number", { length: 20 }).default(""),
+  paymentTermDays: integer("payment_term_days"),
   note: text("note").default(""),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -324,10 +329,20 @@ export const supplierInvoices = pgTable("supplier_invoices", {
     .notNull()
     .references(() => suppliers.id, { onDelete: "cascade" }),
   invoiceNumber: varchar("invoice_number", { length: 60 }).default(""),
+  // Kalemler doluysa tutar bunlardan + taxRate'ten otomatik hesaplanır
+  // (satış faturası/teklifle aynı desen, bkz. lib/money.ts); boşsa (basit
+  // mod — kalemsiz, yalnızca toplam tutar) elle girilen amount kullanılır.
+  items: jsonb("items").notNull().default([]), // OfferItem[]
+  taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("20"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
   currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
   exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   status: varchar("status", { length: 20 }).notNull().default("odenmedi"),
+  // Ödeme durumu (yukarıda) ile mal kabul durumu birbirinden bağımsız:
+  // fatura ödenmeden mal teslim alınabilir (veya tam tersi, peşin ödenip
+  // mal sonra gelebilir). received true olunca stok bir kez otomatik artar.
+  received: boolean("received").notNull().default(false),
+  receivedAt: date("received_at", { mode: "string" }),
   issueDate: date("issue_date", { mode: "string" }).notNull(),
   dueDate: date("due_date", { mode: "string" }),
   paidDate: date("paid_date", { mode: "string" }),
