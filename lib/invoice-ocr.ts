@@ -310,10 +310,12 @@ function groupWordsIntoVisualRows(words: OcrWord[]): string[][] {
  * harfleri ayıkladığı için ("NEU-XVR232" → 232!) fiyat ararken bu ön kontrol şart. */
 const PURE_NUM_RE = /^\d[\d.,]*$/;
 
-// Yedek kalem deseninde ürün adı ASLA bir toplam/banka/alan satırı olmamalı.
-// foldTr'lenmiş metne uygulanır — bu yüzden sade ASCII, /i bayraksız.
+// Yedek kalem deseninde ürün adı ASLA bir toplam/banka/adres/alan satırı
+// olmamalı. foldTr'lenmiş metne uygulanır — bu yüzden sade ASCII, /i
+// bayraksız. Adres kalıpları (mah./sk./kapı no...) gerçek taramada alıcı
+// adresinin ürün sanılmasıyla eklendi ("...ALPAKLAR SK. NO: 37" → 37 TL!).
 const ITEM_NAME_BLOCK_RE =
-  /toplam|tutar|kdv|iskonto|matrah|odenecek|vergi|fatura|tarih|irsaliye|siparis|hesaplanan|doviz|kuru|iban|bank|hesab|hesap|sayin|adres|mersis|sicil|ettn|senaryo|ozellestirme|sube|swift|tel[:\s]|faks|fax|e-?posta|web/;
+  /toplam|tutar|kdv|iskonto|matrah|odenecek|vergi|fatura|tarih|irsaliye|siparis|hesaplanan|doviz|kuru|iban|bank|hesab|hesap|sayin|adres|mersis|sicil|ettn|senaryo|ozellestirme|sube|swift|tel[:\s]|faks|fax|e-?posta|web|\bmah\b|mahalle|\bsk\b|\bsok\b|sokak|\bcad\b|cadde|bulvar|\bkapi\b|\bapt\b|\bosb\b|no:\s*\d/;
 
 /**
  * Kalem satırı çıkarımı, iki desenle:
@@ -576,10 +578,21 @@ export function extractInvoiceData(
   // Kalemler iki bağımsız yoldan aranır: (1) kelime koordinatlarından
   // yeniden kurulan görsel satırlar — kenarlıklı tablolarda tek çalışan
   // yol, (2) Tesseract'ın metin satırları — kenarlıksız/serbest düzen
-  // belgeler için. Hangisi daha çok kalem bulursa o kullanılır.
+  // belgeler için. Sonuçlar BİRLEŞTİRİLİR (isim bazında tekrarsız) —
+  // önceki "hangisi çok bulduysa o" seçimi, bir yolun gerçek kalemi diğer
+  // yolun çöpü bulduğu beraberlikte yanlış tarafı seçebiliyordu (gerçek
+  // taramada görüldü: görsel yol adres satırını, metin yolu gerçek ürünü
+  // bulmuştu ve adres kazanmıştı).
   const fromVisualRows = words.length > 0 ? extractItemRows(groupWordsIntoVisualRows(words)) : [];
   const fromTextLines = extractItemRows(ocrText.split("\n").map(tokenizeLine));
-  const rawItems = fromVisualRows.length >= fromTextLines.length ? fromVisualRows : fromTextLines;
+  const seenNames = new Set<string>();
+  const rawItems: { name: string; qty: number; unitPrice: number }[] = [];
+  for (const item of [...fromVisualRows, ...fromTextLines]) {
+    const key = foldTr(item.name).replace(/\s+/g, " ");
+    if (seenNames.has(key)) continue;
+    seenNames.add(key);
+    rawItems.push(item);
+  }
 
   const items: ExtractedItem[] = rawItems.map((ri) => {
     const { match, confidence } = bestMatch(ri.name, knownProducts, (p) => p.name);
