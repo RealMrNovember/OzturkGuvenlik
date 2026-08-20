@@ -447,6 +447,55 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
 }
 
 /**
+ * Bir referans kelimenin SOLUNDAKİ ad kelimelerini OKUMA SIRASINA göre
+ * birleştirir. Ürün adları hücre içinde 2+ satıra sarılabilir; kelimeleri
+ * tek listede x'e göre sıralamak iki satırı iç içe geçirip "DAHUA S6
+ * IPC-HFW… 2MP Bullet" gibi anlamsız adlar üretiyordu (kullanıcının gerçek
+ * Teletek taramasında birebir görüldü). Doğrusu: kelimeleri önce dikey
+ * konuma göre SATIRLARA kümele, satırları yukarıdan aşağı, her satırın
+ * kelimelerini soldan sağa oku.
+ */
+function collectNameTokens(
+  words: OcrWord[],
+  ref: OcrWord,
+  exclude: OcrWord | null,
+  bandH: number
+): string[] {
+  const cyOf = (w: OcrWord) => (w.bbox.y0 + w.bbox.y1) / 2;
+  const refCy = cyOf(ref);
+  const lefts = words
+    .filter(
+      (c) => c !== ref && c !== exclude && c.bbox.x1 <= ref.bbox.x0 + 5 && Math.abs(cyOf(c) - refCy) <= bandH
+    )
+    .sort((a, b) => cyOf(a) - cyOf(b));
+  if (lefts.length === 0) return [];
+
+  // Dikey kümeleme: ardışık kelimeler arasındaki merkez farkı yarım satır
+  // yüksekliğini aşınca yeni satır başlar.
+  const lineH = Math.max(ref.bbox.y1 - ref.bbox.y0, 12);
+  const lines: OcrWord[][] = [];
+  for (const c of lefts) {
+    const last = lines[lines.length - 1];
+    if (last && Math.abs(cyOf(c) - cyOf(last[last.length - 1])) < lineH * 0.55) last.push(c);
+    else lines.push([c]);
+  }
+
+  const tokens: string[] = [];
+  for (const line of lines) {
+    line.sort((a, b) => a.bbox.x0 - b.bbox.x0);
+    for (const c of line) {
+      const t = stripEdges(c.text);
+      if (!t || !/[\p{L}\p{N}]/u.test(t)) continue;
+      const a = matchAdetAnchor(t);
+      if (a.glued !== null || a.standalone) continue; // "Adet" etiketi ada girmez
+      tokens.push(t);
+    }
+  }
+  if (tokens.length > 0 && /^\d{1,3}$/.test(tokens[0])) tokens.shift();
+  return tokens;
+}
+
+/**
  * Çapa-merkezli, EĞİM-TOLERANSLI kalem çıkarımı — doğrudan kelime
  * koordinatları üzerinde. Telefon fotoğraflarında 1-2 derecelik eğim bile
  * satır bandını sayfa genişliğinde ~50px kaydırdığı için küresel satır
@@ -489,10 +538,10 @@ function extractItemsFromWordAnchors(
     if (qty === null || qty <= 0) continue;
 
     const priceBand = Math.max(hh(w), 12) * 1.6;
-    // Ad bandı bilerek DAR tutulur (aynı taban çizgisi) — ağır eğimde üst
-    // başlık satırının kelimeleri ada karışıyordu; hücre içinde alt satıra
-    // sarılmış ad parçasını kaybetmek, çöp karıştırmaktan iyidir.
-    const nameBand = Math.max(hh(w), 12) * 0.8;
+    // Ad bandı: hücre içi satır sarmasını (±1 satır) kapsayacak kadar geniş,
+    // komşu tablo satırına/başlığa taşmayacak kadar dar. Sarılmış satırlar
+    // collectNameTokens ile okuma sırasına göre birleştirilir.
+    const nameBand = Math.max(hh(w), 12) * 1.3;
 
     // Sağdaki en yakın para token'ı = birim fiyat.
     let price: { value: number; dx: number } | null = null;
@@ -506,19 +555,9 @@ function extractItemsFromWordAnchors(
     }
     if (!price) continue;
 
-    // Soldaki yakın-bant kelimeler (adet sayısı hariç) = ürün adı.
-    const nameWords = words
-      .filter(
-        (c) =>
-          c !== w &&
-          c !== qtyWord &&
-          c.bbox.x1 <= w.bbox.x0 + 5 &&
-          Math.abs(cy(c) - cy(w)) <= nameBand
-      )
-      .sort((x, y) => x.bbox.x0 - y.bbox.x0)
-      .map((c) => stripEdges(c.text))
-      .filter((t) => t && /[\p{L}\p{N}]/u.test(t));
-    if (nameWords.length > 0 && /^\d{1,3}$/.test(nameWords[0])) nameWords.shift();
+    // Soldaki kelimeler = ürün adı — hücre içi satır sarmasını yakalamak
+    // için biraz geniş bant, okuma sırasıyla (satır satır) birleştirilir.
+    const nameWords = collectNameTokens(words, w, qtyWord, nameBand);
     const name = nameWords.join(" ").trim();
     if (name.length < 3) continue;
     if (!nameWords.some((t) => /\p{L}{2}/u.test(t))) continue;
@@ -558,7 +597,9 @@ function extractItemsFromMoneyRows(
     const value = parseMoneyToken(w.text);
     if (value === null) continue;
     const band = Math.max(hh(w), 12) * 1.2;
-    const nameBand = Math.max(hh(w), 12) * 0.8;
+    // Sarılmış ad satırlarını (±1 satır) kapsar; collectNameTokens okuma
+    // sırasına göre birleştirir.
+    const nameBand = Math.max(hh(w), 12) * 1.3;
 
     // Solunda (aynı bantta) sıra no/adet dışında para varsa bu birim fiyat
     // değil, KDV/tutar sütunudur — atla.
@@ -585,35 +626,45 @@ function extractItemsFromMoneyRows(
     );
     if (!hasRightMoney) continue;
 
-    // Sol kelimeler (dar bant) = ad adayı.
-    const leftWords = words
-      .filter((c) => c !== w && c.bbox.x1 <= w.bbox.x0 + 5 && Math.abs(cy(c) - cy(w)) <= nameBand)
-      .sort((x, y) => x.bbox.x0 - y.bbox.x0);
-
+    // Adet: bant içindeki bitişik "NAdet" → yoksa fiyatla AYNI satırdaki,
+    // fiyata en yakın küçük tam sayı (Miktar hücresi; sıra no çok solda
+    // kaldığı için en-yakın kuralı doğru hücreyi seçer) → o da yoksa 1.
+    const lineH = Math.max(hh(w), 12);
     let qty = 1;
-    const nameTokens: string[] = [];
-    for (const c of leftWords) {
-      const t = stripEdges(c.text);
-      if (!t || !/[\p{L}\p{N}]/u.test(t)) continue;
-      const a = matchAdetAnchor(t);
+    let qtyWord: OcrWord | null = null;
+    for (const c of words) {
+      if (c === w || c.bbox.x1 > w.bbox.x0 + 5) continue;
+      if (Math.abs(cy(c) - cy(w)) > nameBand) continue;
+      const a = matchAdetAnchor(stripEdges(c.text));
       if (a.glued !== null) {
         qty = a.glued;
-        continue;
-      }
-      if (a.standalone) continue; // "Adet" etiketi ada girmez
-      nameTokens.push(t);
-    }
-    // Fiyatın hemen solundaki küçük tam sayı (bitişik adet yoksa) = adet;
-    // satır başındaki sıra no ise addan ayıklanır.
-    if (qty === 1 && nameTokens.length > 1 && /^\d{1,4}$/.test(nameTokens[nameTokens.length - 1])) {
-      const n = Number(nameTokens[nameTokens.length - 1]);
-      if (n >= 1 && n <= 9999) {
-        qty = n;
-        nameTokens.pop();
+        qtyWord = c;
+        break;
       }
     }
-    if (nameTokens.length > 0 && /^\d{1,3}$/.test(nameTokens[0])) nameTokens.shift();
+    if (qtyWord === null) {
+      let best: { w: OcrWord; dx: number } | null = null;
+      for (const c of words) {
+        if (c === w || c.bbox.x1 > w.bbox.x0 + 5) continue;
+        if (Math.abs(cy(c) - cy(w)) > lineH * 0.55) continue;
+        const t = stripEdges(c.text);
+        if (!/^\d{1,4}$/.test(t)) continue;
+        const dx = w.bbox.x0 - c.bbox.x1;
+        if (!best || dx < best.dx) best = { w: c, dx };
+      }
+      if (best) {
+        const leftNeighbors = words.filter(
+          (c) => c !== best!.w && c.bbox.x1 <= best!.w.bbox.x0 + 5 && Math.abs(cy(c) - cy(w)) <= lineH * 0.55
+        );
+        // Tek başına en soldaki sayı sıra numarasıdır, adet değil.
+        if (leftNeighbors.length > 0) {
+          qty = Number(stripEdges(best.w.text));
+          qtyWord = best.w;
+        }
+      }
+    }
 
+    const nameTokens = collectNameTokens(words, w, qtyWord, nameBand);
     const name = nameTokens.join(" ").trim();
     if (name.length < 5) continue;
     if (!nameTokens.some((t) => /\p{L}{3}/u.test(t))) continue;
