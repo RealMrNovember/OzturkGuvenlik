@@ -32,6 +32,7 @@ const CATEGORY_LABEL: Record<string, string> = {
   "personel-primi": "Personel primi",
   kira: "Kira",
   "fatura-abonelik": "Fatura / Abonelik",
+  "tedarikci-odemesi": "Tedarikçi ödemesi",
   "diger-gider": "Diğer gider",
 };
 
@@ -46,6 +47,7 @@ const EXPENSE_CATEGORIES = [
   "personel-primi",
   "kira",
   "fatura-abonelik",
+  "tedarikci-odemesi",
   "diger-gider",
 ];
 

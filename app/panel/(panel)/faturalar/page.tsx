@@ -7,6 +7,7 @@ import { CustomSelect } from "@/components/panel/form";
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
 import { CurrencyPicker } from "@/components/panel/CurrencyAmountInput";
 import {
+  Badge,
   Btn,
   EmptyState,
   ErrorBox,
@@ -22,7 +23,12 @@ import {
   fmtDateTime,
   fmtMoney,
   fmtMoneyWithTry,
+  todayStr,
 } from "@/components/panel/ui";
+
+function isOverdue(inv: { status: string; dueDate: string | null }) {
+  return inv.status !== "odendi" && inv.status !== "iptal" && !!inv.dueDate && inv.dueDate < todayStr();
+}
 
 type InvoiceRow = {
   id: number;
@@ -60,6 +66,7 @@ export default function FaturalarPage() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState<InvoiceRow | null>(null);
+  const [onlyOverdue, setOnlyOverdue] = useState(false);
 
   const [customerId, setCustomerId] = useState("");
   const [jobId, setJobId] = useState("");
@@ -200,6 +207,9 @@ export default function FaturalarPage() {
     }
   };
 
+  const overdueCount = rows.filter(isOverdue).length;
+  const visibleRows = onlyOverdue ? rows.filter(isOverdue) : rows;
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -207,10 +217,23 @@ export default function FaturalarPage() {
           <h1 className="text-2xl font-bold tracking-tight text-ink">Faturalar</h1>
           <p className="mt-1 text-sm text-ink/55">{rows.length} kayıt</p>
         </div>
-        <Btn onClick={openCreate}>
-          <Icon name="plus" className="h-4 w-4" />
-          Yeni Fatura
-        </Btn>
+        <div className="flex items-center gap-2.5">
+          {overdueCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setOnlyOverdue((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-semibold transition-colors ${
+                onlyOverdue ? "bg-red-500/10 text-red-600" : "bg-ink/5 text-ink/55 hover:bg-ink/8"
+              }`}
+            >
+              Vadesi geçen ({overdueCount})
+            </button>
+          )}
+          <Btn onClick={openCreate}>
+            <Icon name="plus" className="h-4 w-4" />
+            Yeni Fatura
+          </Btn>
+        </div>
       </div>
 
       {error && <ErrorBox message={error} />}
@@ -219,6 +242,8 @@ export default function FaturalarPage() {
         <Loading />
       ) : rows.length === 0 ? (
         <EmptyState title="Fatura yok" desc="Yeni fatura oluşturarak başlayın." />
+      ) : visibleRows.length === 0 ? (
+        <EmptyState title="Vadesi geçen fatura yok" desc="Tüm faturalar vadesinde." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -234,11 +259,18 @@ export default function FaturalarPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/6">
-                {rows.map((inv) => (
+                {visibleRows.map((inv) => (
                   <tr key={inv.id} className="align-top hover:bg-ink/2">
                     <td className="px-5 py-4">
                       <button type="button" onClick={() => setViewing(inv)} className="text-left">
-                        <p className="font-bold text-ink hover:text-brand">{inv.number}</p>
+                        <p className="font-bold text-ink hover:text-brand">
+                          {inv.number}
+                          {isOverdue(inv) && (
+                            <span className="ml-2 inline-flex">
+                              <Badge tone="red">Vadesi geçti</Badge>
+                            </span>
+                          )}
+                        </p>
                         <p className="text-xs text-ink/45">
                           {fmtDate(inv.issueDate)}
                           {inv.jobTitle ? ` · ${inv.jobTitle}` : ""}

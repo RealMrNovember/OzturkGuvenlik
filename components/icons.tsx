@@ -293,6 +293,14 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M16.5 10.2 21 7.5v9l-4.5-2.7Z" />
     </>
   ),
+  truck: (
+    <>
+      <path d="M2 8h11v9H2z" />
+      <path d="M13 11h4l4 3.5V17h-8z" />
+      <circle cx="6.5" cy="18.5" r="1.6" />
+      <circle cx="16.5" cy="18.5" r="1.6" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {

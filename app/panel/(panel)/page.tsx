@@ -27,11 +27,13 @@ type DashboardData = {
     todayAppointments: number;
     pendingOffers: number;
     pendingInvoices: number;
+    overdueInvoices: number;
     lowStockProducts: number;
     openTickets: number;
     upcomingMaintenance: number;
+    overdueSupplierInvoices: number;
   };
-  finance: { monthIncome: number; monthExpense: number; monthNet: number };
+  finance: { monthIncome: number; monthExpense: number; monthNet: number; payablesTotal: number };
   pendingInvoices: {
     id: number;
     number: string;
@@ -40,6 +42,15 @@ type DashboardData = {
     exchangeRate: string;
     dueDate: string | null;
     customerName: string | null;
+    overdue: boolean;
+  }[];
+  overdueSupplierInvoices: {
+    id: number;
+    amount: string;
+    currency: string;
+    exchangeRate: string;
+    dueDate: string | null;
+    supplierName: string | null;
   }[];
   lowStockProducts: { id: number; name: string; stockQty: number }[];
   upcomingMaintenance: {
@@ -119,6 +130,13 @@ export default function PanelPage() {
       tone: "bg-red-500/10 text-red-600",
     },
     {
+      label: "Vadesi geçen tahsilat",
+      value: data.counts.overdueInvoices,
+      href: "/panel/faturalar",
+      icon: "clock" as const,
+      tone: "bg-red-500/10 text-red-600",
+    },
+    {
       label: "Açık servis kaydı",
       value: data.counts.openTickets,
       href: "/panel/servis",
@@ -159,7 +177,7 @@ export default function PanelPage() {
         ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Link
           href="/panel/kasa"
           className="rounded-2xl border border-ink/8 bg-ink p-6 shadow-sm transition-all hover:-translate-y-0.5"
@@ -182,6 +200,18 @@ export default function PanelPage() {
           <p className="mt-1 text-xs text-ink/40">
             Gelir {fmtMoney(data.finance.monthIncome)} − Gider {fmtMoney(data.finance.monthExpense)}
           </p>
+        </Link>
+        <Link
+          href="/panel/tedarikciler"
+          className="rounded-2xl border border-ink/8 bg-white p-6 shadow-sm transition-all hover:-translate-y-0.5"
+        >
+          <p className="text-xs font-semibold uppercase tracking-wider text-ink/45">Tedarikçiye borcumuz</p>
+          <p className="mt-2 text-3xl font-black text-ink">{fmtMoney(data.finance.payablesTotal)}</p>
+          {data.counts.overdueSupplierInvoices > 0 && (
+            <p className="mt-1 text-xs font-semibold text-red-600">
+              {data.counts.overdueSupplierInvoices} fatura vadesi geçti
+            </p>
+          )}
         </Link>
       </div>
 
@@ -217,7 +247,14 @@ export default function PanelPage() {
                 className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink/2"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-ink">{inv.number}</p>
+                  <p className="truncate text-sm font-semibold text-ink">
+                    {inv.number}
+                    {inv.overdue && (
+                      <span className="ml-2 inline-flex">
+                        <Badge tone="red">Vadesi geçti</Badge>
+                      </span>
+                    )}
+                  </p>
                   <p className="truncate text-xs text-ink/50">
                     {inv.customerName ?? "Müşteri yok"}
                     {inv.dueDate ? ` · Vade ${fmtDate(inv.dueDate)}` : ""}
@@ -225,6 +262,33 @@ export default function PanelPage() {
                 </div>
                 <p className="shrink-0 font-bold text-ink">
                   {fmtMoneyWithTry(inv.total, inv.currency, inv.exchangeRate)}
+                </p>
+              </Link>
+            ))
+          )}
+        </Card>
+
+        <Card
+          title="Vadesi geçen tedarikçi faturaları"
+          action={<Link href="/panel/tedarikciler" className="text-xs font-semibold text-brand">Tümü →</Link>}
+        >
+          {data.overdueSupplierInvoices.length === 0 ? (
+            <div className="px-5 py-8 text-sm text-ink/50">Vadesi geçen tedarikçi faturası yok.</div>
+          ) : (
+            data.overdueSupplierInvoices.map((inv) => (
+              <Link
+                key={inv.id}
+                href="/panel/tedarikciler"
+                className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-ink/2"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-ink">{inv.supplierName ?? "Tedarikçi"}</p>
+                  <p className="truncate text-xs text-ink/50">
+                    {inv.dueDate ? `Vade ${fmtDate(inv.dueDate)}` : ""}
+                  </p>
+                </div>
+                <p className="shrink-0 font-bold text-red-600">
+                  {fmtMoneyWithTry(inv.amount, inv.currency, inv.exchangeRate)}
                 </p>
               </Link>
             ))

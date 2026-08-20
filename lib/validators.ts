@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { extractYouTubeId } from "@/lib/youtube";
 import { CURRENCIES } from "@/lib/currency";
-import { STAFF_LEAVE_TYPES, STAFF_LEAVE_STATUSES } from "@/lib/db/schema";
+import { STAFF_LEAVE_TYPES, STAFF_LEAVE_STATUSES, SUPPLIER_INVOICE_STATUSES } from "@/lib/db/schema";
 import { PERMISSION_KEYS } from "@/lib/permissions";
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
@@ -353,6 +353,7 @@ export const TRANSACTION_CATEGORIES = [
   "personel-primi",
   "kira",
   "fatura-abonelik",
+  "tedarikci-odemesi",
   "diger-gider",
 ] as const;
 
@@ -478,4 +479,40 @@ export const updateStaffLeaveSchema = z.object({
 
 export const createStaffNoteSchema = z.object({
   note: z.string().trim().min(1, "Not boş olamaz").max(2000),
+});
+
+export const createSupplierSchema = z.object({
+  name: z.string().trim().min(2, "Ad en az 2 karakter olmalı").max(160),
+  phone: z.string().trim().max(30).optional().default(""),
+  address: z.string().trim().max(1000).optional().default(""),
+  note: z.string().trim().max(2000).optional().default(""),
+});
+
+export const updateSupplierSchema = z.object({
+  name: z.string().trim().min(2).max(160).optional(),
+  phone: z.string().trim().max(30).optional(),
+  address: z.string().trim().max(1000).optional(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+export const createSupplierInvoiceSchema = z.object({
+  invoiceNumber: z.string().trim().max(60).optional().default(""),
+  amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000),
+  ...createCurrencyFields,
+  status: z.enum(SUPPLIER_INVOICE_STATUSES).optional().default("odenmedi"),
+  issueDate: isoDate,
+  dueDate: isoDate.nullable().optional(),
+  paidDate: isoDate.nullable().optional(),
+  note: z.string().trim().max(2000).optional().default(""),
+});
+
+export const updateSupplierInvoiceSchema = z.object({
+  invoiceNumber: z.string().trim().max(60).optional(),
+  amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000).optional(),
+  ...updateCurrencyFields,
+  status: z.enum(SUPPLIER_INVOICE_STATUSES).optional(),
+  issueDate: isoDate.optional(),
+  dueDate: isoDate.nullable().optional(),
+  paidDate: isoDate.nullable().optional(),
+  note: z.string().trim().max(2000).optional(),
 });

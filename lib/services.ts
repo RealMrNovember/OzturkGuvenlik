@@ -43,7 +43,8 @@ export type IconName =
   | "hdd"
   | "calculator"
   | "help"
-  | "video";
+  | "video"
+  | "truck";
 
 export type Service = {
   slug: string;

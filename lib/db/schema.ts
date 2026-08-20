@@ -306,6 +306,35 @@ export const maintenanceContracts = pgTable("maintenance_contracts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 160 }).notNull(),
+  phone: varchar("phone", { length: 30 }).default(""),
+  address: text("address").default(""),
+  note: text("note").default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const SUPPLIER_INVOICE_STATUSES = ["odenmedi", "odendi"] as const;
+export type SupplierInvoiceStatus = (typeof SUPPLIER_INVOICE_STATUSES)[number];
+
+export const supplierInvoices = pgTable("supplier_invoices", {
+  id: serial("id").primaryKey(),
+  supplierId: integer("supplier_id")
+    .notNull()
+    .references(() => suppliers.id, { onDelete: "cascade" }),
+  invoiceNumber: varchar("invoice_number", { length: 60 }).default(""),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
+  status: varchar("status", { length: 20 }).notNull().default("odenmedi"),
+  issueDate: date("issue_date", { mode: "string" }).notNull(),
+  dueDate: date("due_date", { mode: "string" }),
+  paidDate: date("paid_date", { mode: "string" }),
+  note: text("note").default(""),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 /** Sitenin orijinal marka renkleri — DB kolon varsayılanı ve panelin "Varsayılana Sıfırla" düğmesi aynı değerleri kullanır. */
 export const DEFAULT_BRAND_COLOR = "#0e6fb8";
 export const DEFAULT_BRAND_LIGHT_COLOR = "#40a0e0";
@@ -464,6 +493,7 @@ export const EXPENSE_CATEGORIES = [
   "personel-maasi",
   "kira",
   "fatura-abonelik",
+  "tedarikci-odemesi",
   "diger-gider",
 ] as const;
 export const TRANSACTION_CATEGORIES = [

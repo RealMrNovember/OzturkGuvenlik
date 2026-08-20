@@ -1,6 +1,6 @@
 # Öztürk Güvenlik — Proje Yapılacaklar Listesi
 
-Son güncelleme: 2026-08-19
+Son güncelleme: 2026-08-20
 
 ## 🏗️ İş Yönetim Sistemi (ERP) — Yol Haritası
 
@@ -362,24 +362,88 @@ logoları + Aypro + KNX Future.
       Production'da uçtan uca test edildi: sözleşme oluşturuldu, dashboard
       sayacı doğrulandı, silindi (temiz durum).
 - [ ] Personel: izin takibi, masraf, prim/performans alanları
-- [ ] **Master admin — tam yetki yönetimi**: `/panel/personel`'de admin
-      zaten rol (yönetici/personel) değiştirebiliyor, aktif/pasif
-      yapabiliyor, şifre sıfırlayabiliyor — bunlar çalışıyor. İstenen
-      daha **granüler** kontrol: hangi personelin hangi modülü
-      görebileceğini/düzenleyebileceğini tek tek belirleyebilmek
-      (şu an ikili admin/personel rolüne göre kod içinde sabit —
-      örn. maliyet görme, iş/müşteri silme gibi yetkiler her yerde
-      `role==="admin"` kontrolüyle yazılı). Öneri: `users.permissions:
-      jsonb` (izin anahtarları dizisi) + admin arayüzünden her personel
-      için tek tek açılıp kapatılabilen izin listesi, API route'larda
-      role kontrolüne ek olarak bu liste de kontrol edilir. Kapsamlı
-      bir değişiklik — tüm API route'larındaki yetki kontrol noktaları
-      gözden geçirilmeli.
-- [ ] Personel için "Bugünkü işlerim" filtrelenmiş görünüm (mevcut
-      `/panel/isler` sayfasına personel bazlı filtre eklenerek — ayrı mobil
-      app gerekmez, responsive tasarım zaten mobilde çalışıyor)
-- [ ] Alış faturaları (tedarikçiden) + cari hesap (müşteri/tedarikçi bakiyesi)
-      + vadesi geçen tahsilat listesi
+- [x] **Master admin — tam yetki yönetimi** (TAMAMLANDI — 2026-08-20):
+      `users.permissions: jsonb` eklendi (5 anahtar: view_costs,
+      manage_products, delete_records, manage_staff, manage_settings —
+      Türkçe etiketler `lib/permissions.ts`'te), admin `/panel/personel`'de
+      her personel için tek tek açıp kapatabiliyor. JWT session'a gömülü
+      (`lib/auth.ts`), 23 API route'u `session.role==="admin"` yerine
+      `hasPermission(session, key)` kullanacak şekilde taşındı; rol/izin
+      alanlarının kendisini değiştirme hâlâ salt admin'e kilitli
+      (yetki yükseltme önleme). Panel tarafında `usePanelCan(key)` hook'u
+      ile UI gate'leri de aynı izin setine taşındı. Production'da
+      doğrulandı.
+- [x] Personel için "Bugünkü işlerim" filtrelenmiş görünüm (TAMAMLANDI —
+      2026-08-20): `/panel/isler` sayfasına personel bazlı filtre eklendi.
+- [x] **Alış faturaları (temel) + cari hesap + vadesi geçen tahsilat listesi**
+      (TAMAMLANDI — 2026-08-20): yeni `suppliers` + `supplier_invoices`
+      tabloları — tedarikçi başına fatura toplamı, para birimi+kur, vade
+      tarihi, ödeme durumu. `/panel/tedarikciler` (liste + bakiye rozeti) ve
+      `/panel/tedarikciler/[id]` (fatura ekle, "Ödendi" işaretle, sil).
+      Fatura "ödendi" işaretlenince Kasa'ya otomatik gider kaydı düşüyor
+      (`tedarikci-odemesi` kategorisi, mevcut fatura→Kasa deseniyle aynı).
+      Dashboard'a "Tedarikçiye borcumuz" kartı + "Vadesi geçen tedarikçi
+      faturaları" listesi eklendi; `/panel/faturalar`'da da (müşteri
+      faturaları için) "Vadesi geçti" rozeti + filtre çipi eklendi. Müşteri
+      cari hesabı (bakiye = toplam fatura − toplam tahsilat) zaten
+      `/panel/musteriler/[id]`'de mevcuttu (Faz 3a) — ayrıca dokunulmadı.
+      Migration: `drizzle/0014_slim_warstar.sql` (kod push edildi, production'a
+      **henüz uygulanmadı** — bu tamamen client-fetch API'ler olduğu için
+      build-time riski yok, ama migration uygulanana kadar `/api/suppliers*`
+      500 döner; DB bağlantısı sağlanınca uygulanacak).
+      **Not**: bu temel sürüm yalnızca fatura toplamını tutuyor, "hangi
+      üründen kaç adet alındı" bilgisini tutmuyor — bu, aşağıdaki
+      **Toptancılar** planıyla genişletilecek.
+
+- [ ] **Toptancılar modülü (detaylı, Türkiye'ye özel) — kullanıcı isteği,
+      2026-08-20**: Yukarıdaki temel tedarikçi/fatura takibi kalem
+      seviyesine çıkarılacak — hangi toptancıdan, ne zaman, hangi faturayla,
+      hangi ürünlerden kaç adet, birim fiyatı ne olarak alındığı tek tek
+      kayıt altına alınacak. Panelde **Müşteriler'in hemen altına**
+      "Toptancılar" menüsü eklenecek (mevcut Tedarikçiler girişi muhtemelen
+      bu işin temelini oluşturduğu için yeniden adlandırılıp/taşınıp
+      genişletilecek, ya da ayrı bir modül olarak yanına eklenecek — karar
+      uygulama sırasında netleşecek).
+
+      **Firma bilgileri** (Türkiye B2B standardı): unvan, yetkili kişi,
+      telefon, e-posta, adres, **vergi dairesi + vergi no** (irsaliye/fatura
+      eşleştirmesi ve muhasebe entegrasyonu için gerekli — mevcut
+      `suppliers` tablosunda yok, eklenecek), ödeme vadesi (gün, örn. net 30),
+      not.
+
+      **Alış faturası kalemleri**: `supplier_invoices`'a mevcut
+      `invoices.items`/`offers.items` ile aynı desende bir `items: jsonb`
+      alanı eklenecek — `{ productId?: number, name, qty, unitPrice,
+      currency? }[]`. Kalem kataloğa (`products`) bağlanabilir **veya**
+      serbest metin olarak girilebilir (teklif/fatura kalem editöründeki
+      davranışla birebir aynı — `ItemsEditor.tsx` bileşeni yeniden
+      kullanılacak). Fatura toplamı kalemlerden otomatik hesaplanır
+      (`lib/money.ts`), elle girilmez.
+
+      **Otomatik stok girişi (mal kabul)**: bir alış faturası kalemi
+      kataloğa bağlıysa ve fatura "teslim alındı" olarak işaretlenirse,
+      Faz 2'deki `lib/stock.ts` deseninin tersi çalışır — `products.stockQty`
+      kalem adedi kadar **artar** (seri takipli ürünlerde direkt seri no
+      girme ekranına yönlendirilir, Faz 3c'deki toplu seri no ekleme akışı
+      yeniden kullanılır).
+
+      **Fiyat geçmişi / maliyet analizi**: ürün detay sayfasına
+      (`/panel/urunler/[id]`) "Alım geçmişi" bölümü eklenecek — bu ürünün
+      hangi toptancıdan, hangi tarihte, hangi fiyata alındığının listesi.
+      Bu, zaman içindeki maliyet trendini ve toptancı fiyat karşılaştırmasını
+      görünür kılar (örn. "Hikvision NVR'ı en ucuza X toptancısından alıyoruz").
+
+      **Kasa + cari hesap + vade takibi**: yukarıda tamamlanan temel
+      sürümdeki otomatik Kasa entegrasyonu, bakiye hesabı ve vadesi geçen
+      rozeti/filtresi bu genişletilmiş sürümde aynen korunacak — sadece
+      fatura düzeyinden kalem düzeyine iniliyor, mekanizma değişmiyor.
+
+      **Kapsam notu**: bu, önceki kalem-seviyeli özelliklerle (Faz 1 teklif
+      kalemleri, Faz 2 iş kalemleri/stok düşümü, Faz 3c seri no takibi)
+      karşılaştırılabilir büyüklükte bağımsız bir iş — şema + API + UI +
+      migration gerektirir, tek oturumda bitirilebilir ama Faz 4'ün geri
+      kalanından (personel izin/masraf, granüler yetki UI'ı — bu ikisi
+      zaten ayrı yapıldı) sonra ele alınacak.
 
 ### 🔜 Faz 5 — Otomasyon ve dış yüz
 

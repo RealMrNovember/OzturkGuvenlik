@@ -11,9 +11,11 @@ import {
   transactions,
   products,
   maintenanceContracts,
+  suppliers,
+  supplierInvoices,
   LOW_STOCK_THRESHOLD,
 } from "@/lib/db/schema";
-import { and, asc, desc, eq, gte, inArray, lte } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import { jsonOk, jsonErr } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 
@@ -40,6 +42,7 @@ export async function GET() {
     monthTransactions,
     lowStockProducts,
     openTickets,
+    unpaidSupplierInvoices,
   ] = await Promise.all([
     db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "yeni")),
     db.select({ id: serviceRequests.id }).from(serviceRequests).where(eq(serviceRequests.status, "aranacak")),
@@ -76,6 +79,18 @@ export async function GET() {
       .select({ id: serviceTickets.id })
       .from(serviceTickets)
       .where(inArray(serviceTickets.status, ["acik", "randevu-verildi"])),
+    db
+      .select({
+        id: supplierInvoices.id,
+        amount: supplierInvoices.amount,
+        currency: supplierInvoices.currency,
+        exchangeRate: supplierInvoices.exchangeRate,
+        dueDate: supplierInvoices.dueDate,
+        supplierName: suppliers.name,
+      })
+      .from(supplierInvoices)
+      .leftJoin(suppliers, eq(supplierInvoices.supplierId, suppliers.id))
+      .where(ne(supplierInvoices.status, "odendi")),
   ]);
 
   // Ay içi gelir/gider toplamları her zaman ₺ cinsinden: yabancı para birimindeki
@@ -86,6 +101,13 @@ export async function GET() {
   const monthExpense = monthTransactions
     .filter((t) => t.type === "gider")
     .reduce((s, t) => s + Number(t.amount) * Number(t.exchangeRate), 0);
+
+  const overdueInvoices = pendingInvoices.filter((i) => i.dueDate && i.dueDate < today);
+  const payablesTotal = unpaidSupplierInvoices.reduce(
+    (s, i) => s + Number(i.amount) * Number(i.exchangeRate),
+    0
+  );
+  const overdueSupplierInvoices = unpaidSupplierInvoices.filter((i) => i.dueDate && i.dueDate < today);
 
   const recentRequests = await db
     .select({
@@ -162,9 +184,11 @@ export async function GET() {
       todayAppointments: todayAppointments.length,
       pendingOffers: pendingOffers.length,
       pendingInvoices: pendingInvoices.length,
+      overdueInvoices: overdueInvoices.length,
       lowStockProducts: lowStockProducts.length,
       openTickets: openTickets.length,
       upcomingMaintenance: upcomingMaintenance.length,
+      overdueSupplierInvoices: overdueSupplierInvoices.length,
     },
     lowStockProducts,
     upcomingMaintenance,
@@ -172,8 +196,13 @@ export async function GET() {
       monthIncome,
       monthExpense,
       monthNet: monthIncome - monthExpense,
+      payablesTotal,
     },
-    pendingInvoices: pendingInvoices.slice(0, 6),
+    pendingInvoices: pendingInvoices
+      .map((i) => ({ ...i, overdue: !!i.dueDate && i.dueDate < today }))
+      .sort((a, b) => Number(b.overdue) - Number(a.overdue))
+      .slice(0, 6),
+    overdueSupplierInvoices: overdueSupplierInvoices.slice(0, 6),
     recentRequests,
     todayAppointments,
     upcomingAppointments,
