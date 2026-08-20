@@ -7,6 +7,7 @@ import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { CtaBand } from "@/components/CtaBand";
+import { ServiceHeroMedia } from "@/components/ServiceHeroMedia";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -53,8 +54,9 @@ export default async function ServicePage({ params }: PageProps) {
       />
 
       {/* HERO */}
-      <section className="bg-ink py-16 text-white sm:py-20">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+      <section className="relative overflow-hidden bg-ink py-16 text-white sm:py-20">
+        <ServiceHeroMedia slug={service.slug} />
+        <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <Reveal>
             <nav aria-label="breadcrumb" className="text-xs text-white/50">
               <Link href="/" className="hover:text-white">Ana Sayfa</Link>

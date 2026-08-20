@@ -71,6 +71,20 @@
       "when": 1787184708054,
       "tag": "0009_misty_sprite",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1787187764246,
+      "tag": "0010_overjoyed_captain_america",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1787188851716,
+      "tag": "0011_blue_sersi",
+      "breakpoints": true
     }
   ]
 }

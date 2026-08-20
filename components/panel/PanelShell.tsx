@@ -33,6 +33,7 @@ const nav = [
   { href: "/panel/kasa", label: "Kasa", icon: "wallet" as const },
   { href: "/panel/urunler", label: "Ürünler", icon: "box" as const },
   { href: "/panel/personel", label: "Personel", icon: "shield" as const },
+  { href: "/panel/hizmet-medya", label: "Hizmet Videoları", icon: "video" as const, adminOnly: true },
   { href: "/panel/ayarlar", label: "Site Ayarları", icon: "palette" as const, adminOnly: true },
 ];
 

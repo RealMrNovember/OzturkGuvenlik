@@ -24,6 +24,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   const set: Record<string, unknown> = { ...parsed.data };
   if (parsed.data.taxRate !== undefined) set.taxRate = String(parsed.data.taxRate);
+  if (parsed.data.exchangeRate !== undefined) set.exchangeRate = String(parsed.data.exchangeRate);
 
   if (parsed.data.items || parsed.data.taxRate !== undefined) {
     const [current] = await db

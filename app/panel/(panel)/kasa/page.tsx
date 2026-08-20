@@ -5,6 +5,7 @@ import { api } from "@/lib/fetch";
 import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
+import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
 import {
   Btn,
   Card,
@@ -18,6 +19,7 @@ import {
   Textarea,
   fmtDate,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 const CATEGORY_LABEL: Record<string, string> = {
@@ -52,6 +54,8 @@ type TxRow = {
   type: "gelir" | "gider";
   category: string;
   amount: string;
+  currency: string;
+  exchangeRate: string;
   date: string;
   method: string;
   description: string;
@@ -77,6 +81,8 @@ export default function KasaPage() {
   const [type, setType] = useState<"gelir" | "gider">("gelir");
   const [category, setCategory] = useState("is-tahsilati");
   const [amount, setAmount] = useState("");
+  const [currency, setCurrency] = useState("TRY");
+  const [exchangeRate, setExchangeRate] = useState(1);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [method, setMethod] = useState("nakit");
   const [description, setDescription] = useState("");
@@ -103,10 +109,10 @@ export default function KasaPage() {
     const thisMonth = rows.filter((r) => r.date.startsWith(monthKey));
     const income = thisMonth
       .filter((r) => r.type === "gelir")
-      .reduce((s, r) => s + Number(r.amount), 0);
+      .reduce((s, r) => s + Number(r.amount) * Number(r.exchangeRate), 0);
     const expense = thisMonth
       .filter((r) => r.type === "gider")
-      .reduce((s, r) => s + Number(r.amount), 0);
+      .reduce((s, r) => s + Number(r.amount) * Number(r.exchangeRate), 0);
     return { income, expense, net: income - expense };
   }, [rows]);
 
@@ -116,6 +122,8 @@ export default function KasaPage() {
     setType("gelir");
     setCategory("is-tahsilati");
     setAmount("");
+    setCurrency("TRY");
+    setExchangeRate(1);
     setDate(new Date().toISOString().slice(0, 10));
     setMethod("nakit");
     setDescription("");
@@ -143,6 +151,8 @@ export default function KasaPage() {
           type,
           category,
           amount: Number(amount),
+          currency,
+          exchangeRate,
           date,
           method,
           description,
@@ -244,7 +254,7 @@ export default function KasaPage() {
                   className={`font-bold ${r.type === "gelir" ? "text-emerald-600" : "text-red-500"}`}
                 >
                   {r.type === "gelir" ? "+" : "-"}
-                  {fmtMoney(r.amount)}
+                  {fmtMoneyWithTry(r.amount, r.currency, r.exchangeRate)}
                 </p>
                 {isAdmin && (
                   <button
@@ -296,13 +306,15 @@ export default function KasaPage() {
 
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Tutar">
-                <Input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="₺"
+                <CurrencyAmountInput
+                  amount={amount}
+                  currency={currency}
+                  exchangeRate={exchangeRate}
+                  onChange={(patch) => {
+                    if (patch.amount !== undefined) setAmount(patch.amount);
+                    if (patch.currency !== undefined) setCurrency(patch.currency);
+                    if (patch.exchangeRate !== undefined) setExchangeRate(patch.exchangeRate);
+                  }}
                 />
               </Field>
               <Field label="Tarih">

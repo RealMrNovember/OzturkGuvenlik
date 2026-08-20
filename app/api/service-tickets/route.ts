@@ -24,6 +24,8 @@ export async function GET() {
       items: serviceTickets.items,
       costTotal: serviceTickets.costTotal,
       fee: serviceTickets.fee,
+      currency: serviceTickets.currency,
+      exchangeRate: serviceTickets.exchangeRate,
       category: serviceTickets.category,
       requestType: serviceTickets.requestType,
       billingType: serviceTickets.billingType,
@@ -56,6 +58,8 @@ export async function GET() {
         assignedTo: r.assignedTo,
         items: r.items,
         fee: r.fee,
+        currency: r.currency,
+        exchangeRate: r.exchangeRate,
         category: r.category,
         requestType: r.requestType,
         billingType: r.billingType,
@@ -90,6 +94,7 @@ export async function POST(req: Request) {
         .values({
           ...parsed.data,
           fee: String(parsed.data.fee),
+          exchangeRate: String(parsed.data.exchangeRate),
           costTotal: String(costTotal),
         })
         .returning();

@@ -99,6 +99,9 @@ export const products = pgTable("products", {
   // maliyeti değil satış fiyatını görür.
   costPrice: numeric("cost_price", { precision: 12, scale: 2 }).notNull().default("0"),
   salePrice: numeric("sale_price", { precision: 12, scale: 2 }).notNull().default("0"),
+  // costPrice ve salePrice bu para biriminde girilir; TL karşılığı exchangeRate ile hesaplanır.
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"), // kayıt anında kilitlenen ₺ karşılığı
   // Seri takipsiz ürünlerde elle girilir. Seri takipli ürünlerde (serialized:
   // true) bu alan artık kaynak değil — gerçek stok product_units'teki
   // status='stokta' satır sayısından hesaplanır (bkz. app/api/products/route.ts).
@@ -144,6 +147,9 @@ export const offers = pgTable("offers", {
   items: jsonb("items").notNull().default([]), // [{name, qty, unitPrice, productId?}]
   taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("20"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"), // KDV dahil
+  // Teklifin tamamı tek para biriminde düzenlenir (items[].unitPrice ve total bu birimde).
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   status: varchar("status", { length: 20 }).notNull().default("tasarim"), // tasarim | gonderildi | onaylandi | reddedildi
   sentDate: date("sent_date", { mode: "string" }),
   note: text("note").default(""),
@@ -168,8 +174,10 @@ export const jobs = pgTable("jobs", {
   status: varchar("status", { length: 20 }).notNull().default("planlandi"), // planlandi | devam-ediyor | tamamlandi | garanti
   equipment: varchar("equipment", { length: 60 }).array().default([]),
   items: jsonb("items").notNull().default([]), // [{productId, qty, name}] — kataloğa bağlı, stok otomatik düşer
-  costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // items'tan otomatik hesaplanır, yalnızca admin'e döner
-  saleTotal: numeric("sale_total", { precision: 12, scale: 2 }).notNull().default("0"), // elle girilir
+  costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // items'tan otomatik hesaplanır (her zaman ₺), yalnızca admin'e döner
+  saleTotal: numeric("sale_total", { precision: 12, scale: 2 }).notNull().default("0"), // elle girilir, aşağıdaki currency biriminde
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   notes: text("notes").default(""),
   staffIds: pgInteger("staff_ids").array().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
@@ -191,8 +199,10 @@ export const serviceTickets = pgTable("service_tickets", {
   status: varchar("status", { length: 20 }).notNull().default("acik"), // acik | randevu-verildi | tamamlandi | iptal
   assignedTo: integer("assigned_to").references(() => users.id, { onDelete: "set null" }),
   items: jsonb("items").notNull().default([]), // [{productId, qty, name}] — kullanılan parça, stok otomatik düşer
-  costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // yalnızca admin'e döner
-  fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"), // servis ücreti
+  costTotal: numeric("cost_total", { precision: 12, scale: 2 }).notNull().default("0"), // her zaman ₺, yalnızca admin'e döner
+  fee: numeric("fee", { precision: 12, scale: 2 }).notNull().default("0"), // servis ücreti, aşağıdaki currency biriminde
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   category: varchar("category", { length: 30 }).default(""), // video-izleme | hirsiz-alarm | yangin-algilama | seslendirme | gecis-kontrol | diger — servis formu PDF'i için
   requestType: varchar("request_type", { length: 20 }).default(""), // montaj | onarim | bakim | kesif | servis | demontaj
   billingType: varchar("billing_type", { length: 20 }).default(""), // garanti | ucretli | sozlesmeli
@@ -215,6 +225,8 @@ export const invoices = pgTable("invoices", {
   items: jsonb("items").notNull().default([]), // [{name, qty, unitPrice, productId?}]
   taxRate: numeric("tax_rate", { precision: 5, scale: 2 }).notNull().default("20"),
   total: numeric("total", { precision: 12, scale: 2 }).notNull().default("0"), // KDV dahil
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   status: varchar("status", { length: 20 }).notNull().default("taslak"), // taslak | gonderildi | odendi | iptal
   issueDate: date("issue_date", { mode: "string" }).notNull(),
   dueDate: date("due_date", { mode: "string" }),
@@ -228,6 +240,8 @@ export const transactions = pgTable("transactions", {
   type: varchar("type", { length: 10 }).notNull(), // gelir | gider
   category: varchar("category", { length: 30 }).notNull().default("diger-gider"),
   amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   date: date("date", { mode: "string" }).notNull(),
   method: varchar("method", { length: 20 }).notNull().default("nakit"), // nakit | havale | kart
   description: text("description").default(""),
@@ -282,6 +296,19 @@ export const siteSettings = pgTable("site_settings", {
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });
 
+/** Hizmet detay sayfalarının başlık arkasındaki koyu alanda oynatılan YouTube videosu — hizmet başına bir kayıt (bkz. lib/services.ts'teki statik slug listesi). */
+export const serviceMedia = pgTable("service_media", {
+  id: serial("id").primaryKey(),
+  serviceSlug: varchar("service_slug", { length: 60 }).notNull().unique(),
+  videoUrl: varchar("video_url", { length: 500 }).default(""),
+  videoAutoplay: boolean("video_autoplay").notNull().default(true),
+  videoMuted: boolean("video_muted").notNull().default(true),
+  videoStart: integer("video_start").notNull().default(0),
+  videoDuration: integer("video_duration"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Customer = typeof customers.$inferSelect;
@@ -299,6 +326,7 @@ export type MaintenanceContract = typeof maintenanceContracts.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type ProductUnit = typeof productUnits.$inferSelect;
 export type SiteSettings = typeof siteSettings.$inferSelect;
+export type ServiceMedia = typeof serviceMedia.$inferSelect;
 
 /** Bu adedin altındaki stok "kritik" sayılır (bkz. /panel/urunler, dashboard). */
 export const LOW_STOCK_THRESHOLD = 5;

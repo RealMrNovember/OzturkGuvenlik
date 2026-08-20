@@ -33,6 +33,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
       const set: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
       if (parsed.data.fee !== undefined) set.fee = String(parsed.data.fee);
+      if (parsed.data.exchangeRate !== undefined) set.exchangeRate = String(parsed.data.exchangeRate);
 
       if (parsed.data.items) {
         const oldItems = before.items as JobItem[];

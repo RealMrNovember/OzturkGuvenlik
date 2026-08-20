@@ -31,3 +31,32 @@ export function extractYouTubeId(input: string): string | null {
 export function youtubeThumbnailUrl(videoId: string): string {
   return `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
 }
+
+export type YoutubeBackgroundConfig = {
+  videoUrl: string | null;
+  autoplay: boolean;
+  muted: boolean;
+  start: number;
+  duration: number | null;
+};
+
+/** Arka plan olarak otomatik döngülü oynatılan, kontrolsüz bir YouTube embed URL'i üretir. */
+export function buildYoutubeBackgroundEmbedUrl(config: YoutubeBackgroundConfig): string | null {
+  const videoId = config.videoUrl ? extractYouTubeId(config.videoUrl) : null;
+  if (!videoId) return null;
+
+  const params = new URLSearchParams({
+    loop: "1",
+    playlist: videoId,
+    controls: "0",
+    modestbranding: "1",
+    playsinline: "1",
+    rel: "0",
+    autoplay: config.autoplay ? "1" : "0",
+    mute: config.muted ? "1" : "0",
+  });
+  if (config.start > 0) params.set("start", String(config.start));
+  if (config.duration) params.set("end", String(config.start + config.duration));
+
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}

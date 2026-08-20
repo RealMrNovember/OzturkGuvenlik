@@ -8,6 +8,8 @@ import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { LOW_STOCK_THRESHOLD } from "@/lib/db/schema";
 import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
+import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
+import { CURRENCY_SYMBOL } from "@/lib/currency";
 import {
   Badge,
   Btn,
@@ -17,7 +19,7 @@ import {
   Input,
   Loading,
   Modal,
-  fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type ProductRow = {
@@ -28,6 +30,8 @@ type ProductRow = {
   unit: string;
   costPrice?: string;
   salePrice: string;
+  currency: string;
+  exchangeRate: string;
   stockQty: number;
   barcode: string | null;
   serialized: boolean;
@@ -47,6 +51,8 @@ const blank = {
   unit: "adet",
   costPrice: "",
   salePrice: "",
+  currency: "TRY",
+  exchangeRate: 1,
   stockQty: "0",
   barcode: "",
   serialized: false,
@@ -78,6 +84,8 @@ export default function UrunlerPage() {
       unit: row.unit,
       costPrice: row.costPrice ?? "",
       salePrice: row.salePrice,
+      currency: row.currency ?? "TRY",
+      exchangeRate: Number(row.exchangeRate ?? 1),
       stockQty: String(row.stockQty),
       barcode: row.barcode ?? "",
       serialized: row.serialized,
@@ -158,6 +166,8 @@ export default function UrunlerPage() {
       unit: form.unit.trim() || "adet",
       costPrice: Number(form.costPrice) || 0,
       salePrice: Number(form.salePrice),
+      currency: form.currency,
+      exchangeRate: form.exchangeRate,
       stockQty: Number(form.stockQty) || 0,
       barcode: form.barcode.trim(),
       serialized: form.serialized,
@@ -255,11 +265,11 @@ export default function UrunlerPage() {
                       <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
                       {isAdmin && (
                         <td className="px-5 py-4 text-right text-ink/55">
-                          {fmtMoney(p.costPrice ?? 0)}
+                          {fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)}
                         </td>
                       )}
                       <td className="px-5 py-4 text-right font-bold text-ink">
-                        {fmtMoney(p.salePrice)}
+                        {fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)}
                       </td>
                       {isAdmin && (
                         <td className="px-5 py-4 text-right">
@@ -376,24 +386,39 @@ export default function UrunlerPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Alış fiyatı (yalnızca sizde görünür)">
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.costPrice}
-                  onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
-                  placeholder="₺"
-                />
+                <div className="flex items-center rounded-xl border border-ink/15 bg-white">
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.costPrice}
+                    onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
+                    placeholder="0"
+                    className="w-full rounded-l-xl bg-transparent px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink/35"
+                  />
+                  <span className="rounded-r-xl border-l border-ink/10 bg-surface px-3 py-2.5 text-sm font-bold text-ink/50">
+                    {CURRENCY_SYMBOL[form.currency as keyof typeof CURRENCY_SYMBOL]}
+                  </span>
+                </div>
               </Field>
               <Field label="Satış fiyatı">
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.salePrice}
-                  onChange={(e) => setForm((f) => ({ ...f, salePrice: e.target.value }))}
-                  placeholder="₺"
+                <CurrencyAmountInput
+                  amount={form.salePrice}
+                  currency={form.currency}
+                  exchangeRate={form.exchangeRate}
+                  onChange={(patch) =>
+                    setForm((f) => ({
+                      ...f,
+                      salePrice: patch.amount ?? f.salePrice,
+                      currency: patch.currency ?? f.currency,
+                      exchangeRate: patch.exchangeRate ?? f.exchangeRate,
+                    }))
+                  }
                 />
               </Field>
             </div>
+            <p className="-mt-2 text-xs text-ink/40">
+              Alış ve satış fiyatı aynı para biriminde kaydedilir; para birimini satış fiyatından değiştirin.
+            </p>
 
             <label className="flex items-center gap-2.5 rounded-xl border border-ink/10 bg-surface px-3.5 py-3">
               <input

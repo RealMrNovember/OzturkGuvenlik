@@ -1,7 +1,19 @@
 import { z } from "zod";
 import { extractYouTubeId } from "@/lib/youtube";
+import { CURRENCIES } from "@/lib/currency";
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
+
+const currencyEnum = z.enum(CURRENCIES);
+/** Para birimi + kayıt anında kilitlenen ₺ kuru — her parasal kayıt türünde ortak. */
+export const createCurrencyFields = {
+  currency: currencyEnum.optional().default("TRY"),
+  exchangeRate: z.number().positive().max(10000).optional().default(1),
+};
+export const updateCurrencyFields = {
+  currency: currencyEnum.optional(),
+  exchangeRate: z.number().positive().max(10000).optional(),
+};
 
 export const createRequestSchema = z.object({
   name: z.string().trim().min(2, "Ad en az 2 karakter olmalı").max(120),
@@ -101,6 +113,7 @@ export const createOfferSchema = z.object({
   title: z.string().trim().max(200).optional().default(""),
   items: z.array(offerItemSchema).max(100).default([]),
   taxRate: z.number().min(0).max(100).optional().default(20),
+  ...createCurrencyFields,
   status: z
     .enum(["tasarim", "gonderildi", "onaylandi", "reddedildi"])
     .optional()
@@ -119,6 +132,7 @@ export const updateOfferSchema = z.object({
   title: z.string().trim().max(200).optional(),
   items: z.array(offerItemSchema).max(100).optional(),
   taxRate: z.number().min(0).max(100).optional(),
+  ...updateCurrencyFields,
   status: z.enum(["tasarim", "gonderildi", "onaylandi", "reddedildi"]).optional(),
   sentDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
   note: z.string().trim().max(2000).optional(),
@@ -152,6 +166,7 @@ export const createJobSchema = z.object({
   equipment: z.array(z.string()).max(60).optional().default([]),
   items: z.array(jobItemSchema).max(200).optional().default([]),
   saleTotal: z.number().nonnegative().max(100_000_000).optional().default(0),
+  ...createCurrencyFields,
   notes: z.string().trim().max(3000).optional().default(""),
   staffIds: z.array(z.number().int().positive()).max(20).optional().default([]),
 });
@@ -178,6 +193,7 @@ export const updateJobSchema = z.object({
   equipment: z.array(z.string()).max(60).optional(),
   items: z.array(jobItemSchema).max(200).optional(),
   saleTotal: z.number().nonnegative().max(100_000_000).optional(),
+  ...updateCurrencyFields,
   notes: z.string().trim().max(3000).optional(),
   staffIds: z.array(z.number().int().positive()).max(20).optional(),
 });
@@ -205,6 +221,7 @@ export const createServiceTicketSchema = z.object({
   assignedTo: z.number().int().positive().nullable().optional(),
   items: z.array(jobItemSchema).max(200).optional().default([]),
   fee: z.number().nonnegative().max(100_000_000).optional().default(0),
+  ...createCurrencyFields,
   category: serviceTicketCategory.optional().default("diger"),
   requestType: serviceTicketRequestType.optional().default("servis"),
   billingType: serviceTicketBillingType.optional().default("ucretli"),
@@ -224,6 +241,7 @@ export const updateServiceTicketSchema = z.object({
   assignedTo: z.number().int().positive().nullable().optional(),
   items: z.array(jobItemSchema).max(200).optional(),
   fee: z.number().nonnegative().max(100_000_000).optional(),
+  ...updateCurrencyFields,
   category: serviceTicketCategory.optional(),
   requestType: serviceTicketRequestType.optional(),
   billingType: serviceTicketBillingType.optional(),
@@ -257,6 +275,7 @@ export const createInvoiceSchema = z.object({
   offerId: z.number().int().positive().nullable().optional(),
   items: z.array(offerItemSchema).max(100).default([]),
   taxRate: z.number().min(0).max(100).optional().default(20),
+  ...createCurrencyFields,
   issueDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz")
@@ -271,6 +290,7 @@ export const updateInvoiceSchema = z.object({
   offerId: z.number().int().positive().nullable().optional(),
   items: z.array(offerItemSchema).max(100).optional(),
   taxRate: z.number().min(0).max(100).optional(),
+  ...updateCurrencyFields,
   status: z.enum(["taslak", "gonderildi", "odendi", "iptal"]).optional(),
   issueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   dueDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
@@ -285,6 +305,7 @@ export const createProductSchema = z.object({
   unit: z.string().trim().min(1).max(20).optional().default("adet"),
   costPrice: z.number().nonnegative().max(100_000_000).optional().default(0),
   salePrice: z.number().nonnegative().max(100_000_000),
+  ...createCurrencyFields,
   stockQty: z.number().int().optional().default(0),
   barcode: z.string().trim().max(64).optional().default(""),
   serialized: z.boolean().optional().default(false),
@@ -298,6 +319,7 @@ export const updateProductSchema = z.object({
   unit: z.string().trim().min(1).max(20).optional(),
   costPrice: z.number().nonnegative().max(100_000_000).optional(),
   salePrice: z.number().nonnegative().max(100_000_000).optional(),
+  ...updateCurrencyFields,
   stockQty: z.number().int().optional(),
   barcode: z.string().trim().max(64).optional(),
   serialized: z.boolean().optional(),
@@ -330,6 +352,7 @@ export const createTransactionSchema = z.object({
     "diger-gider",
   ]),
   amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000),
+  ...createCurrencyFields,
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz"),
   method: z.enum(["nakit", "havale", "kart"]).optional().default("nakit"),
   description: z.string().trim().max(500).optional().default(""),
@@ -352,6 +375,7 @@ export const updateTransactionSchema = z.object({
     ])
     .optional(),
   amount: z.number().positive("Tutar 0'dan büyük olmalı").max(100_000_000).optional(),
+  ...updateCurrencyFields,
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz").optional(),
   method: z.enum(["nakit", "havale", "kart"]).optional(),
   description: z.string().trim().max(500).optional(),
@@ -384,6 +408,26 @@ export const updateSiteSettingsSchema = z.object({
   heroVideoMuted: z.boolean().optional(),
   heroVideoStart: z.number().int().min(0, "0'dan küçük olamaz").max(86_400).optional(),
   heroVideoDuration: z
+    .number()
+    .int()
+    .min(1, "En az 1 saniye olmalı")
+    .max(3600, "En fazla 3600 saniye olabilir")
+    .nullable()
+    .optional(),
+});
+
+export const upsertServiceMediaSchema = z.object({
+  videoUrl: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => v === "" || extractYouTubeId(v) !== null, "Geçerli bir YouTube linki girin")
+    .optional()
+    .default(""),
+  videoAutoplay: z.boolean().optional().default(true),
+  videoMuted: z.boolean().optional().default(true),
+  videoStart: z.number().int().min(0, "0'dan küçük olamaz").max(86_400).optional().default(0),
+  videoDuration: z
     .number()
     .int()
     .min(1, "En az 1 saniye olmalı")

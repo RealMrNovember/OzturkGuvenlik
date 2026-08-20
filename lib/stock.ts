@@ -5,14 +5,16 @@ import { round2 } from "@/lib/money";
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
+/** İş/servis kaydının maliyet toplamı her zaman ₺ cinsindendir — ürün maliyeti
+ * yabancı para biriminde girilmişse, ürünün kayıt anında kilitlenmiş kuruyla ₺'ye çevrilir. */
 export async function costTotalForItems(tx: Tx, items: JobItem[]): Promise<number> {
   if (items.length === 0) return 0;
   const ids = [...new Set(items.map((i) => i.productId))];
   const rows = await tx
-    .select({ id: products.id, costPrice: products.costPrice })
+    .select({ id: products.id, costPrice: products.costPrice, exchangeRate: products.exchangeRate })
     .from(products)
     .where(inArray(products.id, ids));
-  const costMap = new Map(rows.map((r) => [r.id, Number(r.costPrice)]));
+  const costMap = new Map(rows.map((r) => [r.id, Number(r.costPrice) * Number(r.exchangeRate)]));
   return round2(items.reduce((sum, i) => sum + i.qty * (costMap.get(i.productId) ?? 0), 0));
 }
 

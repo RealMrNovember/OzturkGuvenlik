@@ -25,6 +25,8 @@ export async function GET() {
       items: jobs.items,
       costTotal: jobs.costTotal,
       saleTotal: jobs.saleTotal,
+      currency: jobs.currency,
+      exchangeRate: jobs.exchangeRate,
       notes: jobs.notes,
       staffIds: jobs.staffIds,
       createdAt: jobs.createdAt,
@@ -65,6 +67,8 @@ export async function GET() {
         equipment: j.equipment,
         items: j.items,
         saleTotal: j.saleTotal,
+        currency: j.currency,
+        exchangeRate: j.exchangeRate,
         notes: j.notes,
         staffIds: j.staffIds,
         createdAt: j.createdAt,
@@ -96,6 +100,7 @@ export async function POST(req: Request) {
         .values({
           ...parsed.data,
           saleTotal: String(parsed.data.saleTotal),
+          exchangeRate: String(parsed.data.exchangeRate),
           costTotal: String(costTotal),
         })
         .returning();

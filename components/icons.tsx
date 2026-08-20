@@ -287,6 +287,12 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M12 17.2h.01" strokeWidth="2.6" />
     </>
   ),
+  video: (
+    <>
+      <rect x="2.5" y="5.5" width="14" height="13" rx="2" />
+      <path d="M16.5 10.2 21 7.5v9l-4.5-2.7Z" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {

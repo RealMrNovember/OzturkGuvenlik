@@ -10,6 +10,7 @@ import {
   emptyJobItem,
   type JobProductOption,
 } from "@/components/panel/JobItemsEditor";
+import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
 import {
   Badge,
   Btn,
@@ -26,6 +27,7 @@ import {
   fmtDate,
   fmtDateTime,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type JobRow = {
@@ -42,6 +44,8 @@ type JobRow = {
   items: { productId: number; qty: number; name: string; unitIds?: number[] }[];
   costTotal?: string;
   saleTotal: string;
+  currency: string;
+  exchangeRate: string;
   notes: string;
   staffIds: number[];
   staffNames: string[];
@@ -52,7 +56,7 @@ type JobRow = {
 
 type CustomerRow = { id: number; name: string; phone: string };
 type StaffRow = { id: number; name: string };
-type ProductRow = JobProductOption & { costPrice?: string };
+type ProductRow = JobProductOption & { costPrice?: string; exchangeRate?: string };
 
 const blank = {
   title: "",
@@ -64,6 +68,8 @@ const blank = {
   equipmentText: "",
   items: [emptyJobItem()],
   saleTotal: "",
+  currency: "TRY",
+  exchangeRate: 1,
   notes: "",
   staffIds: [] as number[],
   customerId: null as number | null,
@@ -132,6 +138,8 @@ export default function IslerPage() {
         unitIds: i.unitIds,
       })),
       saleTotal: row.saleTotal,
+      currency: row.currency ?? "TRY",
+      exchangeRate: Number(row.exchangeRate ?? 1),
       notes: row.notes,
       staffIds: row.staffIds,
       customerId: row.customerId,
@@ -141,9 +149,11 @@ export default function IslerPage() {
     setEditing(row);
   };
 
+  // Her zaman ₺ cinsinden: ürünün kendi para biriminde girilmiş maliyeti,
+  // ürünün kayıt anında kilitlenmiş kuruyla ₺'ye çevrilir (bkz. lib/stock.ts costTotalForItems).
   const estimatedCost = form.items.reduce((sum, i) => {
     const product = products.find((p) => p.id === i.productId);
-    return sum + (Number(i.qty) || 0) * Number(product?.costPrice ?? 0);
+    return sum + (Number(i.qty) || 0) * Number(product?.costPrice ?? 0) * Number(product?.exchangeRate ?? 1);
   }, 0);
 
   const toggleStaff = (id: number) =>
@@ -178,6 +188,8 @@ export default function IslerPage() {
         .filter(Boolean),
       items: cleanItems,
       saleTotal: Number(form.saleTotal) || 0,
+      currency: form.currency,
+      exchangeRate: form.exchangeRate,
       notes: form.notes,
       staffIds: form.staffIds,
       customerId: form.customerId,
@@ -299,12 +311,12 @@ export default function IslerPage() {
                         {j.costTotal !== undefined ? (
                           <span
                             className={
-                              Number(j.saleTotal) - Number(j.costTotal) >= 0
+                              Number(j.saleTotal) * Number(j.exchangeRate) - Number(j.costTotal) >= 0
                                 ? "text-emerald-600"
                                 : "text-red-500"
                             }
                           >
-                            {fmtMoney(Number(j.saleTotal) - Number(j.costTotal))}
+                            {fmtMoney(Number(j.saleTotal) * Number(j.exchangeRate) - Number(j.costTotal))}
                           </span>
                         ) : (
                           "-"
@@ -422,12 +434,18 @@ export default function IslerPage() {
                 />
               </Field>
               <Field label="Satış tutarı">
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.saleTotal}
-                  onChange={(e) => setForm({ ...form, saleTotal: e.target.value })}
-                  placeholder="₺"
+                <CurrencyAmountInput
+                  amount={form.saleTotal}
+                  currency={form.currency}
+                  exchangeRate={form.exchangeRate}
+                  onChange={(patch) =>
+                    setForm((f) => ({
+                      ...f,
+                      saleTotal: patch.amount ?? f.saleTotal,
+                      currency: patch.currency ?? f.currency,
+                      exchangeRate: patch.exchangeRate ?? f.exchangeRate,
+                    }))
+                  }
                 />
               </Field>
               <div className="sm:col-span-2">
@@ -444,8 +462,14 @@ export default function IslerPage() {
                   </span>
                   <span className="text-ink/60">
                     Tahmini kâr:{" "}
-                    <strong className={(Number(form.saleTotal) || 0) - estimatedCost >= 0 ? "text-emerald-600" : "text-red-500"}>
-                      {fmtMoney((Number(form.saleTotal) || 0) - estimatedCost)}
+                    <strong
+                      className={
+                        (Number(form.saleTotal) || 0) * form.exchangeRate - estimatedCost >= 0
+                          ? "text-emerald-600"
+                          : "text-red-500"
+                      }
+                    >
+                      {fmtMoney((Number(form.saleTotal) || 0) * form.exchangeRate - estimatedCost)}
                     </strong>
                   </span>
                 </div>
@@ -534,7 +558,9 @@ export default function IslerPage() {
               </div>
               <div>
                 <dt className="text-xs font-semibold text-ink/45">Satış tutarı</dt>
-                <dd className="mt-0.5 font-bold text-ink">{fmtMoney(viewing.saleTotal)}</dd>
+                <dd className="mt-0.5 font-bold text-ink">
+                  {fmtMoneyWithTry(viewing.saleTotal, viewing.currency, viewing.exchangeRate)}
+                </dd>
               </div>
               {isAdmin && viewing.costTotal !== undefined && (
                 <div>
@@ -543,12 +569,14 @@ export default function IslerPage() {
                     {fmtMoney(viewing.costTotal)} /{" "}
                     <strong
                       className={
-                        Number(viewing.saleTotal) - Number(viewing.costTotal) >= 0
+                        Number(viewing.saleTotal) * Number(viewing.exchangeRate) - Number(viewing.costTotal) >= 0
                           ? "text-emerald-600"
                           : "text-red-500"
                       }
                     >
-                      {fmtMoney(Number(viewing.saleTotal) - Number(viewing.costTotal))}
+                      {fmtMoney(
+                        Number(viewing.saleTotal) * Number(viewing.exchangeRate) - Number(viewing.costTotal)
+                      )}
                     </strong>
                   </dd>
                 </div>

@@ -63,6 +63,7 @@ export async function GET(_req: Request, { params }: Ctx) {
       status: serviceTickets.status,
       items: serviceTickets.items,
       fee: serviceTickets.fee,
+      exchangeRate: serviceTickets.exchangeRate,
       category: serviceTickets.category,
       requestType: serviceTickets.requestType,
       billingType: serviceTickets.billingType,
@@ -83,7 +84,13 @@ export async function GET(_req: Request, { params }: Ctx) {
   const productIds = [...new Set(items.map((i) => i.productId))];
   const productRows = productIds.length
     ? await db
-        .select({ id: products.id, sku: products.sku, name: products.name, salePrice: products.salePrice })
+        .select({
+          id: products.id,
+          sku: products.sku,
+          name: products.name,
+          salePrice: products.salePrice,
+          exchangeRate: products.exchangeRate,
+        })
         .from(products)
         .where(inArray(products.id, productIds))
     : [];
@@ -98,9 +105,11 @@ export async function GET(_req: Request, { params }: Ctx) {
     : [];
   const unitMap = new Map(unitRows.map((u) => [u.id, u.serialNumber]));
 
+  // PDF müşteriye teslim edilen imzalı bir belge olduğu için tüm tutarlar
+  // her zaman ₺'ye çevrilerek gösterilir (kayıt anında kilitlenen kur ile).
   const formItems: ServiceFormItem[] = items.map((item) => {
     const product = productMap.get(item.productId);
-    const unitPrice = Number(product?.salePrice ?? 0);
+    const unitPrice = Number(product?.salePrice ?? 0) * Number(product?.exchangeRate ?? 1);
     const serialNo = (item.unitIds ?? []).map((uid) => unitMap.get(uid)).filter(Boolean).join(", ");
     return {
       code: product?.sku || String(item.productId),
@@ -113,7 +122,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   });
 
   const materialTotal = formItems.reduce((sum, i) => sum + i.total, 0);
-  const serviceFee = Number(ticket.fee);
+  const serviceFee = Number(ticket.fee) * Number(ticket.exchangeRate);
 
   const buffer = await renderToBuffer(
     ServiceFormPdf({

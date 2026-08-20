@@ -5,6 +5,7 @@ import { api } from "@/lib/fetch";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
+import { CurrencyPicker } from "@/components/panel/CurrencyAmountInput";
 import {
   Btn,
   EmptyState,
@@ -20,6 +21,7 @@ import {
   fmtDate,
   fmtDateTime,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type InvoiceRow = {
@@ -31,6 +33,8 @@ type InvoiceRow = {
   items: { name: string; qty: number; unitPrice: number; productId?: number | null }[];
   taxRate: string;
   total: string;
+  currency: string;
+  exchangeRate: string;
   status: string;
   issueDate: string;
   dueDate: string | null;
@@ -63,6 +67,8 @@ export default function FaturalarPage() {
   const [dueDate, setDueDate] = useState("");
   const [note, setNote] = useState("");
   const [taxRate, setTaxRate] = useState("20");
+  const [currency, setCurrency] = useState("TRY");
+  const [exchangeRate, setExchangeRate] = useState(1);
   const [items, setItems] = useState<ItemForm[]>([emptyItem()]);
 
   const load = useCallback(async () => {
@@ -96,6 +102,8 @@ export default function FaturalarPage() {
     setDueDate("");
     setNote("");
     setTaxRate("20");
+    setCurrency("TRY");
+    setExchangeRate(1);
     setItems([emptyItem()]);
   };
 
@@ -111,6 +119,8 @@ export default function FaturalarPage() {
     setDueDate(row.dueDate ?? "");
     setNote(row.note);
     setTaxRate(row.taxRate);
+    setCurrency(row.currency ?? "TRY");
+    setExchangeRate(Number(row.exchangeRate ?? 1));
     setItems(
       row.items.map((i) => ({
         name: i.name,
@@ -143,6 +153,8 @@ export default function FaturalarPage() {
       jobId: jobId ? Number(jobId) : null,
       items: cleanItems,
       taxRate: Number(taxRate) || 0,
+      currency,
+      exchangeRate,
       issueDate,
       dueDate: dueDate || null,
       note,
@@ -239,7 +251,9 @@ export default function FaturalarPage() {
                         <p className="text-xs text-ink/45">{inv.customerPhone}</p>
                       )}
                     </td>
-                    <td className="px-5 py-4 font-bold text-ink">{fmtMoney(inv.total)}</td>
+                    <td className="px-5 py-4 font-bold text-ink">
+                      {fmtMoneyWithTry(inv.total, inv.currency, inv.exchangeRate)}
+                    </td>
                     <td className="px-5 py-4">
                       <Select
                         value={inv.status}
@@ -325,6 +339,15 @@ export default function FaturalarPage() {
                   placeholder="İş seçin"
                 />
               </Field>
+              <Field label="Para birimi">
+                <CurrencyPicker
+                  currency={currency}
+                  onChange={(patch) => {
+                    setCurrency(patch.currency);
+                    setExchangeRate(patch.exchangeRate);
+                  }}
+                />
+              </Field>
             </div>
 
             <ItemsEditor
@@ -397,9 +420,11 @@ export default function FaturalarPage() {
                     <tr key={idx}>
                       <td className="px-4 py-2.5 text-ink/85">{i.name}</td>
                       <td className="px-4 py-2.5 text-center text-ink/70">{i.qty}</td>
-                      <td className="px-4 py-2.5 text-right text-ink/70">{fmtMoney(i.unitPrice)}</td>
+                      <td className="px-4 py-2.5 text-right text-ink/70">
+                        {fmtMoney(i.unitPrice, viewing.currency)}
+                      </td>
                       <td className="px-4 py-2.5 text-right font-semibold text-ink">
-                        {fmtMoney(i.qty * i.unitPrice)}
+                        {fmtMoney(i.qty * i.unitPrice, viewing.currency)}
                       </td>
                     </tr>
                   ))}
@@ -410,7 +435,7 @@ export default function FaturalarPage() {
                       Ara toplam
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {fmtMoney(viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0))}
+                      {fmtMoney(viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0), viewing.currency)}
                     </td>
                   </tr>
                   <tr className="text-ink/60">
@@ -420,7 +445,8 @@ export default function FaturalarPage() {
                     <td className="px-4 py-2 text-right">
                       {fmtMoney(
                         Number(viewing.total) -
-                          viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+                          viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0),
+                        viewing.currency
                       )}
                     </td>
                   </tr>
@@ -428,7 +454,9 @@ export default function FaturalarPage() {
                     <td className="px-4 py-3" colSpan={3}>
                       Genel toplam
                     </td>
-                    <td className="px-4 py-3 text-right">{fmtMoney(viewing.total)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {fmtMoneyWithTry(viewing.total, viewing.currency, viewing.exchangeRate)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>

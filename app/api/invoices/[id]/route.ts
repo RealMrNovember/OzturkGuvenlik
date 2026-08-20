@@ -31,6 +31,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 
   const set: Record<string, unknown> = { ...parsed.data };
   if (parsed.data.taxRate !== undefined) set.taxRate = String(parsed.data.taxRate);
+  if (parsed.data.exchangeRate !== undefined) set.exchangeRate = String(parsed.data.exchangeRate);
   if (parsed.data.items || parsed.data.taxRate !== undefined) {
     const items = parsed.data.items ?? (before.items as OfferItem[]);
     const taxRate = parsed.data.taxRate ?? Number(before.taxRate);
@@ -55,6 +56,8 @@ export async function PATCH(req: Request, { params }: Ctx) {
       type: "gelir",
       category: "is-tahsilati",
       amount: updated.total,
+      currency: updated.currency,
+      exchangeRate: updated.exchangeRate,
       date: (updated.paidDate as string) ?? new Date().toISOString().slice(0, 10),
       method: "havale",
       description: `${updated.number} numaralı fatura tahsilatı`,

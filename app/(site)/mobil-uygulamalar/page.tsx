@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     "Kurduğumuz kamera ve alarm sistemlerini telefonunuzdan canlı izlemek için kullanacağınız marka uygulamaları ve indirme bağlantıları.",
 };
 
-type App = { brand: string; logo: string; app: string; note: string };
+type App = { brand: string; logo?: string; app: string; note: string };
 
 const APPS: App[] = [
   {
@@ -19,10 +19,22 @@ const APPS: App[] = [
     note: "IP kamera ve NVR/DVR cihazlarınızı canlı izleyin, kayıtlara erişin, bildirim alın.",
   },
   {
+    brand: "Hikvision",
+    logo: "/images/brands/hikvision.png",
+    app: "iVMS-4500",
+    note: "Eski nesil Hikvision NVR/DVR cihazları için mobil izleme uygulaması.",
+  },
+  {
     brand: "Dahua",
     logo: "/images/brands/dahua.png",
     app: "gDMSS Plus",
     note: "Dahua kamera ve kayıt cihazları için canlı izleme ve bildirim uygulaması.",
+  },
+  {
+    brand: "Dahua",
+    logo: "/images/brands/dahua.png",
+    app: "SmartPSS",
+    note: "Dahua NVR/DVR sistemleri için bilgisayar ve mobil üzerinden merkezi yönetim yazılımı.",
   },
   {
     brand: "EZVIZ",
@@ -60,6 +72,41 @@ const APPS: App[] = [
     app: "Insite Gold",
     note: "Paradox alarm panelinizi uzaktan kontrol edin ve bildirim alın.",
   },
+  {
+    brand: "Genel DVR/NVR",
+    app: "XMEye",
+    note: "Bazı ekonomik DVR/NVR modelleri için mobil canlı izleme uygulaması.",
+  },
+  {
+    brand: "Genel DVR/NVR",
+    app: "hiEasy",
+    note: "Bazı kayıt cihazı modellerinin basit kurulum ve izleme uygulaması.",
+  },
+  {
+    brand: "Genel DVR/NVR",
+    app: "P6S Lite",
+    note: "Bazı DVR/NVR modelleri için mobil canlı izleme uygulaması.",
+  },
+  {
+    brand: "WiFi Kamera",
+    app: "O-Kam Pro",
+    note: "Bazı WiFi IP kamera modelleri için mobil izleme uygulaması.",
+  },
+  {
+    brand: "Akıllı Ev",
+    app: "Tuya Smart",
+    note: "Akıllı priz, anahtar, sensör gibi cihazlarınızı tek uygulamadan yönetin.",
+  },
+  {
+    brand: "Uzaktan Destek",
+    app: "AnyDesk",
+    note: "Teknik ekibimizin, izninizle bilgisayarınıza uzaktan bağlanıp destek verebilmesi için kullanılır.",
+  },
+  {
+    brand: "Uzaktan Destek",
+    app: "TeamViewer",
+    note: "Teknik ekibimizin, izninizle bilgisayarınıza uzaktan bağlanıp destek verebilmesi için kullanılır.",
+  },
 ];
 
 function storeSearchUrl(store: "ios" | "android", query: string): string {
@@ -80,12 +127,16 @@ export default function MobilUygulamalarPage() {
         <div className="mt-10 grid gap-4 sm:grid-cols-2">
           {APPS.map((a) => (
             <div
-              key={a.brand}
+              key={a.app}
               className="flex items-start gap-4 rounded-2xl border border-ink/8 bg-white p-5 shadow-sm"
             >
               <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl border border-ink/8 bg-surface p-2">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={a.logo} alt={a.brand} className="max-h-8 w-full object-contain" />
+                {a.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={a.logo} alt={a.brand} className="max-h-8 w-full object-contain" />
+                ) : (
+                  <Icon name="download" className="h-6 w-6 text-brand/60" />
+                )}
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase tracking-wider text-ink/40">{a.brand}</p>

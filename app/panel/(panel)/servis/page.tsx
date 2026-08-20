@@ -6,6 +6,7 @@ import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { JobItemsEditor, emptyJobItem, type JobProductOption } from "@/components/panel/JobItemsEditor";
+import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
 import {
   Badge,
   Btn,
@@ -22,6 +23,7 @@ import {
   fmtDate,
   fmtDateTime,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type TicketRow = {
@@ -37,6 +39,8 @@ type TicketRow = {
   items: { productId: number; qty: number; name: string; unitIds?: number[] }[];
   costTotal?: string;
   fee: string;
+  currency: string;
+  exchangeRate: string;
   category: string;
   requestType: string;
   billingType: string;
@@ -75,7 +79,7 @@ const BILLING_TYPE_LABEL: Record<string, string> = {
 
 type CustomerRow = { id: number; name: string; phone: string; address: string };
 type StaffRow = { id: number; name: string };
-type ProductRow = JobProductOption & { costPrice?: string };
+type ProductRow = JobProductOption & { costPrice?: string; exchangeRate?: string };
 
 const blank = {
   customerId: null as number | null,
@@ -87,6 +91,8 @@ const blank = {
   assignedTo: null as number | null,
   items: [emptyJobItem()],
   fee: "",
+  currency: "TRY",
+  exchangeRate: 1,
   category: "diger",
   requestType: "servis",
   billingType: "ucretli",
@@ -155,6 +161,8 @@ export default function ServisPage() {
         unitIds: i.unitIds,
       })),
       fee: row.fee,
+      currency: row.currency ?? "TRY",
+      exchangeRate: Number(row.exchangeRate ?? 1),
       category: row.category || "diger",
       requestType: row.requestType || "servis",
       billingType: row.billingType || "ucretli",
@@ -166,7 +174,7 @@ export default function ServisPage() {
 
   const estimatedCost = form.items.reduce((sum, i) => {
     const product = products.find((p) => p.id === i.productId);
-    return sum + (Number(i.qty) || 0) * Number(product?.costPrice ?? 0);
+    return sum + (Number(i.qty) || 0) * Number(product?.costPrice ?? 0) * Number(product?.exchangeRate ?? 1);
   }, 0);
 
   const save = async (e: FormEvent) => {
@@ -195,6 +203,8 @@ export default function ServisPage() {
       assignedTo: form.assignedTo,
       items: cleanItems,
       fee: Number(form.fee) || 0,
+      currency: form.currency,
+      exchangeRate: form.exchangeRate,
       category: form.category,
       requestType: form.requestType,
       billingType: form.billingType,
@@ -283,7 +293,9 @@ export default function ServisPage() {
                       {t.customerPhone && <p className="text-xs text-ink/45">{t.customerPhone}</p>}
                     </td>
                     <td className="px-5 py-4 text-ink/70">{t.assignedName ?? "Atanmadı"}</td>
-                    <td className="px-5 py-4 font-bold text-ink">{fmtMoney(t.fee)}</td>
+                    <td className="px-5 py-4 font-bold text-ink">
+                      {fmtMoneyWithTry(t.fee, t.currency, t.exchangeRate)}
+                    </td>
                     <td className="px-5 py-4">
                       <Select
                         value={t.status}
@@ -418,12 +430,18 @@ export default function ServisPage() {
                 </Select>
               </Field>
               <Field label="Servis ücreti">
-                <Input
-                  type="number"
-                  min="0"
-                  value={form.fee}
-                  onChange={(e) => setForm({ ...form, fee: e.target.value })}
-                  placeholder="₺"
+                <CurrencyAmountInput
+                  amount={form.fee}
+                  currency={form.currency}
+                  exchangeRate={form.exchangeRate}
+                  onChange={(patch) =>
+                    setForm((f) => ({
+                      ...f,
+                      fee: patch.amount ?? f.fee,
+                      currency: patch.currency ?? f.currency,
+                      exchangeRate: patch.exchangeRate ?? f.exchangeRate,
+                    }))
+                  }
                 />
               </Field>
               <Field label="Sistem kategorisi (form için)">
@@ -536,7 +554,9 @@ export default function ServisPage() {
               </div>
               <div>
                 <dt className="text-xs font-semibold text-ink/45">Servis ücreti</dt>
-                <dd className="mt-0.5 font-bold text-ink">{fmtMoney(viewing.fee)}</dd>
+                <dd className="mt-0.5 font-bold text-ink">
+                  {fmtMoneyWithTry(viewing.fee, viewing.currency, viewing.exchangeRate)}
+                </dd>
               </div>
               {isAdmin && viewing.costTotal !== undefined && (
                 <div>

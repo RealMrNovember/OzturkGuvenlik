@@ -19,6 +19,8 @@ export async function GET() {
       items: offers.items,
       taxRate: offers.taxRate,
       total: offers.total,
+      currency: offers.currency,
+      exchangeRate: offers.exchangeRate,
       status: offers.status,
       sentDate: offers.sentDate,
       note: offers.note,
@@ -51,6 +53,7 @@ export async function POST(req: Request) {
     .values({
       ...parsed.data,
       taxRate: String(parsed.data.taxRate),
+      exchangeRate: String(parsed.data.exchangeRate),
       total: String(total),
     })
     .returning();

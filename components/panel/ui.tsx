@@ -323,10 +323,18 @@ export function fmtDateTime(dt: Date | string) {
   });
 }
 
-export function fmtMoney(n: string | number) {
+export function fmtMoney(n: string | number, currency: string = "TRY") {
   return new Intl.NumberFormat("tr-TR", {
     style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0,
+    currency,
+    maximumFractionDigits: currency === "TRY" ? 0 : 2,
   }).format(Number(n));
+}
+
+/** Yabancı para birimindeki bir tutarı, kayıt anında kilitlenmiş kuruyla ₺ karşılığı olarak gösterir. */
+export function fmtMoneyWithTry(amount: string | number, currency: string, exchangeRate: string | number) {
+  const main = fmtMoney(amount, currency);
+  if (currency === "TRY") return main;
+  const tryAmount = Number(amount) * Number(exchangeRate);
+  return `${main} (≈${fmtMoney(tryAmount, "TRY")})`;
 }

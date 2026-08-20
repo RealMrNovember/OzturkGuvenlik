@@ -43,6 +43,8 @@ export async function GET() {
         category: r.category,
         unit: r.unit,
         salePrice: r.salePrice,
+        currency: r.currency,
+        exchangeRate: r.exchangeRate,
         stockQty: r.stockQty,
         barcode: r.barcode,
         serialized: r.serialized,
@@ -80,6 +82,7 @@ export async function POST(req: Request) {
       ...parsed.data,
       costPrice: String(parsed.data.costPrice),
       salePrice: String(parsed.data.salePrice),
+      exchangeRate: String(parsed.data.exchangeRate),
       // Seri takipli üründe stok elle girilmez, ilk seri numaraları
       // eklenince kendiliğinden oluşur.
       stockQty: parsed.data.serialized ? 0 : parsed.data.stockQty,

@@ -42,7 +42,8 @@ export type IconName =
   | "download"
   | "hdd"
   | "calculator"
-  | "help";
+  | "help"
+  | "video";
 
 export type Service = {
   slug: string;

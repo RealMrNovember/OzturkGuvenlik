@@ -15,6 +15,8 @@ export async function GET() {
       type: transactions.type,
       category: transactions.category,
       amount: transactions.amount,
+      currency: transactions.currency,
+      exchangeRate: transactions.exchangeRate,
       date: transactions.date,
       method: transactions.method,
       description: transactions.description,
@@ -49,6 +51,7 @@ export async function POST(req: Request) {
     .values({
       ...parsed.data,
       amount: String(parsed.data.amount),
+      exchangeRate: String(parsed.data.exchangeRate),
       createdBy: session.id,
     })
     .returning();

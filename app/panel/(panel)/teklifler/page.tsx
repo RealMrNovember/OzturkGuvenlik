@@ -6,6 +6,7 @@ import { usePanelRole } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
+import { CurrencyPicker } from "@/components/panel/CurrencyAmountInput";
 import {
   Btn,
   EmptyState,
@@ -21,6 +22,7 @@ import {
   fmtDate,
   fmtDateTime,
   fmtMoney,
+  fmtMoneyWithTry,
 } from "@/components/panel/ui";
 
 type OfferRow = {
@@ -31,6 +33,8 @@ type OfferRow = {
   items: { name: string; qty: number; unitPrice: number; productId?: number | null }[];
   taxRate: string;
   total: string;
+  currency: string;
+  exchangeRate: string;
   status: string;
   sentDate: string | null;
   note: string;
@@ -61,6 +65,8 @@ export default function TekliflerPage() {
   const [sentDate, setSentDate] = useState("");
   const [note, setNote] = useState("");
   const [taxRate, setTaxRate] = useState("20");
+  const [currency, setCurrency] = useState("TRY");
+  const [exchangeRate, setExchangeRate] = useState(1);
   const [items, setItems] = useState<ItemForm[]>([emptyItem()]);
 
   const load = useCallback(async () => {
@@ -92,6 +98,8 @@ export default function TekliflerPage() {
     setSentDate("");
     setNote("");
     setTaxRate("20");
+    setCurrency("TRY");
+    setExchangeRate(1);
     setItems([emptyItem()]);
   };
 
@@ -107,6 +115,8 @@ export default function TekliflerPage() {
     setSentDate(row.sentDate ?? "");
     setNote(row.note);
     setTaxRate(row.taxRate);
+    setCurrency(row.currency ?? "TRY");
+    setExchangeRate(Number(row.exchangeRate ?? 1));
     setItems(
       row.items.map((i) => ({
         name: i.name,
@@ -139,6 +149,8 @@ export default function TekliflerPage() {
       customerId: customerId ? Number(customerId) : null,
       items: cleanItems,
       taxRate: Number(taxRate) || 0,
+      currency,
+      exchangeRate,
       status,
       sentDate: sentDate || null,
       note,
@@ -224,7 +236,9 @@ export default function TekliflerPage() {
                         <p className="text-xs text-ink/45">{o.customerPhone}</p>
                       )}
                     </td>
-                    <td className="px-5 py-4 font-bold text-ink">{fmtMoney(o.total)}</td>
+                    <td className="px-5 py-4 font-bold text-ink">
+                      {fmtMoneyWithTry(o.total, o.currency, o.exchangeRate)}
+                    </td>
                     <td className="px-5 py-4">
                       <Select
                         value={o.status}
@@ -321,6 +335,15 @@ export default function TekliflerPage() {
                   placeholder="Müşteri seçin"
                 />
               </Field>
+              <Field label="Para birimi">
+                <CurrencyPicker
+                  currency={currency}
+                  onChange={(patch) => {
+                    setCurrency(patch.currency);
+                    setExchangeRate(patch.exchangeRate);
+                  }}
+                />
+              </Field>
             </div>
 
             <ItemsEditor
@@ -402,10 +425,10 @@ export default function TekliflerPage() {
                       <td className="px-4 py-2.5 text-ink/85">{i.name}</td>
                       <td className="px-4 py-2.5 text-center text-ink/70">{i.qty}</td>
                       <td className="px-4 py-2.5 text-right text-ink/70">
-                        {fmtMoney(i.unitPrice)}
+                        {fmtMoney(i.unitPrice, viewing.currency)}
                       </td>
                       <td className="px-4 py-2.5 text-right font-semibold text-ink">
-                        {fmtMoney(i.qty * i.unitPrice)}
+                        {fmtMoney(i.qty * i.unitPrice, viewing.currency)}
                       </td>
                     </tr>
                   ))}
@@ -416,7 +439,7 @@ export default function TekliflerPage() {
                       Ara toplam
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {fmtMoney(viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0))}
+                      {fmtMoney(viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0), viewing.currency)}
                     </td>
                   </tr>
                   <tr className="text-ink/60">
@@ -426,7 +449,8 @@ export default function TekliflerPage() {
                     <td className="px-4 py-2 text-right">
                       {fmtMoney(
                         Number(viewing.total) -
-                          viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0)
+                          viewing.items.reduce((s, i) => s + i.qty * i.unitPrice, 0),
+                        viewing.currency
                       )}
                     </td>
                   </tr>
@@ -434,7 +458,9 @@ export default function TekliflerPage() {
                     <td className="px-4 py-3" colSpan={3}>
                       Genel toplam
                     </td>
-                    <td className="px-4 py-3 text-right">{fmtMoney(viewing.total)}</td>
+                    <td className="px-4 py-3 text-right">
+                      {fmtMoneyWithTry(viewing.total, viewing.currency, viewing.exchangeRate)}
+                    </td>
                   </tr>
                 </tfoot>
               </table>

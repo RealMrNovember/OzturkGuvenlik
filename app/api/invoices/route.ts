@@ -30,6 +30,8 @@ export async function GET() {
       items: invoices.items,
       taxRate: invoices.taxRate,
       total: invoices.total,
+      currency: invoices.currency,
+      exchangeRate: invoices.exchangeRate,
       status: invoices.status,
       issueDate: invoices.issueDate,
       dueDate: invoices.dueDate,
@@ -70,6 +72,7 @@ export async function POST(req: Request) {
       issueDate,
       number,
       taxRate: String(parsed.data.taxRate),
+      exchangeRate: String(parsed.data.exchangeRate),
       total: String(total),
     })
     .returning();

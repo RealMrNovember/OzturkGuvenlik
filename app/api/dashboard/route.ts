@@ -56,6 +56,8 @@ export async function GET() {
         id: invoices.id,
         number: invoices.number,
         total: invoices.total,
+        currency: invoices.currency,
+        exchangeRate: invoices.exchangeRate,
         dueDate: invoices.dueDate,
         customerName: customers.name,
       })
@@ -63,7 +65,7 @@ export async function GET() {
       .leftJoin(customers, eq(invoices.customerId, customers.id))
       .where(inArray(invoices.status, ["taslak", "gonderildi"])),
     db
-      .select({ type: transactions.type, amount: transactions.amount })
+      .select({ type: transactions.type, amount: transactions.amount, exchangeRate: transactions.exchangeRate })
       .from(transactions)
       .where(gte(transactions.date, monthStart)),
     db
@@ -76,12 +78,14 @@ export async function GET() {
       .where(inArray(serviceTickets.status, ["acik", "randevu-verildi"])),
   ]);
 
+  // Ay içi gelir/gider toplamları her zaman ₺ cinsinden: yabancı para birimindeki
+  // işlemler, kayıt anında kilitlenmiş kurlarıyla ₺'ye çevrilerek toplanır.
   const monthIncome = monthTransactions
     .filter((t) => t.type === "gelir")
-    .reduce((s, t) => s + Number(t.amount), 0);
+    .reduce((s, t) => s + Number(t.amount) * Number(t.exchangeRate), 0);
   const monthExpense = monthTransactions
     .filter((t) => t.type === "gider")
-    .reduce((s, t) => s + Number(t.amount), 0);
+    .reduce((s, t) => s + Number(t.amount) * Number(t.exchangeRate), 0);
 
   const recentRequests = await db
     .select({

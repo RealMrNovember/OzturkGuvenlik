@@ -15,6 +15,7 @@ import {
   fmtDateTime,
   fmtDate,
   fmtMoney,
+  fmtMoneyWithTry,
   todayStr,
 } from "@/components/panel/ui";
 
@@ -31,7 +32,15 @@ type DashboardData = {
     upcomingMaintenance: number;
   };
   finance: { monthIncome: number; monthExpense: number; monthNet: number };
-  pendingInvoices: { id: number; number: string; total: string; dueDate: string | null; customerName: string | null }[];
+  pendingInvoices: {
+    id: number;
+    number: string;
+    total: string;
+    currency: string;
+    exchangeRate: string;
+    dueDate: string | null;
+    customerName: string | null;
+  }[];
   lowStockProducts: { id: number; name: string; stockQty: number }[];
   upcomingMaintenance: {
     id: number;
@@ -214,7 +223,9 @@ export default function PanelPage() {
                     {inv.dueDate ? ` · Vade ${fmtDate(inv.dueDate)}` : ""}
                   </p>
                 </div>
-                <p className="shrink-0 font-bold text-ink">{fmtMoney(inv.total)}</p>
+                <p className="shrink-0 font-bold text-ink">
+                  {fmtMoneyWithTry(inv.total, inv.currency, inv.exchangeRate)}
+                </p>
               </Link>
             ))
           )}
