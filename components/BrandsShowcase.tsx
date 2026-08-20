@@ -1,42 +1,5 @@
 import { Reveal } from "@/components/Reveal";
-
-type Brand = { name: string; src: string };
-
-const brands: Brand[] = [
-  { name: "Hikvision", src: "/images/brands/hikvision.png" },
-  { name: "Dahua", src: "/images/brands/dahua.png" },
-  { name: "UNV", src: "/images/brands/unv.png" },
-  { name: "Hanwha Vision", src: "/images/brands/hanwha.png" },
-  { name: "EZVIZ", src: "/images/brands/ezviz.png" },
-  { name: "IMOU", src: "/images/brands/imou.webp" },
-  { name: "Tiandy", src: "/images/brands/tiandy.png" },
-  { name: "TVT", src: "/images/brands/tvt.png" },
-  { name: "Kedacom", src: "/images/brands/kedacom.webp" },
-  { name: "Sanjiang", src: "/images/brands/sanjiang.webp" },
-  { name: "ZKTeco", src: "/images/brands/zkteco.png" },
-  { name: "Suprema", src: "/images/brands/suprema.png" },
-  { name: "Ajax", src: "/images/brands/ajax.png" },
-  { name: "Paradox", src: "/images/brands/paradox.png" },
-  { name: "DSC", src: "/images/brands/dsc.png" },
-  { name: "Caddx", src: "/images/brands/caddx.png" },
-  { name: "Teletek", src: "/images/brands/teletek.png" },
-  { name: "Roombanker", src: "/images/brands/roombanker.png" },
-  { name: "Honeywell", src: "/images/brands/honeywell.png" },
-  { name: "Grandstream", src: "/images/brands/grandstream.png" },
-  { name: "Wi-Tek", src: "/images/brands/witek.png" },
-  { name: "Ruijie Reyee", src: "/images/brands/reyee.png" },
-  { name: "Kodicom", src: "/images/brands/kodicom.png" },
-  { name: "Future KNX", src: "/images/brands/knx-future.svg" },
-  { name: "Aypro", src: "/images/brands/aypro.svg" },
-  { name: "Toshiba", src: "/images/brands/toshiba.png" },
-  { name: "Western Digital", src: "/images/brands/wd.png" },
-  { name: "Seagate", src: "/images/brands/seagate.png" },
-  { name: "TP-Link", src: "/images/brands/tplink.png" },
-  { name: "TTEC", src: "/images/brands/ttec.png" },
-  { name: "Formrack", src: "/images/brands/formrack.png" },
-  { name: "Westa", src: "/images/brands/westa.png" },
-  { name: "Decon", src: "/images/brands/decon.png" },
-];
+import { brands } from "@/lib/brands";
 
 export function BrandsShowcase() {
   return (

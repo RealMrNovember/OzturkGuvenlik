@@ -51,6 +51,11 @@ export function Footer() {
                   </Link>
                 </li>
               ))}
+              <li>
+                <Link href="/hizmetler" className="font-semibold transition-colors hover:text-white">
+                  Tüm Hizmetler →
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -60,23 +65,54 @@ export function Footer() {
             </p>
             <ul className="mt-4 space-y-2.5 text-sm">
               <li>
-                <Link href="/hizmetler" className="transition-colors hover:text-white">
-                  Tüm Hizmetler
-                </Link>
-              </li>
-              <li>
                 <Link href="/hakkimizda" className="transition-colors hover:text-white">
                   Hakkımızda
                 </Link>
               </li>
               <li>
-                <Link href="/kesif" className="transition-colors hover:text-white">
-                  Ücretsiz Keşif
+                <Link href="/kalite-cevre-politikasi" className="transition-colors hover:text-white">
+                  Kalite ve Çevre Politikamız
                 </Link>
               </li>
               <li>
-                <Link href="/iletisim" className="transition-colors hover:text-white">
-                  İletişim
+                <Link href="/markalarimiz" className="transition-colors hover:text-white">
+                  Markalarımız
+                </Link>
+              </li>
+              <li>
+                <Link href="/is-ortaklarimiz" className="transition-colors hover:text-white">
+                  İş Ortaklarımız
+                </Link>
+              </li>
+              <li>
+                <Link href="/referanslarimiz" className="transition-colors hover:text-white">
+                  Referanslarımız
+                </Link>
+              </li>
+            </ul>
+
+            <p className="mt-6 text-sm font-semibold uppercase tracking-wider text-white/40">
+              Destek
+            </p>
+            <ul className="mt-4 space-y-2.5 text-sm">
+              <li>
+                <Link href="/hesaplama" className="transition-colors hover:text-white">
+                  HDD Hesaplama
+                </Link>
+              </li>
+              <li>
+                <Link href="/sss" className="transition-colors hover:text-white">
+                  Sıkça Sorulan Sorular
+                </Link>
+              </li>
+              <li>
+                <Link href="/mobil-uygulamalar" className="transition-colors hover:text-white">
+                  Mobil Uygulamalar
+                </Link>
+              </li>
+              <li>
+                <Link href="/kesif" className="transition-colors hover:text-white">
+                  Ücretsiz Keşif
                 </Link>
               </li>
             </ul>

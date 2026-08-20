@@ -4,19 +4,50 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { site, waLinkDefault } from "@/lib/site";
-import { services } from "@/lib/services";
+import { services, type IconName } from "@/lib/services";
 import { Icon } from "@/components/icons";
 
+type DropdownItem = { href: string; label: string; icon: IconName };
+
+const SERVICE_ITEMS: DropdownItem[] = services.map((s) => ({ href: `/hizmetler/${s.slug}`, label: s.name, icon: s.icon }));
+
+const SUPPORT_ITEMS: DropdownItem[] = [
+  { href: "/hesaplama", label: "HDD Hesaplama", icon: "calculator" },
+  { href: "/sss", label: "Sıkça Sorulan Sorular", icon: "help" },
+  { href: "/mobil-uygulamalar", label: "Mobil Uygulamalar", icon: "download" },
+];
+
+const CORPORATE_ITEMS: DropdownItem[] = [
+  { href: "/hakkimizda", label: "Hakkımızda", icon: "briefcase" },
+  { href: "/kalite-cevre-politikasi", label: "Kalite ve Çevre Politikamız", icon: "shield" },
+  { href: "/markalarimiz", label: "Markalarımız", icon: "star" },
+  { href: "/is-ortaklarimiz", label: "İş Ortaklarımız", icon: "users" },
+  { href: "/referanslarimiz", label: "Referanslarımız", icon: "check" },
+];
+
 const nav = [
-  { href: "/", label: "Ana Sayfa" },
-  { href: "/hizmetler", label: "Hizmetler" },
-  { href: "/hakkimizda", label: "Hakkımızda" },
-  { href: "/iletisim", label: "İletişim" },
+  { key: "home", href: "/", label: "Ana Sayfa" },
+  { key: "hizmetler", href: "/hizmetler", label: "Hizmetler", items: SERVICE_ITEMS, layout: "grid" as const },
+  { key: "destek", href: null, label: "Destek", items: SUPPORT_ITEMS, layout: "list" as const },
+  { key: "kurumsal", href: null, label: "Kurumsal", items: CORPORATE_ITEMS, layout: "list" as const },
+  { key: "iletisim", href: "/iletisim", label: "İletişim" },
 ];
 
 const CLOSE_DELAY_MS = 400;
 
-function ServicesDropdown({ active }: { active: boolean }) {
+function NavDropdown({
+  label,
+  href,
+  items,
+  layout,
+  active,
+}: {
+  label: string;
+  href: string | null;
+  items: DropdownItem[];
+  layout: "grid" | "list";
+  active: boolean;
+}) {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -28,6 +59,11 @@ function ServicesDropdown({ active }: { active: boolean }) {
     closeTimer.current = setTimeout(() => setOpen(false), CLOSE_DELAY_MS);
   };
 
+  const triggerClass = `flex items-center gap-1 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
+    active ? "text-brand-light" : "text-white/80 hover:text-white"
+  }`;
+  const arrow = <Icon name="arrow" className={`h-3 w-3 rotate-90 transition-transform ${open ? "-rotate-90" : ""}`} />;
+
   return (
     <div
       className="relative"
@@ -37,30 +73,38 @@ function ServicesDropdown({ active }: { active: boolean }) {
       }}
       onMouseLeave={scheduleClose}
     >
-      <Link
-        href="/hizmetler"
-        className={`flex items-center gap-1 rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
-          active ? "text-brand-light" : "text-white/80 hover:text-white"
-        }`}
-        aria-expanded={open}
-      >
-        Hizmetler
-        <Icon name="arrow" className={`h-3 w-3 rotate-90 transition-transform ${open ? "-rotate-90" : ""}`} />
-      </Link>
+      {href ? (
+        <Link href={href} className={triggerClass} aria-expanded={open}>
+          {label}
+          {arrow}
+        </Link>
+      ) : (
+        <button type="button" onClick={() => setOpen((o) => !o)} className={triggerClass} aria-expanded={open}>
+          {label}
+          {arrow}
+        </button>
+      )}
 
       {open && (
-        <div className="absolute left-1/2 top-full w-[560px] -translate-x-1/2 pt-3">
-          <div className="grid grid-cols-2 gap-1 rounded-2xl border border-ink/8 bg-white p-3 shadow-2xl">
-            {services.map((s) => (
+        <div
+          className={`absolute left-1/2 top-full -translate-x-1/2 pt-3 ${layout === "grid" ? "w-[560px]" : "w-72"}`}
+        >
+          <div
+            className={`rounded-2xl border border-ink/8 bg-white p-3 shadow-2xl ${
+              layout === "grid" ? "grid grid-cols-2 gap-1" : "flex flex-col gap-1"
+            }`}
+          >
+            {items.map((item) => (
               <Link
-                key={s.slug}
-                href={`/hizmetler/${s.slug}`}
+                key={item.href}
+                href={item.href}
+                onClick={() => setOpen(false)}
                 className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-ink/80 transition-colors hover:bg-surface hover:text-ink"
               >
                 <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-brand">
-                  <Icon name={s.icon} className="h-4 w-4" />
+                  <Icon name={item.icon} className="h-4 w-4" />
                 </span>
-                {s.name}
+                {item.label}
               </Link>
             ))}
           </div>
@@ -70,7 +114,15 @@ function ServicesDropdown({ active }: { active: boolean }) {
   );
 }
 
-function MobileServicesAccordion({ onNavigate }: { onNavigate: () => void }) {
+function MobileNavAccordion({
+  label,
+  items,
+  onNavigate,
+}: {
+  label: string;
+  items: DropdownItem[];
+  onNavigate: () => void;
+}) {
   const [open, setOpen] = useState(false);
   return (
     <div>
@@ -80,19 +132,19 @@ function MobileServicesAccordion({ onNavigate }: { onNavigate: () => void }) {
         aria-expanded={open}
         className="flex w-full items-center justify-between rounded-md px-3 py-3 text-base font-medium text-white/85"
       >
-        Hizmetler
+        {label}
         <Icon name="arrow" className={`h-3.5 w-3.5 rotate-90 transition-transform ${open ? "-rotate-90" : ""}`} />
       </button>
       {open && (
         <div className="ml-3 flex flex-col border-l border-white/10 pl-3">
-          {services.map((s) => (
+          {items.map((item) => (
             <Link
-              key={s.slug}
-              href={`/hizmetler/${s.slug}`}
+              key={item.href}
+              href={item.href}
               onClick={onNavigate}
               className="rounded-md px-3 py-2.5 text-sm text-white/70 hover:text-white"
             >
-              {s.name}
+              {item.label}
             </Link>
           ))}
         </div>
@@ -121,16 +173,21 @@ export function Header() {
 
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Ana menü">
           {nav.map((item) =>
-            item.href === "/hizmetler" ? (
-              <ServicesDropdown key={item.href} active={pathname.startsWith("/hizmetler")} />
+            item.items ? (
+              <NavDropdown
+                key={item.key}
+                label={item.label}
+                href={item.href}
+                items={item.items}
+                layout={item.layout}
+                active={item.href ? pathname.startsWith(item.href) : item.items.some((i) => pathname.startsWith(i.href))}
+              />
             ) : (
               <Link
-                key={item.href}
-                href={item.href}
+                key={item.key}
+                href={item.href as string}
                 className={`rounded-md px-3.5 py-2 text-sm font-medium transition-colors ${
-                  pathname === item.href
-                    ? "text-brand-light"
-                    : "text-white/80 hover:text-white"
+                  pathname === item.href ? "text-brand-light" : "text-white/80 hover:text-white"
                 }`}
               >
                 {item.label}
@@ -172,12 +229,17 @@ export function Header() {
         <div className="border-t border-white/10 bg-ink px-4 pb-6 pt-2 lg:hidden">
           <nav className="flex flex-col" aria-label="Mobil menü">
             {nav.map((item) =>
-              item.href === "/hizmetler" ? (
-                <MobileServicesAccordion key={item.href} onNavigate={() => setOpen(false)} />
+              item.items ? (
+                <MobileNavAccordion
+                  key={item.key}
+                  label={item.label}
+                  items={item.items}
+                  onNavigate={() => setOpen(false)}
+                />
               ) : (
                 <Link
-                  key={item.href}
-                  href={item.href}
+                  key={item.key}
+                  href={item.href as string}
                   onClick={() => setOpen(false)}
                   className={`rounded-md px-3 py-3 text-base font-medium ${
                     pathname === item.href ? "text-brand-light" : "text-white/85"

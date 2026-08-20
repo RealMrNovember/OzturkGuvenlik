@@ -265,6 +265,28 @@ const paths: Record<IconName, React.ReactNode> = {
       <path d="M4 19.5h16" />
     </>
   ),
+  hdd: (
+    <>
+      <rect x="2.5" y="7" width="19" height="10" rx="2" />
+      <path d="M2.5 13.5h19" />
+      <circle cx="7" cy="15" r="0.6" fill="currentColor" stroke="none" />
+      <path d="M10.5 15h7" />
+    </>
+  ),
+  calculator: (
+    <>
+      <rect x="4.5" y="2.5" width="15" height="19" rx="2" />
+      <path d="M8 7h8" />
+      <path d="M8 12h.01M12 12h.01M16 12h.01M8 16h.01M12 16h.01M16 16h.01M8 19h.01M12 19h.01M16 19h.01" strokeWidth="2.6" />
+    </>
+  ),
+  help: (
+    <>
+      <circle cx="12" cy="12" r="9.5" />
+      <path d="M9.3 9.3a2.7 2.7 0 1 1 3.6 2.55c-.7.28-.9.62-.9 1.4" />
+      <path d="M12 17.2h.01" strokeWidth="2.6" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {
