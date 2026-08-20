@@ -193,7 +193,9 @@ function extractTotalsAndCurrency(text: string): {
   exchangeRate: number | null;
 } {
   const lines = text.split("\n");
-  const kw = /genel\s*toplam|ödenecek\s*tutar|vergiler\s*dahil|toplam\s*tutar|net\s*toplam/i;
+  // OCR aksanları sık düşürür ("Ödenecek" → "Odenecek") — anahtar kelimeler
+  // aksan-toleranslı yazılır (gerçek Tesseract testinde birebir görüldü).
+  const kw = /genel\s*toplam|[öo]denecek\s*tutar|vergiler\s*dahil|toplam\s*tutar|net\s*toplam/i;
   let tl: number | null = null;
   let foreign: { amount: number; currency: string } | null = null;
 
@@ -290,10 +292,26 @@ function groupWordsIntoVisualRows(words: OcrWord[]): string[][] {
   );
 }
 
+/** Yalnızca rakam/nokta/virgülden oluşan "saf sayı" token'ı — parseTurkishNumber
+ * harfleri ayıkladığı için ("NEU-XVR232" → 232!) fiyat ararken bu ön kontrol şart. */
+const PURE_NUM_RE = /^\d[\d.,]*$/;
+
+// Yedek kalem deseninde ürün adı ASLA bir toplam/alan satırı olmamalı —
+// aksan-toleranslı kara liste.
+const ITEM_NAME_BLOCK_RE =
+  /toplam|tutar|kdv|[iı]skonto|matrah|[öo]denecek|vergi|fatura|tarih|irsaliye|sipari[şs]|hesaplanan|d[öo]viz|kuru|iban|banka|hesa[bp]|sayın|adres|tel[:\s]|faks|fax|mersis|sicil|ettn|senaryo|[öo]zelle[şs]tirme/i;
+
 /**
- * Kalem satırı çıkarımı — Türk fatura düzeninin sabit çapası "Miktar"
- * sütunundaki "N Adet" (ya da OCR'da sık görülen bitişik "21Adet") kalıbıdır:
- * çapanın SOLU ürün adı, SAĞINDAKİ İLK sayı birim fiyattır.
+ * Kalem satırı çıkarımı, iki desenle:
+ *
+ * 1) Birincil çapa — "Miktar" sütunundaki "N Adet" (bitişik "21Adet" dahil):
+ *    çapanın SOLU ürün adı, SAĞINDAKİ İLK saf sayı birim fiyattır.
+ * 2) Yedek desen — GERÇEK Tesseract testinde görüldü: kenarlıklı tabloda
+ *    "1 Adet" gibi küçük, yalıtık hücre metnini OCR tamamen ATLAYABİLİYOR.
+ *    Çapa yoksa: ürün adı (≥1 kelimelik harf içeren blok) + ardından ≥2 saf
+ *    sayı (birim fiyat + tutar/KDV) düzeni kalem kabul edilir, adet 1
+ *    varsayılır (kullanıcı gözden geçirme ekranında düzeltir). Toplam/alan
+ *    satırları kara listeyle elenir; onlar zaten ≥2 saf sayı da taşımaz.
  */
 function extractItemRows(tokenRows: string[][]): { name: string; qty: number; unitPrice: number }[] {
   const items: { name: string; qty: number; unitPrice: number }[] = [];
@@ -321,7 +339,28 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
         }
       }
     }
-    if (anchor < 0 || qty <= 0) continue;
+
+    if (anchor < 0) {
+      // Yedek desen: "Adet" OCR'da kaybolmuş olabilir.
+      const numIdxs: number[] = [];
+      for (let i = 0; i < texts.length; i++) {
+        if (PURE_NUM_RE.test(texts[i])) numIdxs.push(i);
+      }
+      if (numIdxs.length < 2) continue;
+      const firstNum = numIdxs[0];
+      const nameTokens = texts.slice(0, firstNum);
+      if (nameTokens.length > 0 && /^\d{1,3}$/.test(nameTokens[0])) nameTokens.shift();
+      const name = nameTokens.join(" ").trim();
+      if (name.length < 6) continue;
+      if (!nameTokens.some((t) => /\p{L}{3}/u.test(t))) continue;
+      if (ITEM_NAME_BLOCK_RE.test(name)) continue;
+      const price = parseTurkishNumber(texts[firstNum]);
+      if (price === null || price <= 0) continue;
+      items.push({ name, qty: 1, unitPrice: round2(price) });
+      continue;
+    }
+
+    if (qty <= 0) continue;
 
     const nameTokens = texts.slice(0, anchorSpansPrev ? anchor - 1 : anchor);
     // Satır başındaki sıra numarasını ("1", "2", …) üründen ayıkla.
@@ -329,13 +368,14 @@ function extractItemRows(tokenRows: string[][]): { name: string; qty: number; un
     const name = nameTokens.join(" ").trim();
     if (name.length < 3) continue;
 
-    // Çapadan sonraki ilk gerçek sayı = birim fiyat. "%20,00" (KDV oranı)
-    // ve "TL"/"USD" gibi etiketler atlanır.
+    // Çapadan sonraki ilk SAF sayı = birim fiyat. "%20,00" (KDV oranı) ve
+    // "TL"/"USD" gibi etiketler atlanır.
     let unitPrice: number | null = null;
     for (let j = anchor + 1; j < texts.length; j++) {
       const t = texts[j];
       if (t.startsWith("%")) continue;
       if (UNIT_LABEL_RE.test(t)) continue;
+      if (!PURE_NUM_RE.test(t)) continue;
       const n = parseTurkishNumber(t);
       if (n !== null) {
         unitPrice = round2(n);

@@ -104,13 +104,22 @@ export function InvoiceScanner({
       const qrData = qrRaw ? parseEArsivQr(qrRaw) : null;
       console.log("[Fatura Tara] QR kodu:", qrRaw ? (qrData ? "çözüldü (e-Arşiv verisi)" : "çözüldü ama e-Arşiv biçiminde değil") : "bulunamadı/okunamadı");
 
-      const { createWorker } = await import("tesseract.js");
+      const { createWorker, PSM } = await import("tesseract.js");
       const worker = await createWorker("tur", 1, {
         logger: (m) => {
           if (m.status === "recognizing text") setProgress(Math.round(m.progress * 100));
         },
       });
-      const { data } = await worker.recognize(ocrInput);
+      // PSM.AUTO ŞART — tesseract.js'in recognize varsayılanı tek-blok gibi
+      // davranıyor ve kenarlıklı tablo hücrelerindeki küçük metinleri
+      // ("1 Adet" gibi) TAMAMEN atlıyor; AUTO modunda okunuyorlar. Gerçek
+      // Tesseract'la yerel testte kanıtlandı (39 vs 51 kelime).
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+      // blocks: true da ŞART — tesseract.js v6+ varsayılanı blocks:false ve
+      // o durumda data.blocks null gelir; kelime koordinatları olmadan
+      // görsel satır kurulamaz, kenarlıklı tablodan kalem çıkarılamaz
+      // (kalemlerin hiç gelmemesinin iki kök sebebinden biri buydu).
+      const { data } = await worker.recognize(ocrInput, {}, { text: true, blocks: true });
       await worker.terminate();
 
       let extracted = extractInvoiceData(data.text, flattenWords(data), suppliers, products);
