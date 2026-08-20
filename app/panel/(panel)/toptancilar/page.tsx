@@ -251,9 +251,18 @@ export default function ToptancilarPage() {
     setPendingSaving(true);
     setError("");
     try {
+      // Faturanın kendi üstündeki bilgilerle (vergi dairesi/no, telefon,
+      // adres) oluştur — kullanıcı ismi düzeltebilir, geri kalanı belgeden
+      // otomatik gelir (aşağıda önizlemesi gösteriliyor).
       const created = await api<SupplierRow>("/api/suppliers", {
         method: "POST",
-        body: JSON.stringify({ name: pendingNewName.trim() }),
+        body: JSON.stringify({
+          name: pendingNewName.trim(),
+          taxOffice: pendingScan.result.supplierTaxOffice,
+          taxNumber: pendingScan.result.supplierTaxNumber,
+          phone: pendingScan.result.supplierPhone,
+          address: pendingScan.result.supplierAddress,
+        }),
       });
       goToSupplierWithScan(created.id, pendingScan);
       setPendingScan(null);
@@ -577,6 +586,24 @@ export default function ToptancilarPage() {
                   placeholder="Firma adı"
                 />
               </Field>
+              {(pendingScan.result.supplierTaxOffice ||
+                pendingScan.result.supplierTaxNumber ||
+                pendingScan.result.supplierPhone ||
+                pendingScan.result.supplierAddress) && (
+                <div className="rounded-xl bg-surface p-3 text-xs text-ink/60">
+                  <p className="mb-1 font-semibold text-ink/70">
+                    Belgeden ayrıca şu bilgiler de otomatik alınacak:
+                  </p>
+                  {pendingScan.result.supplierTaxNumber && (
+                    <p>
+                      Vergi No: {pendingScan.result.supplierTaxNumber}
+                      {pendingScan.result.supplierTaxOffice ? ` (${pendingScan.result.supplierTaxOffice})` : ""}
+                    </p>
+                  )}
+                  {pendingScan.result.supplierPhone && <p>Telefon: {pendingScan.result.supplierPhone}</p>}
+                  {pendingScan.result.supplierAddress && <p>Adres: {pendingScan.result.supplierAddress}</p>}
+                </div>
+              )}
               <div className="flex justify-end gap-3">
                 <Btn variant="ghost" onClick={() => setPendingScan(null)}>
                   Vazgeç

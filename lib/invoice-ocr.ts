@@ -25,6 +25,12 @@ export type ExtractedInvoice = {
   supplierId: number | null;
   supplierNameGuess: string;
   supplierConfidence: Confidence;
+  /** Eşleşme yoksa (yeni tedarikçi), "yeni toptancı oluştur" akışını
+   * faturanın kendi üstündeki bilgilerle önceden doldurmak için. */
+  supplierTaxOffice: string;
+  supplierTaxNumber: string;
+  supplierPhone: string;
+  supplierAddress: string;
   invoiceNumber: string;
   issueDate: string | null;
   dueDate: string | null;
@@ -229,12 +235,77 @@ function extractItemRows(rows: OcrWord[][]): { name: string; qty: number; unitPr
   return items;
 }
 
+// Türkçe ticari unvanlarda neredeyse her zaman geçen ek/kısaltmalar —
+// bilinen tedarikçi listesinde eşleşme olmasa bile (ilk kez alım yapılan
+// yeni bir toptancı), belgedeki HAM unvan metnini bu ek üzerinden tahmin
+// edebiliriz.
+// JS'in \b sınırı yalnızca ASCII harfleri "kelime karakteri" sayar — Türkçe
+// harflerin (Ş, İ, Ü, Ğ, Ö, Ç) hemen yanında sessizce eşleşmeyi bozar
+// ("GÜV.SİSTEM.A.Ş" gibi bir unvanda "A.Ş" hiç yakalanmıyordu). Bunun yerine
+// Unicode harf sınıfına (\p{L}) göre negatif lookbehind/lookahead kullanılır.
+const COMPANY_SUFFIX_RE =
+  /(?<![\p{L}])(A\.?Ş\.?|LTD\.?\s*ŞTİ\.?|ŞTİ\.?|TİCARET|SANAYİ|ŞİRKETİ|A\.?S\.?)(?![\p{L}])/iu;
+
+/** Bilinen tedarikçi listesinden bağımsız — belgenin üst kısmındaki en
+ * olası unvan satırını (ticari ek geçen satır, yoksa ilk anlamlı satır)
+ * ham metin olarak, satır indeksiyle birlikte döndürür. */
+function guessRawSupplierNameLine(topLines: string[]): { text: string; index: number } {
+  const suffixIdx = topLines.findIndex((l) => COMPANY_SUFFIX_RE.test(l));
+  if (suffixIdx >= 0) return { text: topLines[suffixIdx].trim(), index: suffixIdx };
+  return { text: topLines[0]?.trim() ?? "", index: 0 };
+}
+
+function extractTaxOffice(text: string): string {
+  const m = text.match(/vergi\s*dairesi\s*[:.]?\s*([^\n]+)/i);
+  return m ? m[1].trim() : "";
+}
+
+function extractTaxNumber(text: string): string {
+  // VKN (Vergi Kimlik No, 10 hane) veya TCKN (11 hane) — ikisi de "vergi no" alanına yazılabilir.
+  const m = text.match(/\bVKN\s*[:.]?\s*(\d{10,11})/i) ?? text.match(/\bTCKN\s*[:.]?\s*(\d{10,11})/i);
+  return m ? m[1].trim() : "";
+}
+
+function extractPhone(text: string): string {
+  const m = text.match(/\bTel\s*[:.]?\s*([\d\s()+-]{7,20})/i);
+  return m ? m[1].trim() : "";
+}
+
+/** Şirket unvanı satırından sonraki, "Tel/Vergi/VKN/..." gibi bir alan
+ * etiketine kadar olan satırları adres tahmini olarak birleştirir —
+ * en kırılgan alan, sadece kaba bir başlangıç noktası. */
+function extractAddress(topLines: string[], companyLineIndex: number): string {
+  const stopRe = /^(tel|faks|fax|e-posta|e-mail|web|vergi|vkn|tckn|mersis|ticaret\s*sicil)/i;
+  const parts: string[] = [];
+  for (let i = companyLineIndex + 1; i < topLines.length && parts.length < 4; i++) {
+    const line = topLines[i].trim();
+    if (!line) continue;
+    if (stopRe.test(line)) break;
+    parts.push(line);
+  }
+  return parts.join(" ").trim();
+}
+
 function guessSupplier(
   text: string,
   suppliers: { id: number; name: string }[]
-): { supplierId: number | null; supplierNameGuess: string; supplierConfidence: Confidence } {
+): {
+  supplierId: number | null;
+  supplierNameGuess: string;
+  supplierConfidence: Confidence;
+  supplierTaxOffice: string;
+  supplierTaxNumber: string;
+  supplierPhone: string;
+  supplierAddress: string;
+} {
   // Tedarikçi unvanı genelde belgenin üst kısmında geçer.
   const topLines = text.split("\n").slice(0, 15).filter((l) => l.trim().length > 2);
+  const raw = guessRawSupplierNameLine(topLines);
+  const supplierTaxOffice = extractTaxOffice(text);
+  const supplierTaxNumber = extractTaxNumber(text);
+  const supplierPhone = extractPhone(text);
+  const supplierAddress = extractAddress(topLines, raw.index);
+
   let best: { supplier: { id: number; name: string }; score: number } | null = null;
   for (const line of topLines) {
     for (const s of suppliers) {
@@ -242,12 +313,33 @@ function guessSupplier(
       if (!best || score > best.score) best = { supplier: s, score };
     }
   }
-  if (!best) return { supplierId: null, supplierNameGuess: "", supplierConfidence: "none" };
-  const confidence = confidenceFromScore(best.score);
+
+  const confidence = best ? confidenceFromScore(best.score) : "none";
+  // Yalnızca orta/yüksek güvenli eşleşmede otomatik olarak o tedarikçiye
+  // yönlendir — düşük güvenli bir eşleşmeyle YANLIŞ tedarikçiye sessizce
+  // gitmek, hiç eşleşmemesinden daha kötü bir sonuç olurdu. Düşük güven
+  // veya eşleşme yoksa (bilinen liste boş olabilir ya da gerçekten yeni
+  // bir tedarikçi), belgeden okunan ham unvan + iletişim bilgileri "yeni
+  // toptancı oluştur" akışını önceden doldurmak için döndürülür.
+  if (confidence === "high" || confidence === "medium") {
+    return {
+      supplierId: best!.supplier.id,
+      supplierNameGuess: best!.supplier.name,
+      supplierConfidence: confidence,
+      supplierTaxOffice,
+      supplierTaxNumber,
+      supplierPhone,
+      supplierAddress,
+    };
+  }
   return {
-    supplierId: confidence === "none" ? null : best.supplier.id,
-    supplierNameGuess: confidence === "none" ? "" : best.supplier.name,
-    supplierConfidence: confidence,
+    supplierId: null,
+    supplierNameGuess: raw.text,
+    supplierConfidence: raw.text ? "low" : "none",
+    supplierTaxOffice,
+    supplierTaxNumber,
+    supplierPhone,
+    supplierAddress,
   };
 }
 
