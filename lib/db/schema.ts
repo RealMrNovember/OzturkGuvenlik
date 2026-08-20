@@ -23,6 +23,9 @@ export const users = pgTable("users", {
   specialty: varchar("specialty", { length: 255 }).default(""),
   passwordHash: varchar("password_hash", { length: 255 }).notNull(),
   active: boolean("active").notNull().default(true),
+  // role="admin" için anlamsız (admin her zaman tam yetkili) — yalnızca staff için
+  // ince ayar sağlar. Anahtarlar lib/permissions.ts'teki PERMISSION_KEYS'te tanımlı.
+  permissions: jsonb("permissions").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

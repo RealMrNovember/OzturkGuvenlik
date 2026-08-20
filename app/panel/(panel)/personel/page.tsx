@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { api } from "@/lib/fetch";
-import { usePanelRole, usePanelSession } from "@/components/panel/PanelShell";
+import { usePanelRole, usePanelSession, usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
+import { PERMISSION_KEYS, PERMISSION_LABELS, type PermissionKey } from "@/lib/permissions";
 import {
   Badge,
   Btn,
@@ -26,6 +27,7 @@ type StaffRow = {
   role: string;
   specialty: string;
   active: boolean;
+  permissions: string[];
   createdAt: string;
 };
 
@@ -37,6 +39,7 @@ const blank = {
   specialty: "",
   password: "",
   active: true,
+  permissions: [] as string[],
 };
 
 const editBlank = {
@@ -46,12 +49,41 @@ const editBlank = {
   role: "staff",
   active: true,
   newPassword: "",
+  permissions: [] as string[],
 };
 
+function PermissionCheckboxes({
+  permissions,
+  onChange,
+}: {
+  permissions: string[];
+  onChange: (permissions: string[]) => void;
+}) {
+  const toggle = (key: PermissionKey) =>
+    onChange(permissions.includes(key) ? permissions.filter((p) => p !== key) : [...permissions, key]);
+  return (
+    <Field label="Yetkiler (yalnızca staff rolü için geçerli)">
+      <div className="space-y-2 rounded-xl border border-ink/10 bg-surface p-3">
+        {PERMISSION_KEYS.map((key) => (
+          <label key={key} className="flex items-start gap-2.5 text-sm text-ink/75">
+            <input
+              type="checkbox"
+              checked={permissions.includes(key)}
+              onChange={() => toggle(key)}
+              className="mt-0.5 h-4 w-4 accent-brand"
+            />
+            {PERMISSION_LABELS[key]}
+          </label>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
 export default function PersonelPage() {
-  const role = usePanelRole();
   const sessionId = usePanelSession().id;
-  const isAdmin = role === "admin";
+  const isAdmin = usePanelRole() === "admin";
+  const canManageStaff = usePanelCan("manage_staff");
 
   const [rows, setRows] = useState<StaffRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -90,6 +122,7 @@ export default function PersonelPage() {
       role: row.role,
       active: row.active,
       newPassword: "",
+      permissions: row.permissions ?? [],
     });
     setEditing(row);
   };
@@ -120,7 +153,10 @@ export default function PersonelPage() {
       specialty: editForm.specialty,
       active: editForm.active,
     };
-    if (isAdmin) payload.role = editForm.role;
+    if (isAdmin) {
+      payload.role = editForm.role;
+      payload.permissions = editForm.permissions;
+    }
     if (editForm.newPassword) payload.newPassword = editForm.newPassword;
     try {
       await api(`/api/staff/${editing.id}`, {
@@ -147,7 +183,7 @@ export default function PersonelPage() {
     }
   };
 
-  const canEdit = (row: StaffRow) => isAdmin || row.id === sessionId;
+  const canEdit = (row: StaffRow) => canManageStaff || row.id === sessionId;
 
   return (
     <div className="space-y-5">
@@ -158,7 +194,7 @@ export default function PersonelPage() {
             {rows.length} kişi · panel girişi olan ekip
           </p>
         </div>
-        {isAdmin && (
+        {canManageStaff && (
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
             Yeni Personel
@@ -176,7 +212,7 @@ export default function PersonelPage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {rows.map((p) => {
             const lastAdmin =
-              isAdmin && p.role === "admin" && rows.filter((r) => r.role === "admin").length === 1;
+              p.role === "admin" && rows.filter((r) => r.role === "admin").length === 1;
             return (
               <div
                 key={p.id}
@@ -216,7 +252,7 @@ export default function PersonelPage() {
                 </p>
 
                 <div className="mt-4 flex gap-2 border-t border-ink/8 pt-3">
-                  {isAdmin && (
+                  {canManageStaff && (
                     <Link
                       href={`/panel/personel/${p.id}`}
                       className="flex-1 rounded-full border border-ink/15 px-3 py-2 text-center text-xs font-semibold text-ink transition-colors hover:border-ink/40"
@@ -232,7 +268,7 @@ export default function PersonelPage() {
                   >
                     Düzenle
                   </button>
-                  {isAdmin && !lastAdmin && (
+                  {canManageStaff && !lastAdmin && (
                     <button
                       type="button"
                       onClick={() => remove(p)}
@@ -282,15 +318,17 @@ export default function PersonelPage() {
                   placeholder="Kamera, Alarm, PDKS…"
                 />
               </Field>
-              <Field label="Rol">
-                <Select
-                  value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                >
-                  <option value="staff">Personel</option>
-                  <option value="admin">Yönetici</option>
-                </Select>
-              </Field>
+              {isAdmin && (
+                <Field label="Rol">
+                  <Select
+                    value={form.role}
+                    onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  >
+                    <option value="staff">Personel</option>
+                    <option value="admin">Yönetici</option>
+                  </Select>
+                </Field>
+              )}
               <Field label="Açılış şifresi">
                 <Input
                   required
@@ -300,6 +338,12 @@ export default function PersonelPage() {
                 />
               </Field>
             </div>
+            {isAdmin && form.role === "staff" && (
+              <PermissionCheckboxes
+                permissions={form.permissions}
+                onChange={(permissions) => setForm({ ...form, permissions })}
+              />
+            )}
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn variant="ghost" onClick={() => setCreating(false)}>
                 Vazgeç
@@ -368,6 +412,12 @@ export default function PersonelPage() {
                 />
               </Field>
             </div>
+            {isAdmin && editForm.role === "staff" && (
+              <PermissionCheckboxes
+                permissions={editForm.permissions}
+                onChange={(permissions) => setEditForm({ ...editForm, permissions })}
+              />
+            )}
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn variant="ghost" onClick={() => setEditing(null)}>
                 Vazgeç

@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default async function PanelLayout({ children }: { children: React.ReactNode }) {
   const session = await requireUser();
   return (
-    <PanelShell session={{ name: session.name, role: session.role, id: session.id }}>
+    <PanelShell session={{ name: session.name, role: session.role, id: session.id, permissions: session.permissions }}>
       <div className="mx-auto max-w-5xl">{children}</div>
     </PanelShell>
   );

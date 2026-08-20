@@ -5,11 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { Icon } from "@/components/icons";
 import { Badge } from "@/components/panel/ui";
+import { hasPermission, type PermissionKey } from "@/lib/permissions";
 
-export const PanelContext = createContext<{ role: string; name: string; id: number }>({
+export const PanelContext = createContext<{ role: string; name: string; id: number; permissions: string[] }>({
   role: "staff",
   name: "",
   id: 0,
+  permissions: [],
 });
 
 export function usePanelRole() {
@@ -18,6 +20,12 @@ export function usePanelRole() {
 
 export function usePanelSession() {
   return useContext(PanelContext);
+}
+
+/** role="admin" her zaman true döner; staff için session.permissions kontrol edilir. */
+export function usePanelCan(key: PermissionKey) {
+  const session = useContext(PanelContext);
+  return hasPermission(session, key);
 }
 
 const nav = [
@@ -33,8 +41,18 @@ const nav = [
   { href: "/panel/kasa", label: "Kasa", icon: "wallet" as const },
   { href: "/panel/urunler", label: "Ürünler", icon: "box" as const },
   { href: "/panel/personel", label: "Personel", icon: "shield" as const },
-  { href: "/panel/hizmet-medya", label: "Hizmet Videoları", icon: "video" as const, adminOnly: true },
-  { href: "/panel/ayarlar", label: "Site Ayarları", icon: "palette" as const, adminOnly: true },
+  {
+    href: "/panel/hizmet-medya",
+    label: "Hizmet Videoları",
+    icon: "video" as const,
+    requires: "manage_settings" as const,
+  },
+  {
+    href: "/panel/ayarlar",
+    label: "Site Ayarları",
+    icon: "palette" as const,
+    requires: "manage_settings" as const,
+  },
 ];
 
 function SidebarLinks({
@@ -44,10 +62,10 @@ function SidebarLinks({
   pathname: string;
   onNavigate?: () => void;
 }) {
-  const role = usePanelRole();
+  const session = usePanelSession();
   return (
     <nav className="flex flex-col gap-1" aria-label="Panel menüsü">
-      {nav.filter((item) => !item.adminOnly || role === "admin").map((item) => {
+      {nav.filter((item) => !item.requires || hasPermission(session, item.requires)).map((item) => {
         const active =
           item.href === "/panel" ? pathname === "/panel" : pathname.startsWith(item.href);
         return (
@@ -74,7 +92,7 @@ export function PanelShell({
   session,
   children,
 }: {
-  session: { name: string; role: string; id: number };
+  session: { name: string; role: string; id: number; permissions: string[] };
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -88,7 +106,9 @@ export function PanelShell({
   };
 
   return (
-    <PanelContext.Provider value={{ role: session.role, name: session.name, id: session.id }}>
+    <PanelContext.Provider
+      value={{ role: session.role, name: session.name, id: session.id, permissions: session.permissions }}
+    >
       <div className="min-h-dvh bg-surface">
       {/* Mobil üst bar */}
       <div className="flex items-center justify-between border-b border-ink/8 bg-white px-4 py-3 lg:hidden">

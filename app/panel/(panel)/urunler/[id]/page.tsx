@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
 import {
@@ -57,8 +57,8 @@ const UNIT_STATUS_LABEL: Record<string, string> = {
 export default function UrunDetayPage() {
   const params = useParams<{ id: string }>();
   const productId = Number(params.id);
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canViewCosts = usePanelCan("view_costs");
+  const canManageProducts = usePanelCan("manage_products");
 
   const [product, setProduct] = useState<Product | null>(null);
   const [units, setUnits] = useState<UnitRow[]>([]);
@@ -192,7 +192,7 @@ export default function UrunDetayPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {isAdmin && (
+        {canViewCosts && (
           <div className="rounded-2xl border border-ink/8 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold text-ink/55">Alış fiyatı</p>
             <p className="mt-1 text-2xl font-black text-ink">{fmtMoney(product.costPrice ?? 0)}</p>
@@ -227,7 +227,7 @@ export default function UrunDetayPage() {
             ))}
           </div>
 
-          {isAdmin && (
+          {canManageProducts && (
             <Card title="Seri numarası ekle">
               <div className="space-y-4 px-5 py-4">
                 <div>
@@ -270,7 +270,7 @@ export default function UrunDetayPage() {
                       {u.serviceTicketId ? ` · Servis #${u.serviceTicketId}` : ""}
                     </p>
                   </div>
-                  {isAdmin ? (
+                  {canManageProducts ? (
                     <div className="flex items-center gap-2">
                       <Select
                         value={u.status}

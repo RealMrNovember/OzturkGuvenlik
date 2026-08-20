@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
 import {
@@ -88,8 +88,7 @@ const blankLeave = { type: "yillik", startDate: "", endDate: "", status: "bekliy
 export default function PersonelDetayPage() {
   const params = useParams<{ id: string }>();
   const staffId = Number(params.id);
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canManageStaff = usePanelCan("manage_staff");
 
   const [staff, setStaff] = useState<StaffRow | null>(null);
   const [leaves, setLeaves] = useState<LeaveRow[]>([]);
@@ -236,8 +235,8 @@ export default function PersonelDetayPage() {
     }
   };
 
-  if (!isAdmin) {
-    return <ErrorBox message="Bu sayfa için yönetici yetkisi gerekli." />;
+  if (!canManageStaff) {
+    return <ErrorBox message="Bu sayfa için personel yönetimi yetkisi gerekli." />;
   }
   if (loading) return <Loading />;
   if (!staff) return <ErrorBox message="Personel bulunamadı." />;

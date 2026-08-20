@@ -4,13 +4,14 @@ import { eq } from "drizzle-orm";
 import { updateProductUnitSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type Ctx = { params: Promise<{ id: string; unitId: string }> };
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_products")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const { unitId } = await params;
   const numericId = Number(unitId);
@@ -43,7 +44,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 export async function DELETE(_req: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_products")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const { unitId } = await params;
   const numericId = Number(unitId);

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import {
@@ -51,8 +51,7 @@ const blank = {
 };
 
 export default function RandevularPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canDelete = usePanelCan("delete_records");
 
   const [rows, setRows] = useState<AppointmentRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
@@ -212,7 +211,7 @@ export default function RandevularPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             onClick={() => remove(r)}

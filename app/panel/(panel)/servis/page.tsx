@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { JobItemsEditor, emptyJobItem, type JobProductOption } from "@/components/panel/JobItemsEditor";
@@ -101,8 +101,8 @@ const blank = {
 };
 
 export default function ServisPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canViewCosts = usePanelCan("view_costs");
+  const canDelete = usePanelCan("delete_records");
 
   const [rows, setRows] = useState<TicketRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
@@ -336,7 +336,7 @@ export default function ServisPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             onClick={() => remove(t)}
@@ -501,7 +501,7 @@ export default function ServisPage() {
               onChange={(items) => setForm({ ...form, items })}
               products={products}
             />
-            {isAdmin && form.items.length > 0 && (
+            {canViewCosts && form.items.length > 0 && (
               <div className="flex flex-wrap gap-4 rounded-xl bg-ink/3 px-4 py-3 text-sm">
                 <span className="text-ink/60">
                   Tahmini parça maliyeti: <strong className="text-ink">{fmtMoney(estimatedCost)}</strong>
@@ -558,7 +558,7 @@ export default function ServisPage() {
                   {fmtMoneyWithTry(viewing.fee, viewing.currency, viewing.exchangeRate)}
                 </dd>
               </div>
-              {isAdmin && viewing.costTotal !== undefined && (
+              {canViewCosts && viewing.costTotal !== undefined && (
                 <div>
                   <dt className="text-xs font-semibold text-ink/45">Parça maliyeti</dt>
                   <dd className="mt-0.5 text-ink/80">{fmtMoney(viewing.costTotal)}</dd>

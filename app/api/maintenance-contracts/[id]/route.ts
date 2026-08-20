@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm";
 import { updateMaintenanceContractSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -34,7 +35,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
 export async function DELETE(_req: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "delete_records")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const { id } = await params;
   const numericId = Number(id);

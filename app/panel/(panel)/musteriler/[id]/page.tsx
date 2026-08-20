@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import {
   Badge,
@@ -59,8 +59,7 @@ type TransactionRow = { id: number; customerId: number | null; type: string; amo
 export default function MusteriDetayPage() {
   const params = useParams<{ id: string }>();
   const customerId = Number(params.id);
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canDelete = usePanelCan("delete_records");
 
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [notes, setNotes] = useState<NoteRow[]>([]);
@@ -393,7 +392,7 @@ export default function MusteriDetayPage() {
                 </div>
                 <p className="mt-1 whitespace-pre-wrap text-sm text-ink/80">{n.note}</p>
               </div>
-              {isAdmin && (
+              {canDelete && (
                 <button
                   type="button"
                   onClick={() => removeNote(n.id)}

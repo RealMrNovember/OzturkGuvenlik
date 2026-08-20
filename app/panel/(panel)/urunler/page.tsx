@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { LOW_STOCK_THRESHOLD } from "@/lib/db/schema";
 import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
@@ -58,8 +58,8 @@ const blank = {
 };
 
 export default function UrunlerPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canViewCosts = usePanelCan("view_costs");
+  const canManageProducts = usePanelCan("manage_products");
   const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<ProductRow[]>([]);
@@ -232,10 +232,10 @@ export default function UrunlerPage() {
             {visibleRows.length === rows.length
               ? `${rows.length} kayıt`
               : `${visibleRows.length} / ${rows.length} kayıt`}
-            {!isAdmin && " · alış fiyatları yalnızca yöneticiye görünür"}
+            {!canViewCosts && " · alış fiyatları yalnızca yöneticiye görünür"}
           </p>
         </div>
-        {isAdmin && (
+        {canManageProducts && (
           <div className="flex gap-2.5">
             <Btn variant="ghost" onClick={() => setScannerOpen(true)} disabled={lookingUp}>
               <Icon name="search" className="h-4 w-4" />
@@ -302,17 +302,17 @@ export default function UrunlerPage() {
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
                   <th className="px-5 py-3.5">Ürün</th>
                   <th className="px-5 py-3.5">Kategori</th>
-                  {isAdmin && <th className="px-5 py-3.5 text-right">Alış</th>}
+                  {canViewCosts && <th className="px-5 py-3.5 text-right">Alış</th>}
                   <th className="px-5 py-3.5 text-right">Satış</th>
-                  {isAdmin && <th className="px-5 py-3.5 text-right">Kâr marjı</th>}
+                  {canViewCosts && <th className="px-5 py-3.5 text-right">Kâr marjı</th>}
                   <th className="px-5 py-3.5 text-right">Stok</th>
-                  {isAdmin && <th className="px-5 py-3.5 text-right">İşlem</th>}
+                  {canManageProducts && <th className="px-5 py-3.5 text-right">İşlem</th>}
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/6">
                 {visibleRows.map((p) => {
                   const margin =
-                    isAdmin && p.costPrice !== undefined && Number(p.salePrice) > 0
+                    canViewCosts && p.costPrice !== undefined && Number(p.salePrice) > 0
                       ? ((Number(p.salePrice) - Number(p.costPrice)) / Number(p.salePrice)) * 100
                       : null;
                   return (
@@ -327,7 +327,7 @@ export default function UrunlerPage() {
                         </p>
                       </td>
                       <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
-                      {isAdmin && (
+                      {canViewCosts && (
                         <td className="px-5 py-4 text-right text-ink/55">
                           {fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)}
                         </td>
@@ -335,7 +335,7 @@ export default function UrunlerPage() {
                       <td className="px-5 py-4 text-right font-bold text-ink">
                         {fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)}
                       </td>
-                      {isAdmin && (
+                      {canViewCosts && (
                         <td className="px-5 py-4 text-right">
                           {margin !== null && (
                             <Badge tone={margin >= 30 ? "green" : margin >= 10 ? "amber" : "red"}>
@@ -360,7 +360,7 @@ export default function UrunlerPage() {
                           </span>
                         )}
                       </td>
-                      {isAdmin && (
+                      {canManageProducts && (
                         <td className="whitespace-nowrap px-5 py-4 text-right">
                           <div className="flex justify-end gap-1.5">
                             <button
@@ -398,7 +398,7 @@ export default function UrunlerPage() {
         title="Ürün Barkodu Tara"
       />
 
-      {(creating || editing) && isAdmin && (
+      {(creating || editing) && canManageProducts && (
         <Modal
           open
           onClose={() => {

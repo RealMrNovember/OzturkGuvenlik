@@ -11,6 +11,7 @@ export type SessionUser = {
   name: string;
   email: string;
   role: "admin" | "staff";
+  permissions: string[];
 };
 
 function secretKey(): Uint8Array {
@@ -19,7 +20,7 @@ function secretKey(): Uint8Array {
 }
 
 export async function createSession(user: SessionUser) {
-  const token = await new SignJWT({ role: user.role, name: user.name })
+  const token = await new SignJWT({ role: user.role, name: user.name, permissions: user.permissions })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(user.id))
     .setIssuedAt()
@@ -50,8 +51,9 @@ export async function getSession(): Promise<SessionUser | null> {
     const id = Number(payload.sub);
     const role = payload.role as SessionUser["role"];
     const name = payload.name as string;
+    const permissions = Array.isArray(payload.permissions) ? (payload.permissions as string[]) : [];
     if (!id || !role) return null;
-    return { id, name, role, email: "" };
+    return { id, name, role, email: "", permissions };
   } catch {
     return null;
   }

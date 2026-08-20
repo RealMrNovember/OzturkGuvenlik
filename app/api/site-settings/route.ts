@@ -3,11 +3,12 @@ import { updateSiteSettingsSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { getSiteSettings, updateSiteSettings } from "@/lib/site-settings";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET() {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_settings")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   return jsonOk(await getSiteSettings());
 }
@@ -15,7 +16,7 @@ export async function GET() {
 export async function PATCH(req: Request) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_settings")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const body = await readJson(req);
   const parsed = updateSiteSettingsSchema.safeParse(body);

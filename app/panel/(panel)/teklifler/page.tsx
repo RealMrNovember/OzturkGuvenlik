@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { ItemsEditor, emptyItem, type ItemForm, type ProductOption } from "@/components/panel/ItemsEditor";
@@ -46,8 +46,7 @@ type OfferRow = {
 type CustomerRow = { id: number; name: string; phone: string };
 
 export default function TekliflerPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canDelete = usePanelCan("delete_records");
 
   const [rows, setRows] = useState<OfferRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
@@ -284,7 +283,7 @@ export default function TekliflerPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             onClick={() => remove(o)}

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { Btn, Card, ErrorBox, Field, Input, Loading } from "@/components/panel/ui";
 import {
@@ -69,8 +69,7 @@ function ColorField({
 }
 
 export default function SiteAyarlariPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const isAdmin = usePanelCan("manage_settings");
 
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [brandColor, setBrandColor] = useState(DEFAULT_BRAND_COLOR);

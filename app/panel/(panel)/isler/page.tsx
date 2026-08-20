@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole, usePanelSession } from "@/components/panel/PanelShell";
+import { usePanelRole, usePanelSession, usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import {
@@ -81,6 +81,8 @@ const blank = {
 export default function IslerPage() {
   const role = usePanelRole();
   const isAdmin = role === "admin";
+  const canViewCosts = usePanelCan("view_costs");
+  const canDelete = usePanelCan("delete_records");
   const sessionId = usePanelSession().id;
 
   const [rows, setRows] = useState<JobRow[]>([]);
@@ -306,7 +308,7 @@ export default function IslerPage() {
                   <th className="px-5 py-3.5">Tarih</th>
                   <th className="px-5 py-3.5">Ekip</th>
                   <th className="px-5 py-3.5">Durum</th>
-                  {isAdmin && <th className="px-5 py-3.5 text-right">Kâr</th>}
+                  {canViewCosts && <th className="px-5 py-3.5 text-right">Kâr</th>}
                   <th className="px-5 py-3.5 text-right">İşlem</th>
                 </tr>
               </thead>
@@ -355,7 +357,7 @@ export default function IslerPage() {
                         ))}
                       </Select>
                     </td>
-                    {isAdmin && (
+                    {canViewCosts && (
                       <td className="whitespace-nowrap px-5 py-4 text-right font-bold">
                         {j.costTotal !== undefined ? (
                           <span
@@ -390,7 +392,7 @@ export default function IslerPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             onClick={() => remove(j)}
@@ -504,7 +506,7 @@ export default function IslerPage() {
                   products={products}
                 />
               </div>
-              {isAdmin && form.items.length > 0 && (
+              {canViewCosts && form.items.length > 0 && (
                 <div className="sm:col-span-2 flex flex-wrap gap-4 rounded-xl bg-ink/3 px-4 py-3 text-sm">
                   <span className="text-ink/60">
                     Tahmini maliyet: <strong className="text-ink">{fmtMoney(estimatedCost)}</strong>
@@ -611,7 +613,7 @@ export default function IslerPage() {
                   {fmtMoneyWithTry(viewing.saleTotal, viewing.currency, viewing.exchangeRate)}
                 </dd>
               </div>
-              {isAdmin && viewing.costTotal !== undefined && (
+              {canViewCosts && viewing.costTotal !== undefined && (
                 <div>
                   <dt className="text-xs font-semibold text-ink/45">Maliyet / Kâr</dt>
                   <dd className="mt-0.5 text-ink/80">

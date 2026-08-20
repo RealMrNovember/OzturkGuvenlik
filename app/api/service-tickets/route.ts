@@ -5,6 +5,7 @@ import { createServiceTicketSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { costTotalForItems, applyStockDelta, StockConflictError } from "@/lib/stock";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET() {
   const session = await getSession();
@@ -44,7 +45,7 @@ export async function GET() {
     .limit(300);
 
   // Maliyet yalnızca yöneticiye görünür (bkz. app/api/jobs/route.ts ile aynı ilke).
-  if (session.role !== "admin") {
+  if (!hasPermission(session, "view_costs")) {
     return jsonOk(
       rows.map((r) => ({
         id: r.id,

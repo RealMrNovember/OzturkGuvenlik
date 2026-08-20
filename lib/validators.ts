@@ -2,6 +2,7 @@ import { z } from "zod";
 import { extractYouTubeId } from "@/lib/youtube";
 import { CURRENCIES } from "@/lib/currency";
 import { STAFF_LEAVE_TYPES, STAFF_LEAVE_STATUSES } from "@/lib/db/schema";
+import { PERMISSION_KEYS } from "@/lib/permissions";
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
 
@@ -258,6 +259,7 @@ export const createUserSchema = z.object({
   specialty: z.string().trim().max(255).optional().default(""),
   password: z.string().min(6, "Şifre en az 6 karakter").max(100),
   active: z.boolean().optional().default(true),
+  permissions: z.array(z.enum(PERMISSION_KEYS)).optional().default([]),
 });
 
 export const updateUserSchema = z.object({
@@ -268,6 +270,7 @@ export const updateUserSchema = z.object({
   specialty: z.string().trim().max(255).optional(),
   active: z.boolean().optional(),
   newPassword: z.string().min(6, "Şifre en az 6 karakter").max(100).optional(),
+  permissions: z.array(z.enum(PERMISSION_KEYS)).optional(),
 });
 
 export const createInvoiceSchema = z.object({

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import {
@@ -43,8 +43,7 @@ const blank = {
 };
 
 export default function MusterilerPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canDelete = usePanelCan("delete_records");
   const searchParams = useSearchParams();
 
   const [rows, setRows] = useState<CustomerRow[]>([]);
@@ -222,7 +221,7 @@ export default function MusterilerPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
-                        {isAdmin && (
+                        {canDelete && (
                           <button
                             type="button"
                             onClick={() => remove(c)}

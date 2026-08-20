@@ -4,6 +4,7 @@ import { and, desc, eq, inArray } from "drizzle-orm";
 import { bulkAddProductUnitsSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
 
@@ -27,7 +28,7 @@ export async function GET(_req: Request, { params }: Ctx) {
 export async function POST(req: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_products")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const { id } = await params;
   const productId = Number(id);

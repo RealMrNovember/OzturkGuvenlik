@@ -4,13 +4,14 @@ import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { upsertServiceMedia } from "@/lib/service-media";
 import { services } from "@/lib/services";
+import { hasPermission } from "@/lib/permissions";
 
 type Ctx = { params: Promise<{ slug: string }> };
 
 export async function PATCH(req: Request, { params }: Ctx) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_settings")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const { slug } = await params;
   if (!services.some((s) => s.slug === slug)) return jsonErr("Geçersiz hizmet", 404);

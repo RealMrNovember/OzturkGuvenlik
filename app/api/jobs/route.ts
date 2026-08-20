@@ -5,6 +5,7 @@ import { createJobSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { costTotalForItems, applyStockDelta, StockConflictError } from "@/lib/stock";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET() {
   const session = await getSession();
@@ -52,7 +53,7 @@ export async function GET() {
   }));
 
   // Maliyet (alış fiyatı üzerinden) ve dolayısıyla kâr yalnızca yöneticiye görünür.
-  if (session.role !== "admin") {
+  if (!hasPermission(session, "view_costs")) {
     return jsonOk(
       withStaff.map((j) => ({
         id: j.id,

@@ -4,6 +4,7 @@ import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { createProductSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 
 export async function GET() {
   const session = await getSession();
@@ -34,7 +35,7 @@ export async function GET() {
   // ürünü tekliflere eklerken yalnızca satış fiyatını görür. Sızdırma riskini
   // azaltmak için beyaz liste kullanılıyor (yeni alan eklenirse varsayılan
   // olarak gizli kalır).
-  if (session.role !== "admin") {
+  if (!hasPermission(session, "view_costs")) {
     return jsonOk(
       withLiveStock.map((r) => ({
         id: r.id,
@@ -59,7 +60,7 @@ export async function GET() {
 export async function POST(req: Request) {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
-  if (session.role !== "admin") return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
+  if (!hasPermission(session, "manage_products")) return jsonErr("Bu işlem için yönetici yetkisi gerekli", 403);
 
   const body = await readJson(req);
   const parsed = createProductSchema.safeParse(body);

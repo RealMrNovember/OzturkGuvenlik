@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
@@ -78,8 +78,7 @@ type TxRow = {
 type StaffRow = { id: number; name: string };
 
 export default function KasaPage() {
-  const role = usePanelRole();
-  const isAdmin = role === "admin";
+  const canDelete = usePanelCan("delete_records");
 
   const [rows, setRows] = useState<TxRow[]>([]);
   const [staff, setStaff] = useState<StaffRow[]>([]);
@@ -275,7 +274,7 @@ export default function KasaPage() {
                   {r.type === "gelir" ? "+" : "-"}
                   {fmtMoneyWithTry(r.amount, r.currency, r.exchangeRate)}
                 </p>
-                {isAdmin && (
+                {canDelete && (
                   <button
                     type="button"
                     onClick={() => remove(r)}

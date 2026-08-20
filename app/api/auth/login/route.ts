@@ -32,6 +32,7 @@ export async function POST(req: Request) {
     name: user.name,
     email: user.email,
     role: user.role as "admin" | "staff",
+    permissions: (user.permissions as string[] | null) ?? [],
   });
 
   return jsonOk({ name: user.name, role: user.role });
