@@ -177,8 +177,12 @@ export default function ToptanciDetayPage() {
     if (result.qrVerified) parts.push("fatura no/tarih/tutar belgedeki e-Arşiv QR kodundan doğrulandı");
     if (items.length > 0) parts.push(`${items.length} kalem bulundu`);
     if (roundedTotal) parts.push(`toplam ${roundedTotal} ${result.currency || "TRY"}`);
+    const itemWarning =
+      items.length === 0
+        ? " Kalemler okunamadı — belge çözünürlüğü düşük olabilir: mümkünse faturanın PDF'ini ya da orijinal (sıkıştırılmamış) görüntüsünü yükleyin; WhatsApp'tan geçen görseller sıkıştırıldığı için okunamayabilir."
+        : "";
     setNotice(
-      `Belge tarandı — ${parts.length > 0 ? parts.join(", ") : "kalem/tutar bulunamadı"}. Kaydetmeden önce tüm alanları kontrol edin, gerekirse düzeltin.`
+      `Belge tarandı — ${parts.length > 0 ? parts.join(", ") : "kalem/tutar bulunamadı"}. Kaydetmeden önce tüm alanları kontrol edin, gerekirse düzeltin.${itemWarning}`
     );
   };
 

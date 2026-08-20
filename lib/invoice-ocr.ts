@@ -278,12 +278,23 @@ function parseMoneyToken(raw: string): number | null {
   return n !== null && n > 0 ? round2(n) : null;
 }
 
+/** OCR'ın rakamları harfe karıştırmasını geri çevirir: küçük punto/düşük
+ * çözünürlükte "1" sık sık "l"/"I"/"i" okunur ("1Adet" → "lAdet", kullanıcının
+ * gerçek dosyasında birebir görüldü), "0" da "o"/"O". */
+function mapDigitConfusions(s: string): string {
+  return s.replace(/[lıi|!]/g, "1").replace(/[oO]/g, "0");
+}
+
 /** "Adet" çapası eşleme — OCR toleranslı: bitişik "21Adet", noktalama
- * artıkları ve tek harflik OCR hatası ("Adel", "Adei") kabul edilir. */
+ * artıkları, tek harflik OCR hatası ("Adel", "Adei") ve rakam karışması
+ * ("lAdet" → 1 adet) kabul edilir. */
 function matchAdetAnchor(token: string): { glued: number | null; standalone: boolean } {
   const low = foldTr(stripEdges(token));
-  const glued = /^(\d{1,6})(ade[a-z]|adet)$/.exec(low);
-  if (glued && lev1Adet(glued[2])) return { glued: Number(glued[1]), standalone: false };
+  const glued = /^([0-9lıi|!oO]{1,6})(ade[a-z]|adet)$/.exec(low);
+  if (glued && lev1Adet(glued[2])) {
+    const qty = Number(mapDigitConfusions(glued[1]));
+    if (Number.isFinite(qty) && qty > 0) return { glued: qty, standalone: false };
+  }
   return { glued: null, standalone: lev1Adet(low) };
 }
 function lev1Adet(s: string): boolean {

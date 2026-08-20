@@ -25,7 +25,11 @@ async function fileToOcrInput(file: File): Promise<HTMLCanvasElement | File> {
   const buf = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
   const page = await pdf.getPage(1);
-  const viewport = page.getViewport({ scale: 2 });
+  // OCR için ~2400px genişlik hedeflenir — A4@72dpi taban ölçüsünde scale:2
+  // (~1190px) küçük tablo hücreleri için yetersiz kalıyordu.
+  const base = page.getViewport({ scale: 1 });
+  const scale = Math.min(4, Math.max(2, 2400 / base.width));
+  const viewport = page.getViewport({ scale });
   const canvas = document.createElement("canvas");
   canvas.width = viewport.width;
   canvas.height = viewport.height;
@@ -114,7 +118,11 @@ export function InvoiceScanner({
       // davranıyor ve kenarlıklı tablo hücrelerindeki küçük metinleri
       // ("1 Adet" gibi) TAMAMEN atlıyor; AUTO modunda okunuyorlar. Gerçek
       // Tesseract'la yerel testte kanıtlandı (39 vs 51 kelime).
-      await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+      // user_defined_dpi de ŞART — düşük çözünürlüklü/sıkıştırılmış
+      // yüklemelerde Tesseract DPI'ı düşük tahmin edip (147) küçük tablo
+      // hücrelerini komple atıyordu; 300 denince aynı dosyadan kalemler
+      // okunur hale geldi (kullanıcının gerçek yüklemesiyle kanıtlandı).
+      await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO, user_defined_dpi: "300" });
       // blocks: true da ŞART — tesseract.js v6+ varsayılanı blocks:false ve
       // o durumda data.blocks null gelir; kelime koordinatları olmadan
       // görsel satır kurulamaz, kenarlıklı tablodan kalem çıkarılamaz
