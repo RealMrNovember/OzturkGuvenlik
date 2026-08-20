@@ -126,6 +126,10 @@ export const products = pgTable("products", {
   name: varchar("name", { length: 200 }).notNull(),
   sku: varchar("sku", { length: 60 }).default(""),
   category: varchar("category", { length: 60 }).default(""),
+  // Stok ekranında marka/model bazlı ayrım ve filtreleme için (örn.
+  // marka: "Dahua", model: "IPC-HFW1230TC1"). Ad alanı serbest kalır.
+  brand: varchar("brand", { length: 80 }).default(""),
+  model: varchar("model", { length: 120 }).default(""),
   unit: varchar("unit", { length: 20 }).notNull().default("adet"),
   // Alış fiyatı yalnızca admin'e döner (bkz. app/api/products/route.ts) — personel
   // maliyeti değil satış fiyatını görür.

@@ -26,6 +26,8 @@ type Product = {
   name: string;
   sku: string;
   category: string;
+  brand: string;
+  model: string;
   unit: string;
   costPrice?: string;
   salePrice: string;
@@ -199,6 +201,11 @@ export default function UrunDetayPage() {
             {!product.active && <Badge tone="gray">Pasif</Badge>}
           </div>
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink/60">
+            {(product.brand || product.model) && (
+              <span className="font-semibold text-ink/75">
+                {[product.brand, product.model].filter(Boolean).join(" · ")}
+              </span>
+            )}
             <span>{product.category || "Kategori yok"}</span>
             <span>{product.sku || "SKU yok"}</span>
             {product.barcode && <span>Barkod: {product.barcode}</span>}

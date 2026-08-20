@@ -26,6 +26,8 @@ type ProductRow = {
   name: string;
   sku: string;
   category: string;
+  brand: string;
+  model: string;
   unit: string;
   costPrice?: string;
   salePrice: string;
@@ -47,6 +49,8 @@ const blank = {
   name: "",
   sku: "",
   category: "",
+  brand: "",
+  model: "",
   unit: "adet",
   costPrice: "",
   salePrice: "",
@@ -77,10 +81,16 @@ export default function UrunlerPage() {
 
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("hepsi");
+  const [brandFilter, setBrandFilter] = useState("hepsi");
 
   const UNCATEGORIZED = "Kategorisiz";
+  const BRANDLESS = "Markasız";
   const categories = useMemo(
     () => Array.from(new Set(rows.map((r) => r.category.trim() || UNCATEGORIZED))).sort((a, b) => a.localeCompare(b, "tr")),
+    [rows]
+  );
+  const brands = useMemo(
+    () => Array.from(new Set(rows.map((r) => (r.brand ?? "").trim() || BRANDLESS))).sort((a, b) => a.localeCompare(b, "tr")),
     [rows]
   );
 
@@ -89,20 +99,26 @@ export default function UrunlerPage() {
     return rows.filter((r) => {
       const cat = r.category.trim() || UNCATEGORIZED;
       if (categoryFilter !== "hepsi" && cat !== categoryFilter) return false;
+      const brand = (r.brand ?? "").trim() || BRANDLESS;
+      if (brandFilter !== "hepsi" && brand !== brandFilter) return false;
       if (!q) return true;
       return (
         r.name.toLowerCase().includes(q) ||
         r.sku.toLowerCase().includes(q) ||
+        (r.brand ?? "").toLowerCase().includes(q) ||
+        (r.model ?? "").toLowerCase().includes(q) ||
         (r.barcode ?? "").toLowerCase().includes(q)
       );
     });
-  }, [rows, search, categoryFilter]);
+  }, [rows, search, categoryFilter, brandFilter]);
 
   const openEdit = useCallback((row: ProductRow) => {
     setForm({
       name: row.name,
       sku: row.sku,
       category: row.category,
+      brand: row.brand ?? "",
+      model: row.model ?? "",
       unit: row.unit,
       costPrice: row.costPrice ?? "",
       salePrice: row.salePrice,
@@ -185,6 +201,8 @@ export default function UrunlerPage() {
       name: form.name.trim(),
       sku: form.sku.trim(),
       category: form.category.trim(),
+      brand: form.brand.trim(),
+      model: form.model.trim(),
       unit: form.unit.trim() || "adet",
       costPrice: Number(form.costPrice) || 0,
       salePrice: Number(form.salePrice),
@@ -258,10 +276,23 @@ export default function UrunlerPage() {
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Ürün adı, SKU veya barkod ara…"
+              placeholder="Ad, marka, model, SKU veya barkod ara…"
               className="w-64 rounded-full border border-ink/15 bg-white py-2 pl-9 pr-4 text-sm text-ink outline-none placeholder:text-ink/35 focus:border-brand"
             />
           </div>
+          <select
+            value={brandFilter}
+            onChange={(e) => setBrandFilter(e.target.value)}
+            aria-label="Marka filtresi"
+            className="rounded-full border border-ink/15 bg-white px-3.5 py-2 text-xs font-semibold text-ink/70 outline-none focus:border-brand"
+          >
+            <option value="hepsi">Tüm markalar</option>
+            {brands.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
           <div className="flex flex-wrap gap-1.5">
             <button
               type="button"
@@ -301,6 +332,7 @@ export default function UrunlerPage() {
               <thead>
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
                   <th className="px-5 py-3.5">Ürün</th>
+                  <th className="px-5 py-3.5">Marka / Model</th>
                   <th className="px-5 py-3.5">Kategori</th>
                   {canViewCosts && <th className="px-5 py-3.5 text-right">Alış</th>}
                   <th className="px-5 py-3.5 text-right">Satış</th>
@@ -325,6 +357,10 @@ export default function UrunlerPage() {
                           {p.sku || "SKU yok"} · {p.unit}
                           {p.serialized && " · seri takipli"}
                         </p>
+                      </td>
+                      <td className="px-5 py-4">
+                        <p className="font-semibold text-ink/80">{p.brand || "-"}</p>
+                        {p.model && <p className="text-xs text-ink/45">{p.model}</p>}
                       </td>
                       <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
                       {canViewCosts && (
@@ -432,6 +468,22 @@ export default function UrunlerPage() {
                 </Btn>
               </div>
             </Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Marka">
+                <Input
+                  value={form.brand}
+                  onChange={(e) => setForm((f) => ({ ...f, brand: e.target.value }))}
+                  placeholder="Örn: Dahua"
+                />
+              </Field>
+              <Field label="Model">
+                <Input
+                  value={form.model}
+                  onChange={(e) => setForm((f) => ({ ...f, model: e.target.value }))}
+                  placeholder="Örn: IPC-HFW1230TC1"
+                />
+              </Field>
+            </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Kategori">
                 <Input

@@ -42,6 +42,8 @@ export async function GET() {
         name: r.name,
         sku: r.sku,
         category: r.category,
+        brand: r.brand,
+        model: r.model,
         unit: r.unit,
         salePrice: r.salePrice,
         currency: r.currency,

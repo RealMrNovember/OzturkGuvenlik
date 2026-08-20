@@ -120,6 +120,13 @@
       "when": 1787258487316,
       "tag": "0016_adorable_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1787267306373,
+      "tag": "0017_familiar_stellaris",
+      "breakpoints": true
     }
   ]
 }
