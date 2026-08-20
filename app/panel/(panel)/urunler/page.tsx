@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
@@ -74,6 +74,29 @@ export default function UrunlerPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [fieldScannerOpen, setFieldScannerOpen] = useState(false);
   const [lookingUp, setLookingUp] = useState(false);
+
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("hepsi");
+
+  const UNCATEGORIZED = "Kategorisiz";
+  const categories = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.category.trim() || UNCATEGORIZED))).sort((a, b) => a.localeCompare(b, "tr")),
+    [rows]
+  );
+
+  const visibleRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter((r) => {
+      const cat = r.category.trim() || UNCATEGORIZED;
+      if (categoryFilter !== "hepsi" && cat !== categoryFilter) return false;
+      if (!q) return true;
+      return (
+        r.name.toLowerCase().includes(q) ||
+        r.sku.toLowerCase().includes(q) ||
+        (r.barcode ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [rows, search, categoryFilter]);
 
   const openEdit = useCallback((row: ProductRow) => {
     setForm({
@@ -206,7 +229,10 @@ export default function UrunlerPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">Ürünler</h1>
           <p className="mt-1 text-sm text-ink/55">
-            {rows.length} kayıt{!isAdmin && " · alış fiyatları yalnızca yöneticiye görünür"}
+            {visibleRows.length === rows.length
+              ? `${rows.length} kayıt`
+              : `${visibleRows.length} / ${rows.length} kayıt`}
+            {!isAdmin && " · alış fiyatları yalnızca yöneticiye görünür"}
           </p>
         </div>
         {isAdmin && (
@@ -225,10 +251,49 @@ export default function UrunlerPage() {
 
       {error && <ErrorBox message={error} />}
 
+      {rows.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="relative">
+            <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Ürün adı, SKU veya barkod ara…"
+              className="w-64 rounded-full border border-ink/15 bg-white py-2 pl-9 pr-4 text-sm text-ink outline-none placeholder:text-ink/35 focus:border-brand"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            <button
+              type="button"
+              onClick={() => setCategoryFilter("hepsi")}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                categoryFilter === "hepsi" ? "bg-ink text-white" : "bg-white text-ink/60 hover:bg-ink/5"
+              }`}
+            >
+              Tümü
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategoryFilter(c)}
+                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                  categoryFilter === c ? "bg-ink text-white" : "bg-white text-ink/60 hover:bg-ink/5"
+                }`}
+              >
+                {c}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading ? (
         <Loading />
       ) : rows.length === 0 ? (
         <EmptyState title="Ürün yok" desc="Kataloğa ürün ekleyerek tekliflerde hızlıca seçebilirsiniz." />
+      ) : visibleRows.length === 0 ? (
+        <EmptyState title="Sonuç yok" desc="Arama veya kategori filtresine uyan ürün bulunamadı." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -245,7 +310,7 @@ export default function UrunlerPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/6">
-                {rows.map((p) => {
+                {visibleRows.map((p) => {
                   const margin =
                     isAdmin && p.costPrice !== undefined && Number(p.salePrice) > 0
                       ? ((Number(p.salePrice) - Number(p.costPrice)) / Number(p.salePrice)) * 100
