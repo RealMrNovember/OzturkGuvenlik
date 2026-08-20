@@ -96,7 +96,7 @@ export function ItemsEditor({
             <Input
               type="number"
               min="0"
-              step="1"
+              step="0.01"
               value={item.unitPrice}
               onChange={(e) => setItem(idx, { unitPrice: e.target.value, productId: null })}
               placeholder="₺"
