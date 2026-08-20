@@ -229,13 +229,21 @@ function extractTotalsAndCurrency(text: string): {
   }
 
   // foldTr uzunluk-korumalı olduğu için sayısal yakalama aynen geçerlidir.
-  const rateM = foldTr(text).match(/doviz\s*kuru[^\n]*?([\d.,]+)/);
+  const folded = foldTr(text);
+  const rateM = folded.match(/doviz\s*kuru[^\n]*?([\d.,]+)/);
   const rate = rateM ? parseTurkishNumber(rateM[1]) : null;
 
   if (foreign && rate && rate > 0) return { totalGuess: foreign.amount, currency: foreign.currency, exchangeRate: rate };
   if (tl !== null) return { totalGuess: tl, currency: "TRY", exchangeRate: null };
   if (foreign) return { totalGuess: foreign.amount, currency: foreign.currency, exchangeRate: null };
-  return { totalGuess: null, currency: "TRY", exchangeRate: null };
+
+  // Toplam satırları hiç okunamadıysa (kırpık/kötü fotoğraf) para birimini
+  // gövdeden çıkar: kalem satırlarında rakamı izleyen USD/EUR ekleri
+  // baskınsa fatura o para birimindedir.
+  const usdCount = (folded.match(/\d\s*(usd|\$)/g) ?? []).length;
+  const eurCount = (folded.match(/\d\s*(eur|€)/g) ?? []).length;
+  const inferred = usdCount >= 2 && usdCount > eurCount ? "USD" : eurCount >= 2 && eurCount > usdCount ? "EUR" : null;
+  return { totalGuess: null, currency: inferred ?? "TRY", exchangeRate: inferred ? rate : null };
 }
 
 const UNIT_LABEL_RE = /^(adet|adt|ad|kg|gr|lt|mt|m2|m3|paket|kutu|koli|usd|eur|try|tl|gbp|kr)[.,;:]?$/i;
@@ -521,6 +529,101 @@ function extractItemsFromWordAnchors(
   return items;
 }
 
+/**
+ * "Adet"e HİÇ bağımlı olmayan, eğim-toleranslı üçüncü yol — para-merkezli:
+ * gerçek fotoğraflarda "Adet" hücresi OCR'dan bazen tanınmaz bir biçimde
+ * çıkıyor (tek harf toleransı bile yetmeyebiliyor). Türk fatura satırının
+ * değişmez iskeleti ise sağ taraftaki para sütunlarıdır (Birim Fiyat →
+ * [KDV] → Tutar): bir satırın EN SOLDAKİ "esaslı" para değeri (solunda
+ * sıra no/adet gibi ≤3 haneli tam sayılar dışında para yoksa) birim
+ * fiyattır; sağ yerel bandında EN AZ BİR para daha olması (tutar sütunu)
+ * satırın gerçekten kalem satırı olduğunun kanıtıdır — toplam/kur/tek-para
+ * satırları bu şartla kendiliğinden elenir. Ad, aynı taban çizgisindeki
+ * sol kelimelerdir; ad içinde bitişik "NAdet" görülürse adet oradan alınır,
+ * yoksa fiyatın hemen solundaki küçük tam sayı adettir, o da yoksa 1.
+ */
+function extractItemsFromMoneyRows(
+  words: OcrWord[]
+): { name: string; qty: number; unitPrice: number }[] {
+  const items: { name: string; qty: number; unitPrice: number }[] = [];
+  const cy = (w: OcrWord) => (w.bbox.y0 + w.bbox.y1) / 2;
+  const hh = (w: OcrWord) => w.bbox.y1 - w.bbox.y0;
+
+  const isSmallInt = (w: OcrWord) => {
+    const t = stripEdges(w.text);
+    return /^\d{1,3}$/.test(t);
+  };
+
+  for (const w of words) {
+    const value = parseMoneyToken(w.text);
+    if (value === null) continue;
+    const band = Math.max(hh(w), 12) * 1.2;
+    const nameBand = Math.max(hh(w), 12) * 0.8;
+
+    // Solunda (aynı bantta) sıra no/adet dışında para varsa bu birim fiyat
+    // değil, KDV/tutar sütunudur — atla.
+    let leftHasMoney = false;
+    for (const c of words) {
+      if (c === w || c.bbox.x1 > w.bbox.x0 + 5) continue;
+      if (Math.abs(cy(c) - cy(w)) > band) continue;
+      if (isSmallInt(c)) continue;
+      if (parseMoneyToken(c.text) !== null) {
+        leftHasMoney = true;
+        break;
+      }
+    }
+    if (leftHasMoney) continue;
+
+    // Sağ bantta en az bir para daha olmalı (tutar sütunu) — toplam/kur
+    // gibi tek-para satırlarını eler.
+    const hasRightMoney = words.some(
+      (c) =>
+        c !== w &&
+        c.bbox.x0 > w.bbox.x1 - 5 &&
+        Math.abs(cy(c) - cy(w)) <= band &&
+        parseMoneyToken(c.text) !== null
+    );
+    if (!hasRightMoney) continue;
+
+    // Sol kelimeler (dar bant) = ad adayı.
+    const leftWords = words
+      .filter((c) => c !== w && c.bbox.x1 <= w.bbox.x0 + 5 && Math.abs(cy(c) - cy(w)) <= nameBand)
+      .sort((x, y) => x.bbox.x0 - y.bbox.x0);
+
+    let qty = 1;
+    const nameTokens: string[] = [];
+    for (const c of leftWords) {
+      const t = stripEdges(c.text);
+      if (!t || !/[\p{L}\p{N}]/u.test(t)) continue;
+      const a = matchAdetAnchor(t);
+      if (a.glued !== null) {
+        qty = a.glued;
+        continue;
+      }
+      if (a.standalone) continue; // "Adet" etiketi ada girmez
+      nameTokens.push(t);
+    }
+    // Fiyatın hemen solundaki küçük tam sayı (bitişik adet yoksa) = adet;
+    // satır başındaki sıra no ise addan ayıklanır.
+    if (qty === 1 && nameTokens.length > 1 && /^\d{1,4}$/.test(nameTokens[nameTokens.length - 1])) {
+      const n = Number(nameTokens[nameTokens.length - 1]);
+      if (n >= 1 && n <= 9999) {
+        qty = n;
+        nameTokens.pop();
+      }
+    }
+    if (nameTokens.length > 0 && /^\d{1,3}$/.test(nameTokens[0])) nameTokens.shift();
+
+    const name = nameTokens.join(" ").trim();
+    if (name.length < 5) continue;
+    if (!nameTokens.some((t) => /\p{L}{3}/u.test(t))) continue;
+    if (ITEM_NAME_BLOCK_RE.test(foldTr(name))) continue;
+
+    items.push({ name, qty, unitPrice: value });
+  }
+  return items;
+}
+
 // Unvan satırı ASLA bu alan etiketlerini içermez — gerçek taramalarda
 // "Ticaret SİCİL No", "Vergi Dairesi" gibi satırlar unvan sanılıyordu.
 // foldTr'lenmiş metne uygulanır (İBAN/İ sorunu için bkz. foldTr).
@@ -696,11 +799,12 @@ export function extractInvoiceData(
   // ve "RT-C6C..." gibi kısmi-ad çeşitleri tek kayda iner) — kapsayan/daha
   // erken yolun kaydı kazanır.
   const fromAnchors = words.length > 0 ? extractItemsFromWordAnchors(words) : [];
+  const fromMoneyRows = words.length > 0 ? extractItemsFromMoneyRows(words) : [];
   const fromVisualRows = words.length > 0 ? extractItemRows(groupWordsIntoVisualRows(words)) : [];
   const fromTextLines = extractItemRows(ocrText.split("\n").map(tokenizeLine));
   const tokset = (s: string) => new Set(foldTr(s).split(/\s+/).filter(Boolean));
   const rawItems: { name: string; qty: number; unitPrice: number }[] = [];
-  for (const item of [...fromAnchors, ...fromVisualRows, ...fromTextLines]) {
+  for (const item of [...fromAnchors, ...fromMoneyRows, ...fromVisualRows, ...fromTextLines]) {
     const key = tokset(item.name);
     // Kelime-kümesi kapsaması: küçük kümenin tüm kelimeleri büyükte varsa
     // aynı ürünün ad çeşididir ("KAMERA RT-C6C ..." vs "RT-C6C ...").
