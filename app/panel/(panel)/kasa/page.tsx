@@ -265,6 +265,7 @@ export default function KasaPage() {
       {creating && (
         <Modal open onClose={() => setCreating(false)} title={type === "gelir" ? "Gelir Ekle" : "Gider Ekle"}>
           <form onSubmit={save} className="space-y-4">
+            {error && <ErrorBox message={error} />}
             <div className="grid grid-cols-2 gap-2 rounded-xl bg-surface p-1">
               {(["gelir", "gider"] as const).map((t) => (
                 <button

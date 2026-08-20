@@ -277,6 +277,7 @@ export default function BakimPage() {
           wide
         >
           <form onSubmit={save} className="space-y-4">
+            {error && <ErrorBox message={error} />}
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="sm:col-span-2">
                 <Field label="Müşteri">

@@ -253,6 +253,7 @@ export default function MusterilerPage() {
           wide
         >
           <form onSubmit={save} className="space-y-4">
+            {error && <ErrorBox message={error} />}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Ad Soyad / Firma">
                 <Input

@@ -223,16 +223,16 @@ export function Modal({
   if (!open) return null;
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/60 p-4 backdrop-blur-sm sm:items-center"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-ink/60 p-4 backdrop-blur-sm sm:items-center"
       onClick={onClose}
     >
       <div
-        className={`my-8 w-full ${wide ? "max-w-2xl" : "max-w-md"} rounded-2xl bg-white shadow-2xl`}
+        className={`my-8 flex max-h-[calc(100vh-4rem)] w-full ${wide ? "max-w-2xl" : "max-w-md"} flex-col rounded-2xl bg-white shadow-2xl`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-center justify-between border-b border-ink/8 px-6 py-4">
+        <div className="flex shrink-0 items-center justify-between rounded-t-2xl border-b border-ink/8 bg-white px-6 py-4">
           <h3 className="text-base font-bold text-ink">{title}</h3>
           <button
             type="button"
@@ -243,7 +243,7 @@ export function Modal({
             <Icon name="close" className="h-4 w-4" />
           </button>
         </div>
-        <div className="px-6 py-5">{children}</div>
+        <div className="overflow-y-auto px-6 py-5">{children}</div>
       </div>
     </div>
   );

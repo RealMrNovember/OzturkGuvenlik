@@ -243,6 +243,7 @@ export default function PersonelPage() {
       {creating && (
         <Modal open onClose={() => setCreating(false)} title="Yeni Personel" wide>
           <form onSubmit={create} className="space-y-4">
+            {error && <ErrorBox message={error} />}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Ad Soyad">
                 <Input
@@ -305,6 +306,7 @@ export default function PersonelPage() {
       {editing && (
         <Modal open onClose={() => setEditing(null)} title={`Düzenle — ${editing.name}`} wide>
           <form onSubmit={save} className="space-y-4">
+            {error && <ErrorBox message={error} />}
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Ad Soyad">
                 <Input

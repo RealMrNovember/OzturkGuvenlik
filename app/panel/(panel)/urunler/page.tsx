@@ -334,6 +334,7 @@ export default function UrunlerPage() {
           title={editing ? "Ürünü Düzenle" : "Yeni Ürün"}
         >
           <form onSubmit={save} className="space-y-4">
+            {error && <ErrorBox message={error} />}
             {notice && (
               <p className="rounded-xl bg-brand/5 px-4 py-3 text-xs text-ink/60">{notice}</p>
             )}
