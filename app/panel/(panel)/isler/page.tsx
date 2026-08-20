@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
-import { usePanelRole } from "@/components/panel/PanelShell";
+import { usePanelRole, usePanelSession } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import {
@@ -28,6 +28,7 @@ import {
   fmtDateTime,
   fmtMoney,
   fmtMoneyWithTry,
+  todayStr,
 } from "@/components/panel/ui";
 
 type JobRow = {
@@ -80,6 +81,7 @@ const blank = {
 export default function IslerPage() {
   const role = usePanelRole();
   const isAdmin = role === "admin";
+  const sessionId = usePanelSession().id;
 
   const [rows, setRows] = useState<JobRow[]>([]);
   const [customers, setCustomers] = useState<CustomerRow[]>([]);
@@ -91,6 +93,8 @@ export default function IslerPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState(blank);
   const [saving, setSaving] = useState(false);
+  const [myJobsOnly, setMyJobsOnly] = useState(!isAdmin);
+  const [todayOnly, setTodayOnly] = useState(false);
   const [viewing, setViewing] = useState<JobRow | null>(null);
 
   const load = useCallback(async () => {
@@ -225,13 +229,31 @@ export default function IslerPage() {
     }
   };
 
+  const today = todayStr();
+  const visibleRows = useMemo(
+    () =>
+      rows.filter((j) => {
+        if (myJobsOnly && !j.staffIds.includes(sessionId)) return false;
+        if (todayOnly) {
+          const start = j.startDate ?? j.endDate;
+          const end = j.endDate ?? j.startDate;
+          if (!start || !end || today < start || today > end) return false;
+        }
+        return true;
+      }),
+    [rows, myJobsOnly, todayOnly, sessionId, today]
+  );
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-ink">İşler</h1>
           <p className="mt-1 text-sm text-ink/55">
-            {rows.length} kayıt · kurulum ve saha işleri
+            {visibleRows.length === rows.length
+              ? `${rows.length} kayıt`
+              : `${visibleRows.length} / ${rows.length} kayıt`}
+            {" · kurulum ve saha işleri"}
           </p>
         </div>
         <Btn onClick={openCreate}>
@@ -240,12 +262,39 @@ export default function IslerPage() {
         </Btn>
       </div>
 
+      {rows.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setMyJobsOnly((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              myJobsOnly ? "bg-ink text-white" : "bg-white text-ink/60 hover:bg-ink/5"
+            }`}
+          >
+            <Icon name="users" className="h-3.5 w-3.5" />
+            Bana atananlar
+          </button>
+          <button
+            type="button"
+            onClick={() => setTodayOnly((v) => !v)}
+            className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              todayOnly ? "bg-ink text-white" : "bg-white text-ink/60 hover:bg-ink/5"
+            }`}
+          >
+            <Icon name="calendar" className="h-3.5 w-3.5" />
+            Bugünkü işlerim
+          </button>
+        </div>
+      )}
+
       {error && <ErrorBox message={error} />}
 
       {loading ? (
         <Loading />
       ) : rows.length === 0 ? (
         <EmptyState title="İş yok" desc="Yeni iş oluşturarak başlayın." />
+      ) : visibleRows.length === 0 ? (
+        <EmptyState title="Sonuç yok" desc="Seçili filtreye uyan iş bulunamadı." />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
           <div className="overflow-x-auto">
@@ -262,7 +311,7 @@ export default function IslerPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/6">
-                {rows.map((j) => (
+                {visibleRows.map((j) => (
                   <tr key={j.id} className="align-top hover:bg-ink/2">
                     <td className="px-5 py-4">
                       <button type="button" onClick={() => setViewing(j)} className="text-left">
