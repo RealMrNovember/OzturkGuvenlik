@@ -9,7 +9,6 @@ import { Icon } from "@/components/icons";
 import { LOW_STOCK_THRESHOLD } from "@/lib/db/schema";
 import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
 import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
-import { CURRENCY_SYMBOL } from "@/lib/currency";
 import {
   Badge,
   Btn,
@@ -386,19 +385,19 @@ export default function UrunlerPage() {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Alış fiyatı (yalnızca sizde görünür)">
-                <div className="flex items-center rounded-xl border border-ink/15 bg-white">
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.costPrice}
-                    onChange={(e) => setForm((f) => ({ ...f, costPrice: e.target.value }))}
-                    placeholder="0"
-                    className="w-full rounded-l-xl bg-transparent px-3.5 py-2.5 text-sm text-ink outline-none placeholder:text-ink/35"
-                  />
-                  <span className="rounded-r-xl border-l border-ink/10 bg-surface px-3 py-2.5 text-sm font-bold text-ink/50">
-                    {CURRENCY_SYMBOL[form.currency as keyof typeof CURRENCY_SYMBOL]}
-                  </span>
-                </div>
+                <CurrencyAmountInput
+                  amount={form.costPrice}
+                  currency={form.currency}
+                  exchangeRate={form.exchangeRate}
+                  onChange={(patch) =>
+                    setForm((f) => ({
+                      ...f,
+                      costPrice: patch.amount ?? f.costPrice,
+                      currency: patch.currency ?? f.currency,
+                      exchangeRate: patch.exchangeRate ?? f.exchangeRate,
+                    }))
+                  }
+                />
               </Field>
               <Field label="Satış fiyatı">
                 <CurrencyAmountInput
