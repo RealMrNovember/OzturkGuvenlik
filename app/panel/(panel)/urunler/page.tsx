@@ -353,6 +353,7 @@ export default function UrunlerPage() {
                   <th className="px-5 py-3.5">Ürün</th>
                   <th className="px-5 py-3.5">Marka / Model</th>
                   <th className="px-5 py-3.5">Kategori</th>
+                  <th className="px-5 py-3.5">Özellikler</th>
                   {canViewCosts && <th className="px-5 py-3.5 text-right">Alış</th>}
                   <th className="px-5 py-3.5 text-right">Satış</th>
                   {canViewCosts && <th className="px-5 py-3.5 text-right">Kâr marjı</th>}
@@ -386,25 +387,38 @@ export default function UrunlerPage() {
                           {p.serialized && " · seri takipli"}
                           {p.isService && " · hizmet"}
                         </p>
-                        {p.specs?.length > 0 && (
-                          <div className="mt-1.5 flex flex-wrap gap-1">
-                            {p.specs.map((s, i) => (
-                              <span
-                                key={i}
-                                className="rounded-full bg-brand/8 px-2 py-0.5 text-[11px] font-semibold text-brand"
-                                title={`${s.key}: ${s.value}`}
-                              >
-                                {s.key}: {s.value}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-ink/80">{p.brand || "-"}</p>
                         {p.model && <p className="text-xs text-ink/45">{p.model}</p>}
                       </td>
                       <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
+                      <td className="px-5 py-4">
+                        {p.specs?.length > 0 && (
+                          <div className="flex max-w-[200px] flex-wrap gap-1">
+                            {p.specs.slice(0, 2).map((s, i) => (
+                              <span
+                                key={i}
+                                title={`${s.key}: ${s.value}`}
+                                className="max-w-full truncate rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/60"
+                              >
+                                {s.key}: {s.value}
+                              </span>
+                            ))}
+                            {p.specs.length > 2 && (
+                              <span
+                                title={p.specs
+                                  .slice(2)
+                                  .map((s) => `${s.key}: ${s.value}`)
+                                  .join("\n")}
+                                className="rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/40"
+                              >
+                                +{p.specs.length - 2}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                      </td>
                       {canViewCosts && (
                         <td className="px-5 py-4 text-right text-ink/55">
                           {p.isService ? (
