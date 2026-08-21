@@ -696,9 +696,15 @@ logoları + Aypro + KNX Future.
 
 ## 🧹 Kod Tabanı / Bakım
 
-- [ ] `Eski-Dosyalar/` (21 MB) kararı — repo'da tarihsel mi kalsın, yoksa arşivle kaldır mı?
-- [ ] Kullanılmayan bağımlılık kontrolü (`@types/bcryptjs` gerekli mi?)
-- [ ] `.env.example` güncel tut (seed için `ADMIN_*` değişkenleri dahil)
+- [ ] **`Eski-Dosyalar/` (21 MB) kararı — kullanıcı kararı bekleniyor**: repo'da
+      tarihsel mi kalsın, yoksa arşivle kaldır mı?
+- [x] **Kullanılmayan bağımlılık kontrolü (TAMAMLANDI — 2026-08-21)**:
+      `@types/bcryptjs` kaldırıldı — `bcryptjs@3` kendi tiplerini
+      (`umd/index.d.ts`) taşıyor, ayrı pakete gerek yoktu.
+- [x] **`.env.example` güncel tutuldu (TAMAMLANDI — 2026-08-21)**:
+      `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET`, `RESEND_API_KEY`,
+      `EMAIL_FROM` eklendi (kodda kullanılan ama listede olmayan
+      değişkenler).
 - [ ] Drizzle migration'ları tek kaynak — yeni şema değişiklikleri için `db:generate` + `db:migrate`
 
 ## 💼 Diğer Panel Geliştirmeleri
@@ -707,9 +713,17 @@ logoları + Aypro + KNX Future.
 Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmeler var.)
 
 - [ ] Yorum yönetimi: sitedeki google yorumlarını panelden yönet/onayla
-- [ ] Şifremi unuttum / e-posta ile sıfırlama akışı
+- [x] **Şifremi unuttum / e-posta ile sıfırlama akışı (TAMAMLANDI — 2026-08-21)**:
+      `users.resetToken`/`resetTokenExpiresAt` (tek kullanımlık, 1 saat),
+      `/panel/sifremi-unuttum` → Resend ile link gönderir (kullanıcı
+      numaralandırmayı önlemek için e-posta kayıtlı olsun olmasın aynı
+      genel mesaj döner), `/panel/sifre-sifirla/[token]`. Production'da
+      hem enumeration koruması hem geçersiz token reddi doğrulandı.
 - [ ] 2FA (admin için opsiyonel)
-- [ ] Keşif formu: WhatsApp mesajına kayıt referans no ekle
+- [x] **Keşif formu: WhatsApp mesajına kayıt referans no ekle (TAMAMLANDI
+      — 2026-08-21)**: kayıt oluşturulduktan sonra dönen id artık
+      okunup mesaja `#K{id}` olarak ekleniyor (önceden fetch yanıtı hiç
+      okunmuyordu, id'siz gidiyordu).
 
 ## 📈 SEO / Pazarlama
 
