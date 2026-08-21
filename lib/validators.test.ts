@@ -5,6 +5,7 @@ import {
   updateCustomerSchema,
   updateOfferSchema,
   updateAppointmentSchema,
+  createAppointmentSchema,
   createOfferSchema,
 } from "@/lib/validators";
 
@@ -67,12 +68,30 @@ describe("update* schemas — partial PATCH must not reintroduce field defaults"
     expect("taxRate" in parsed).toBe(false);
   });
 
-  test("updateAppointmentSchema: a status-only PATCH leaves title/address/assignedTo absent", () => {
+  test("updateAppointmentSchema: a status-only PATCH leaves title/address/assignedTo/type absent", () => {
     const parsed = updateAppointmentSchema.parse({ status: "tamamlandi" });
     expect(parsed.status).toBe("tamamlandi");
     expect("title" in parsed).toBe(false);
     expect("address" in parsed).toBe(false);
     expect("assignedTo" in parsed).toBe(false);
+    expect("type" in parsed).toBe(false);
+  });
+});
+
+describe("createAppointmentSchema (randevu türü)", () => {
+  test("defaults type to kesif when not specified", () => {
+    const parsed = createAppointmentSchema.parse({ date: "2026-09-01" });
+    expect(parsed.type).toBe("kesif");
+  });
+
+  test("accepts servis-ariza as a valid type", () => {
+    const parsed = createAppointmentSchema.parse({ date: "2026-09-01", type: "servis-ariza" });
+    expect(parsed.type).toBe("servis-ariza");
+  });
+
+  test("rejects an unknown type value", () => {
+    const result = createAppointmentSchema.safeParse({ date: "2026-09-01", type: "gecersiz" });
+    expect(result.success).toBe(false);
   });
 });
 

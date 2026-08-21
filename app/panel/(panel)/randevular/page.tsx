@@ -16,6 +16,7 @@ import {
   StatusBadge,
   Textarea,
   APPOINTMENT_STATUS_LABEL,
+  APPOINTMENT_TYPE_LABEL,
   fmtDate,
 } from "@/components/panel/ui";
 
@@ -24,6 +25,7 @@ type AppointmentRow = {
   customerId: number | null;
   requestId: number | null;
   title: string;
+  type: string;
   date: string;
   time: string;
   address: string;
@@ -40,6 +42,7 @@ type StaffRow = { id: number; name: string };
 
 const blank = {
   title: "",
+  type: "kesif",
   date: new Date().toISOString().slice(0, 10),
   time: "10:00",
   address: "",
@@ -93,6 +96,7 @@ export default function RandevularPage() {
   const openEdit = (row: AppointmentRow) => {
     setForm({
       title: row.title,
+      type: row.type,
       date: row.date,
       time: row.time,
       address: row.address,
@@ -187,6 +191,9 @@ export default function RandevularPage() {
                     </td>
                     <td className="max-w-[240px] px-5 py-4">
                       <p className="truncate text-ink/85">{r.title || "Randevu"}</p>
+                      <p className="mt-0.5 text-xs text-ink/45">
+                        {APPOINTMENT_TYPE_LABEL[r.type] ?? r.type}
+                      </p>
                       {r.address && (
                         <p className="truncate text-xs text-ink/45">{r.address}</p>
                       )}
@@ -269,6 +276,24 @@ export default function RandevularPage() {
                   />
                 </Field>
               </div>
+              <Field label="Tür">
+                <Select
+                  value={form.type}
+                  onChange={(e) => setForm({ ...form, type: e.target.value })}
+                >
+                  {Object.keys(APPOINTMENT_TYPE_LABEL).map((t) => (
+                    <option key={t} value={t}>
+                      {APPOINTMENT_TYPE_LABEL[t]}
+                    </option>
+                  ))}
+                </Select>
+                {form.type === "servis-ariza" && (
+                  <p className="mt-1.5 text-xs text-ink/45">
+                    Bu randevu &quot;Tamamlandı&quot; olarak işaretlenince Servis sayfasında
+                    otomatik bir servis kaydı açılır.
+                  </p>
+                )}
+              </Field>
               <Field label="Müşteri">
                 <CustomSelect
                   value={form.customerId ? String(form.customerId) : ""}

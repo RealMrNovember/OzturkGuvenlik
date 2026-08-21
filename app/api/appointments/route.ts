@@ -15,6 +15,7 @@ export async function GET() {
       customerId: appointments.customerId,
       requestId: appointments.requestId,
       title: appointments.title,
+      type: appointments.type,
       date: appointments.date,
       time: appointments.time,
       address: appointments.address,

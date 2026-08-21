@@ -91,10 +91,13 @@ export const createCustomerNoteSchema = z.object({
   note: z.string().trim().min(1, "Not boş olamaz").max(2000),
 });
 
+const appointmentType = z.enum(["kesif", "kurulum", "servis-ariza"]);
+
 export const createAppointmentSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
   requestId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().max(200).optional().default(""),
+  type: appointmentType.optional().default("kesif"),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz"),
   time: z.string().trim().max(10).optional().default("10:00"),
   address: z.string().trim().max(255).optional().default(""),
@@ -107,6 +110,7 @@ export const updateAppointmentSchema = z.object({
   customerId: z.number().int().positive().nullable().optional(),
   requestId: z.number().int().positive().nullable().optional(),
   title: z.string().trim().max(200).optional(),
+  type: appointmentType.optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz").optional(),
   time: z.string().trim().max(10).optional(),
   address: z.string().trim().max(255).optional(),

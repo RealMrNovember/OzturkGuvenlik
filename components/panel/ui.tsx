@@ -19,6 +19,12 @@ export const APPOINTMENT_STATUS_LABEL: Record<string, string> = {
   iptal: "İptal",
 };
 
+export const APPOINTMENT_TYPE_LABEL: Record<string, string> = {
+  kesif: "Keşif",
+  kurulum: "Kurulum",
+  "servis-ariza": "Servis / Arıza",
+};
+
 export const OFFER_STATUS_LABEL: Record<string, string> = {
   tasarim: "Taslak",
   gonderildi: "Gönderildi",

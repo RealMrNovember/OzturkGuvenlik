@@ -130,6 +130,7 @@ export const appointments = pgTable("appointments", {
     onDelete: "set null",
   }),
   title: varchar("title", { length: 200 }).default(""),
+  type: varchar("type", { length: 20 }).notNull().default("kesif"), // kesif | kurulum | servis-ariza
   date: date("date", { mode: "string" }).notNull(),
   time: varchar("time", { length: 10 }).default("10:00"),
   address: varchar("address", { length: 255 }).default(""),

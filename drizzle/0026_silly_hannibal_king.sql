@@ -1,0 +1,1 @@
+ALTER TABLE "appointments" ADD COLUMN "type" varchar(20) DEFAULT 'kesif' NOT NULL;
