@@ -555,6 +555,8 @@ export const EXPENSE_CATEGORIES = [
   "malzeme",
   "yakit-ulasim",
   "personel-maasi",
+  "personel-masrafi",
+  "personel-primi",
   "kira",
   "fatura-abonelik",
   "tedarikci-odemesi",

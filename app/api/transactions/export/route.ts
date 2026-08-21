@@ -12,6 +12,8 @@ const CATEGORY_LABEL: Record<string, string> = {
   malzeme: "Malzeme",
   "yakit-ulasim": "Yakıt / Ulaşım",
   "personel-maasi": "Personel Maaşı",
+  "personel-masrafi": "Personel Masrafı",
+  "personel-primi": "Personel Primi",
   kira: "Kira",
   "fatura-abonelik": "Fatura / Abonelik",
   "tedarikci-odemesi": "Tedarikçi Ödemesi",

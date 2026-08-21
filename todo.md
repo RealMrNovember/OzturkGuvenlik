@@ -361,7 +361,19 @@ logoları + Aypro + KNX Future.
       hatalı desen dashboard'da da vardı, o da düzeltildi).
       Production'da uçtan uca test edildi: sözleşme oluşturuldu, dashboard
       sayacı doğrulandı, silindi (temiz durum).
-- [ ] Personel: izin takibi, masraf, prim/performans alanları
+- [x] **Personel: izin takibi, masraf, prim/performans alanları (TAMAMLANDI
+      — bu satır güncel değilmiş, daha önce yapılmış)**: `/panel/personel/[id]`
+      sayfasında üç kart hâlihazırda tam çalışır durumda — İzinler (tür/
+      tarih/durum, tek tık onayla/reddet), Masraf & Prim (Kasa'ya otomatik
+      `gider` olarak işlenen, `staffId` ile personele bağlı kayıt — maaş/
+      masraf/prim ayrımı), Notlar (performans notu/geri bildirim serbest
+      metin olarak). 2026-08-21'de production'da uçtan uca doğrulandı
+      (`/api/staff/[id]/leaves`, `/notes`, `/api/transactions?staffId=`
+      hepsi 200 dönüyor). Bulunan tek gerçek eksik: `lib/db/schema.ts`teki
+      `EXPENSE_CATEGORIES` dizisi `personel-masrafi`/`personel-primi`'yi
+      içermiyordu (Zod doğrulaması kendi ayrı listesini kullandığı için
+      işlevsel bir hataya yol açmıyordu, salt tip/dokümantasyon
+      tutarsızlığıydı) — düzeltildi, CSV export etiketleri de eklendi.
 - [x] **Master admin — tam yetki yönetimi** (TAMAMLANDI — 2026-08-20):
       `users.permissions: jsonb` eklendi (5 anahtar: view_costs,
       manage_products, delete_records, manage_staff, manage_settings —
