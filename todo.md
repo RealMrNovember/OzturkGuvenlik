@@ -62,8 +62,15 @@ hiçbiri kaybolmadı — sadece sırayla gelecek.
       panelde uyarı olarak gösteriliyor.
 - [x] **Düşük stok uyarısı**: `/panel/urunler`'de kritik rozet (≤5 adet,
       `LOW_STOCK_THRESHOLD`), dashboard'da "Kritik stok" kartı.
-- [ ] İş kartına fotoğraf + teslim tutanağı — hâlâ dosya yükleme altyapısı
-      gerektiği için ertelendi (Faz 3/4'e taşınabilir, örn. Vercel Blob).
+- [x] **İş kartına fotoğraf + teslim tutanağı (TAMAMLANDI — 2026-08-21)**:
+      `jobs.photos` (`[{id,url}]`, private Blob + proxy — ürün görseliyle
+      aynı desen), `components/panel/PhotoGallery.tsx` düzenleme
+      modalında (yalnızca kayıtlı işte). Teslim Tutanağı PDF
+      (`components/pdf/JobDeliveryReceiptPdf.tsx`) — kalemler + eklenen
+      fotoğraflar gömülü, imza alanlarıyla, indirilebilir. Silinen işin
+      fotoğrafları Blob'da öksüz kalmasın diye DELETE'e temizlik eklendi.
+      Production'da tam uçtan uca doğrulandı (yükle → PDF'e göm → sil →
+      blob temizliği).
 
 **Bu fazı yaparken kritik, önceden var olan bir hata bulundu ve düzeltildi:**
 `updateCustomerSchema`, `updateAppointmentSchema`, `updateOfferSchema` (ve artık
@@ -107,9 +114,12 @@ kendi testlerimde yakalayıp düzelttim.
       (yalnızca admin'e görünür), sonuç. Panel: `/panel/servis`.
 - [x] Dashboard'a "Açık servis kaydı" kartı eklendi (durum: açık veya
       randevu verildi olanlar sayılıyor).
-- [ ] Fotoğraf ve bağlı randevudan otomatik oluşturma — dosya yükleme
-      altyapısı gerektiği için hâlâ ertelendi (Faz 2'deki iş fotoğrafı
-      kararıyla aynı gerekçe).
+- [x] **Fotoğraf (TAMAMLANDI — 2026-08-21)**: `service_tickets.photos`,
+      işlerdekiyle birebir aynı desen (`PhotoGallery`, private Blob +
+      proxy, silinince temizlik). Production'da doğrulandı.
+- [ ] Bağlı randevudan otomatik servis kaydı oluşturma — henüz yapılmadı,
+      ayrı bir iş (randevu tamamlanınca/belli bir duruma geçince ilişkili
+      `service_tickets` satırının otomatik açılması).
 - [x] Migration uygulandı (`drizzle/0004_lumpy_ultimo.sql`).
 
 **Aynı oturumda ayrıca acil bir mobil hata düzeltildi**: panel kabuğu ve
