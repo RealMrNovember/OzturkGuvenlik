@@ -288,21 +288,21 @@ export default function UrunlerPage() {
       {error && <ErrorBox message={error} />}
 
       {rows.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2.5">
-          <div className="relative">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:flex-wrap sm:items-center">
+          <div className="relative w-full sm:w-64">
             <Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink/35" />
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Ad, marka, model, SKU veya barkod ara…"
-              className="w-64 rounded-full border border-ink/15 bg-white py-2 pl-9 pr-4 text-sm text-ink outline-none placeholder:text-ink/35 focus:border-brand"
+              className="w-full rounded-full border border-ink/15 bg-white py-2 pl-9 pr-4 text-sm text-ink outline-none placeholder:text-ink/35 focus:border-brand"
             />
           </div>
           <select
             value={brandFilter}
             onChange={(e) => setBrandFilter(e.target.value)}
             aria-label="Marka filtresi"
-            className="rounded-full border border-ink/15 bg-white px-3.5 py-2 text-xs font-semibold text-ink/70 outline-none focus:border-brand"
+            className="w-full rounded-full border border-ink/15 bg-white px-3.5 py-2 text-xs font-semibold text-ink/70 outline-none focus:border-brand sm:w-auto"
           >
             <option value="hepsi">Tüm markalar</option>
             {brands.map((b) => (
@@ -311,11 +311,11 @@ export default function UrunlerPage() {
               </option>
             ))}
           </select>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0">
             <button
               type="button"
               onClick={() => setCategoryFilter("hepsi")}
-              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                 categoryFilter === "hepsi" ? "bg-ink text-white" : "bg-white text-ink/60 hover:bg-ink/5"
               }`}
             >
@@ -326,7 +326,7 @@ export default function UrunlerPage() {
                 key={c}
                 type="button"
                 onClick={() => setCategoryFilter(c)}
-                className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors ${
                   categoryFilter === c ? "bg-ink text-white" : "bg-white text-ink/60 hover:bg-ink/5"
                 }`}
               >
@@ -344,157 +344,277 @@ export default function UrunlerPage() {
       ) : visibleRows.length === 0 ? (
         <EmptyState title="Sonuç yok" desc="Arama veya kategori filtresine uyan ürün bulunamadı." />
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
-                  <th className="px-5 py-3.5">Görsel</th>
-                  <th className="px-5 py-3.5">Ürün</th>
-                  <th className="px-5 py-3.5">Marka / Model</th>
-                  <th className="px-5 py-3.5">Kategori</th>
-                  <th className="px-5 py-3.5">Özellikler</th>
-                  {canViewCosts && <th className="px-5 py-3.5 text-right">Alış</th>}
-                  <th className="px-5 py-3.5 text-right">Satış</th>
-                  {canViewCosts && <th className="px-5 py-3.5 text-right">Kâr marjı</th>}
-                  <th className="px-5 py-3.5 text-right">Stok</th>
-                  {canManageProducts && <th className="px-5 py-3.5 text-right">İşlem</th>}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-ink/6">
-                {visibleRows.map((p) => {
-                  const margin =
-                    canViewCosts && !p.isService && p.costPrice !== undefined && Number(p.salePrice) > 0
-                      ? ((Number(p.salePrice) - Number(p.costPrice)) / Number(p.salePrice)) * 100
-                      : null;
-                  return (
-                    <tr key={p.id} className="align-top hover:bg-ink/2">
-                      <td className="px-5 py-4">
-                        <ProductImageUpload
-                          productId={p.id}
-                          imageUrl={p.imageUrl}
-                          onChange={(url) =>
-                            setRows((prev) => prev.map((r) => (r.id === p.id ? { ...r, imageUrl: url } : r)))
-                          }
-                        />
-                      </td>
-                      <td className="px-5 py-4">
-                        <Link href={`/panel/urunler/${p.id}`} className="font-bold text-ink hover:text-brand">
-                          {p.name}
-                        </Link>
-                        <p className="text-xs text-ink/45">
-                          {p.sku || "SKU yok"} · {p.unit}
-                          {p.serialized && " · seri takipli"}
-                          {p.isService && " · hizmet"}
+        <>
+          {/* lg altı: kart listesi — geniş tablo küçük ekranda okunaksızlaşıyor,
+              her ürün kendi kartında dikey akışta gösterilir. */}
+          <div className="grid gap-3 lg:hidden">
+            {visibleRows.map((p) => {
+              const margin =
+                canViewCosts && !p.isService && p.costPrice !== undefined && Number(p.salePrice) > 0
+                  ? ((Number(p.salePrice) - Number(p.costPrice)) / Number(p.salePrice)) * 100
+                  : null;
+              return (
+                <div key={p.id} className="rounded-2xl border border-ink/8 bg-white p-4 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <ProductImageUpload
+                      productId={p.id}
+                      imageUrl={p.imageUrl}
+                      onChange={(url) =>
+                        setRows((prev) => prev.map((r) => (r.id === p.id ? { ...r, imageUrl: url } : r)))
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/panel/urunler/${p.id}`} className="block truncate font-bold text-ink hover:text-brand">
+                        {p.name}
+                      </Link>
+                      <p className="mt-0.5 truncate text-xs text-ink/45">
+                        {p.sku || "SKU yok"} · {p.unit}
+                        {p.serialized && " · seri takipli"}
+                        {p.isService && " · hizmet"}
+                      </p>
+                      {(p.brand || p.model || p.category) && (
+                        <p className="mt-1 truncate text-xs font-semibold text-ink/60">
+                          {[p.brand, p.model, p.category].filter(Boolean).join(" · ")}
                         </p>
-                      </td>
-                      <td className="px-5 py-4">
-                        <p className="font-semibold text-ink/80">{p.brand || "-"}</p>
-                        {p.model && <p className="text-xs text-ink/45">{p.model}</p>}
-                      </td>
-                      <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
-                      <td className="px-5 py-4">
-                        {p.specs?.length > 0 && (
-                          <div className="flex max-w-[200px] flex-wrap gap-1">
-                            {p.specs.slice(0, 2).map((s, i) => (
-                              <span
-                                key={i}
-                                title={`${s.key}: ${s.value}`}
-                                className="max-w-full truncate rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/60"
-                              >
-                                {s.key}: {s.value}
-                              </span>
-                            ))}
-                            {p.specs.length > 2 && (
-                              <span
-                                title={p.specs
-                                  .slice(2)
-                                  .map((s) => `${s.key}: ${s.value}`)
-                                  .join("\n")}
-                                className="rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/40"
-                              >
-                                +{p.specs.length - 2}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                      </td>
-                      {canViewCosts && (
-                        <td className="px-5 py-4 text-right text-ink/55">
-                          {p.isService ? (
-                            <Badge tone="gray">Hizmet — alış bedeli yok</Badge>
-                          ) : (
-                            fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)
-                          )}
-                        </td>
                       )}
-                      <td className="px-5 py-4 text-right font-bold text-ink">
-                        {Number(p.salePrice) > 0 ? (
-                          fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)
-                        ) : (
-                          <Badge tone="amber">Satış fiyatı yok</Badge>
-                        )}
-                      </td>
-                      {canViewCosts && (
-                        <td className="px-5 py-4 text-right">
-                          {margin !== null && (
-                            <Badge tone={margin >= 30 ? "green" : margin >= 10 ? "amber" : "red"}>
-                              %{margin.toFixed(0)}
-                            </Badge>
-                          )}
-                        </td>
-                      )}
-                      <td className="px-5 py-4 text-right">
+                    </div>
+                    {canManageProducts && (
+                      <div className="flex shrink-0 gap-1">
+                        <button
+                          type="button"
+                          onClick={() => openEdit(p)}
+                          aria-label="Düzenle"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
+                        >
+                          <Icon name="pen" className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => remove(p)}
+                          aria-label="Sil"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                        >
+                          <Icon name="trash" className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {p.specs?.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {p.specs.map((s, i) => (
+                        <span
+                          key={i}
+                          className="rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/60"
+                        >
+                          {s.key}: {s.value}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2.5 border-t border-ink/8 pt-3 text-sm sm:grid-cols-4">
+                    {canViewCosts && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Alış</p>
                         {p.isService ? (
-                          <Badge tone="gray">Sınırsız</Badge>
+                          <Badge tone="gray">Yok</Badge>
                         ) : (
-                          <>
-                            <span
-                              className={
-                                p.stockQty <= LOW_STOCK_THRESHOLD
-                                  ? "font-bold text-red-500"
-                                  : "text-ink/70"
-                              }
-                            >
-                              {p.stockQty}
-                            </span>
-                            {p.stockQty <= LOW_STOCK_THRESHOLD && (
-                              <span className="ml-2">
-                                <Badge tone="red">Kritik</Badge>
-                              </span>
-                            )}
-                          </>
+                          <p className="font-semibold text-ink/70">
+                            {fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)}
+                          </p>
                         )}
-                      </td>
-                      {canManageProducts && (
-                        <td className="whitespace-nowrap px-5 py-4 text-right">
-                          <div className="flex justify-end gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => openEdit(p)}
-                              aria-label="Düzenle"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
-                            >
-                              <Icon name="pen" className="h-4 w-4" />
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => remove(p)}
-                              aria-label="Sil"
-                              className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
-                            >
-                              <Icon name="trash" className="h-4 w-4" />
-                            </button>
-                          </div>
-                        </td>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Satış</p>
+                      {Number(p.salePrice) > 0 ? (
+                        <p className="font-bold text-ink">{fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)}</p>
+                      ) : (
+                        <Badge tone="amber">Yok</Badge>
                       )}
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                    </div>
+                    {canViewCosts && margin !== null && (
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Kâr marjı</p>
+                        <Badge tone={margin >= 30 ? "green" : margin >= 10 ? "amber" : "red"}>
+                          %{margin.toFixed(0)}
+                        </Badge>
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-wider text-ink/40">Stok</p>
+                      {p.isService ? (
+                        <Badge tone="gray">Sınırsız</Badge>
+                      ) : (
+                        <p className={`font-semibold ${p.stockQty <= LOW_STOCK_THRESHOLD ? "text-red-500" : "text-ink/70"}`}>
+                          {p.stockQty}
+                          {p.stockQty <= LOW_STOCK_THRESHOLD && (
+                            <span className="ml-1.5">
+                              <Badge tone="red">Kritik</Badge>
+                            </span>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </div>
+
+          {/* lg ve üstü: tam tablo */}
+          <div className="hidden overflow-hidden rounded-2xl border border-ink/8 bg-white shadow-sm lg:block">
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[900px] text-left text-sm">
+                <thead>
+                  <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
+                    <th className="px-4 py-3.5">Görsel</th>
+                    <th className="px-4 py-3.5">Ürün</th>
+                    <th className="px-4 py-3.5">Marka / Model</th>
+                    <th className="px-4 py-3.5">Kategori</th>
+                    <th className="px-4 py-3.5">Özellikler</th>
+                    {canViewCosts && <th className="px-4 py-3.5 text-right">Alış / Kâr marjı</th>}
+                    <th className="px-4 py-3.5 text-right">Satış</th>
+                    <th className="px-4 py-3.5 text-right">Stok</th>
+                    {canManageProducts && <th className="px-4 py-3.5 text-right">İşlem</th>}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-ink/6">
+                  {visibleRows.map((p) => {
+                    const margin =
+                      canViewCosts && !p.isService && p.costPrice !== undefined && Number(p.salePrice) > 0
+                        ? ((Number(p.salePrice) - Number(p.costPrice)) / Number(p.salePrice)) * 100
+                        : null;
+                    return (
+                      <tr key={p.id} className="align-top hover:bg-ink/2">
+                        <td className="px-4 py-4">
+                          <ProductImageUpload
+                            productId={p.id}
+                            imageUrl={p.imageUrl}
+                            onChange={(url) =>
+                              setRows((prev) => prev.map((r) => (r.id === p.id ? { ...r, imageUrl: url } : r)))
+                            }
+                          />
+                        </td>
+                        <td className="px-4 py-4">
+                          <Link href={`/panel/urunler/${p.id}`} className="font-bold text-ink hover:text-brand">
+                            {p.name}
+                          </Link>
+                          <p className="text-xs text-ink/45">
+                            {p.sku || "SKU yok"} · {p.unit}
+                            {p.serialized && " · seri takipli"}
+                            {p.isService && " · hizmet"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="font-semibold text-ink/80">{p.brand || "-"}</p>
+                          {p.model && <p className="text-xs text-ink/45">{p.model}</p>}
+                        </td>
+                        <td className="px-4 py-4 text-ink/70">{p.category || "-"}</td>
+                        <td className="px-4 py-4">
+                          {p.specs?.length > 0 && (
+                            <div className="flex max-w-[180px] flex-wrap gap-1">
+                              {p.specs.slice(0, 2).map((s, i) => (
+                                <span
+                                  key={i}
+                                  title={`${s.key}: ${s.value}`}
+                                  className="max-w-full truncate rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/60"
+                                >
+                                  {s.key}: {s.value}
+                                </span>
+                              ))}
+                              {p.specs.length > 2 && (
+                                <span
+                                  title={p.specs
+                                    .slice(2)
+                                    .map((s) => `${s.key}: ${s.value}`)
+                                    .join("\n")}
+                                  className="rounded-md border border-ink/10 bg-surface px-1.5 py-0.5 text-[11px] font-medium text-ink/40"
+                                >
+                                  +{p.specs.length - 2}
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                        {canViewCosts && (
+                          <td className="px-4 py-4 text-right">
+                            {p.isService ? (
+                              <Badge tone="gray">Hizmet</Badge>
+                            ) : (
+                              <>
+                                <p className="text-ink/55">{fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)}</p>
+                                {margin !== null && (
+                                  <span className="mt-1 inline-block">
+                                    <Badge tone={margin >= 30 ? "green" : margin >= 10 ? "amber" : "red"}>
+                                      %{margin.toFixed(0)}
+                                    </Badge>
+                                  </span>
+                                )}
+                              </>
+                            )}
+                          </td>
+                        )}
+                        <td className="px-4 py-4 text-right font-bold text-ink">
+                          {Number(p.salePrice) > 0 ? (
+                            fmtMoneyWithTry(p.salePrice, p.currency, p.exchangeRate)
+                          ) : (
+                            <Badge tone="amber">Satış fiyatı yok</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-4 text-right">
+                          {p.isService ? (
+                            <Badge tone="gray">Sınırsız</Badge>
+                          ) : (
+                            <>
+                              <span
+                                className={
+                                  p.stockQty <= LOW_STOCK_THRESHOLD
+                                    ? "font-bold text-red-500"
+                                    : "text-ink/70"
+                                }
+                              >
+                                {p.stockQty}
+                              </span>
+                              {p.stockQty <= LOW_STOCK_THRESHOLD && (
+                                <span className="ml-2">
+                                  <Badge tone="red">Kritik</Badge>
+                                </span>
+                              )}
+                            </>
+                          )}
+                        </td>
+                        {canManageProducts && (
+                          <td className="whitespace-nowrap px-4 py-4 text-right">
+                            <div className="flex justify-end gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => openEdit(p)}
+                                aria-label="Düzenle"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
+                              >
+                                <Icon name="pen" className="h-4 w-4" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => remove(p)}
+                                aria-label="Sil"
+                                className="flex h-8 w-8 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                              >
+                                <Icon name="trash" className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       <BarcodeScannerModal
