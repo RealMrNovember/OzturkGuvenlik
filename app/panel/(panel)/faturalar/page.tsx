@@ -321,6 +321,15 @@ export default function FaturalarPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
+                        <a
+                          href={`/api/invoices/${inv.id}/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="PDF indir"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
+                        >
+                          <Icon name="download" className="h-4 w-4" />
+                        </a>
                         <button
                           type="button"
                           onClick={() => remove(inv)}

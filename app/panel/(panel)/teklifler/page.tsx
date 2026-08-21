@@ -283,6 +283,15 @@ export default function TekliflerPage() {
                         >
                           <Icon name="pen" className="h-4 w-4" />
                         </button>
+                        <a
+                          href={`/api/offers/${o.id}/pdf`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label="PDF indir"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink"
+                        >
+                          <Icon name="download" className="h-4 w-4" />
+                        </a>
                         {canDelete && (
                           <button
                             type="button"
