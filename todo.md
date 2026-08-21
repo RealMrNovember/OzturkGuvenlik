@@ -117,9 +117,14 @@ kendi testlerimde yakalayıp düzelttim.
 - [x] **Fotoğraf (TAMAMLANDI — 2026-08-21)**: `service_tickets.photos`,
       işlerdekiyle birebir aynı desen (`PhotoGallery`, private Blob +
       proxy, silinince temizlik). Production'da doğrulandı.
-- [ ] Bağlı randevudan otomatik servis kaydı oluşturma — henüz yapılmadı,
-      ayrı bir iş (randevu tamamlanınca/belli bir duruma geçince ilişkili
-      `service_tickets` satırının otomatik açılması).
+- [x] **Bağlı randevudan otomatik servis kaydı oluşturma (TAMAMLANDI —
+      2026-08-21)**: `appointments.type` alanı eklendi (Keşif / Kurulum /
+      Servis-Arıza — kullanıcıyla netleştirildi: randevu formuna tür
+      alanı eklenmesi tercih edildi). Türü "Servis-Arıza" olan bir randevu
+      "Tamamlandı" işaretlenince otomatik bir `service_tickets` taslağı
+      açılıyor (durum: açık, kalan alanlar teknisyen doldurur). Aynı
+      randevu için tekrar tetiklenmiyor, oluşturma başarısız olsa bile
+      randevu güncellemesi etkilenmiyor. [app/api/appointments/[id]/route.ts](app/api/appointments/[id]/route.ts)
 - [x] Migration uygulandı (`drizzle/0004_lumpy_ultimo.sql`).
 
 **Aynı oturumda ayrıca acil bir mobil hata düzeltildi**: panel kabuğu ve
