@@ -46,6 +46,7 @@ export const customerLocationSchema = z.object({
 
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(2).max(120),
+  contactName: z.string().trim().max(120).optional().default(""),
   phone: z.string().trim().max(30).optional().default(""),
   placeType: z.string().trim().max(60).optional().default(""),
   address: z.string().trim().max(1000).optional().default(""),
@@ -64,6 +65,7 @@ export const createCustomerSchema = z.object({
 // below for the full explanation — same fix applied to every update schema.
 export const updateCustomerSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
+  contactName: z.string().trim().max(120).optional(),
   phone: z.string().trim().max(30).optional(),
   placeType: z.string().trim().max(60).optional(),
   address: z.string().trim().max(1000).optional(),
@@ -302,6 +304,11 @@ export const updateInvoiceSchema = z.object({
   note: z.string().trim().max(2000).optional(),
 });
 
+const productSpecSchema = z.object({
+  key: z.string().trim().min(1).max(60),
+  value: z.string().trim().min(1).max(200),
+});
+
 export const createProductSchema = z.object({
   name: z.string().trim().min(2, "Ürün adı en az 2 karakter olmalı").max(200),
   sku: z.string().trim().max(60).optional().default(""),
@@ -317,6 +324,8 @@ export const createProductSchema = z.object({
   stockQty: z.number().int().optional().default(0),
   barcode: z.string().trim().max(64).optional().default(""),
   serialized: z.boolean().optional().default(false),
+  isService: z.boolean().optional().default(false),
+  specs: z.array(productSpecSchema).max(20).optional().default([]),
   active: z.boolean().optional().default(true),
 });
 
@@ -333,6 +342,8 @@ export const updateProductSchema = z.object({
   stockQty: z.number().int().optional(),
   barcode: z.string().trim().max(64).optional(),
   serialized: z.boolean().optional(),
+  isService: z.boolean().optional(),
+  specs: z.array(productSpecSchema).max(20).optional(),
   active: z.boolean().optional(),
 });
 

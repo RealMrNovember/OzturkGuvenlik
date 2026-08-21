@@ -31,7 +31,15 @@ export const users = pgTable("users", {
 
 export const customers = pgTable("customers", {
   id: serial("id").primaryKey(),
+  // Müşterinin birincil görünen adı — firma müşterisinde firma adı ("ABC
+  // Tekstil"), bireysel müşteride doğrudan kişinin ad soyadı. Jobs/offers/
+  // invoices/dashboard gibi onlarca yerde customers.name bu şekilde
+  // okunduğu için anlamı korunuyor; firma+yetkili ayrımı contactName ile
+  // yapılıyor (aşağıda).
   name: varchar("name", { length: 120 }).notNull(),
+  // Firma müşterilerinde yetkili/iletişim kişisinin ad soyadı ("Ahmet
+  // Gedik") — bireysel müşteride genelde boş kalır (name zaten kişinin adı).
+  contactName: varchar("contact_name", { length: 120 }).default(""),
   phone: varchar("phone", { length: 30 }).default(""),
   placeType: varchar("place_type", { length: 60 }).default(""),
   address: text("address").default(""), // ana / fatura adresi
@@ -147,9 +155,26 @@ export const products = pgTable("products", {
   // true ise bu ürün tek tek fiziksel birim (seri no) olarak takip edilir
   // (product_units), stok adedi elle değil taranan/eklenen seri sayısından gelir.
   serialized: boolean("serialized").notNull().default(false),
+  // Ürün/marka fotoğrafı (Vercel Blob, public erişim) — alış fiyatının aksine
+  // gizlilik gerektirmez, view_costs izni olmayan personel de görebilir/ekleyebilir
+  // (bkz. app/api/products/[id]/image/route.ts).
+  imageUrl: text("image_url"),
+  // Serbest biçimli teknik özellikler — [{key:"Wi-Fi Desteği", value:"Var"},
+  // {key:"RAID Desteği", value:"RAID 0/1/5"}] gibi. Ürün tipine göre alakalı
+  // alanlar değiştiği için sabit kolonlar yerine liste tutulur; stok
+  // listesinde ve ürün detayında rozet olarak gösterilir.
+  specs: jsonb("specs").notNull().default([]),
+  // true ise bu kalem bir hizmet/işçiliktir (örn. "Montaj İşçiliği") — fiziksel
+  // stok ve alış bedeli kavramı yoktur. costPrice ve stockQty sunucu tarafında
+  // her zaman sabit değerlere zorlanır (bkz. app/api/products/route.ts).
+  isService: boolean("is_service").notNull().default(false),
   active: boolean("active").notNull().default(true),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+/** Hizmet kalemlerinde (isService=true) stockQty bu sabite kilitlenir — "sınırsız"
+ * stok anlamına gelir, kritik stok uyarısı hiçbir zaman tetiklenmez. */
+export const SERVICE_STOCK_SENTINEL = 100_000_000;
 
 export const productUnits = pgTable("product_units", {
   id: serial("id").primaryKey(),
@@ -422,6 +447,8 @@ export const LOW_STOCK_THRESHOLD = 5;
 
 export const PRODUCT_UNIT_STATUSES = ["stokta", "kuruldu", "arizali", "iade"] as const;
 export type ProductUnitStatus = (typeof PRODUCT_UNIT_STATUSES)[number];
+
+export type ProductSpec = { key: string; value: string };
 
 export type OfferItem = {
   name: string;

@@ -9,6 +9,9 @@ import { Icon } from "@/components/icons";
 import { LOW_STOCK_THRESHOLD } from "@/lib/db/schema";
 import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
 import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
+import { ProductImageUpload } from "@/components/panel/ProductImageUpload";
+import { ProductSpecsEditor } from "@/components/panel/ProductSpecsEditor";
+import type { ProductSpec } from "@/lib/db/schema";
 import {
   Badge,
   Btn,
@@ -36,6 +39,9 @@ type ProductRow = {
   stockQty: number;
   barcode: string | null;
   serialized: boolean;
+  imageUrl: string | null;
+  isService: boolean;
+  specs: ProductSpec[];
   active: boolean;
   createdAt: string;
 };
@@ -59,6 +65,8 @@ const blank = {
   stockQty: "0",
   barcode: "",
   serialized: false,
+  isService: false,
+  specs: [] as ProductSpec[],
 };
 
 export default function UrunlerPage() {
@@ -127,6 +135,8 @@ export default function UrunlerPage() {
       stockQty: String(row.stockQty),
       barcode: row.barcode ?? "",
       serialized: row.serialized,
+      isService: row.isService,
+      specs: row.specs ?? [],
     });
     setNotice("");
     setEditing(row);
@@ -215,6 +225,10 @@ export default function UrunlerPage() {
       stockQty: Number(form.stockQty) || 0,
       barcode: form.barcode.trim(),
       serialized: form.serialized,
+      isService: form.isService,
+      specs: form.specs
+        .map((s) => ({ key: s.key.trim(), value: s.value.trim() }))
+        .filter((s) => s.key && s.value),
     };
     try {
       if (editing) {
@@ -335,6 +349,7 @@ export default function UrunlerPage() {
             <table className="w-full min-w-[760px] text-left text-sm">
               <thead>
                 <tr className="border-b border-ink/8 text-xs font-bold uppercase tracking-wider text-ink/45">
+                  <th className="px-5 py-3.5">Görsel</th>
                   <th className="px-5 py-3.5">Ürün</th>
                   <th className="px-5 py-3.5">Marka / Model</th>
                   <th className="px-5 py-3.5">Kategori</th>
@@ -348,11 +363,20 @@ export default function UrunlerPage() {
               <tbody className="divide-y divide-ink/6">
                 {visibleRows.map((p) => {
                   const margin =
-                    canViewCosts && p.costPrice !== undefined && Number(p.salePrice) > 0
+                    canViewCosts && !p.isService && p.costPrice !== undefined && Number(p.salePrice) > 0
                       ? ((Number(p.salePrice) - Number(p.costPrice)) / Number(p.salePrice)) * 100
                       : null;
                   return (
                     <tr key={p.id} className="align-top hover:bg-ink/2">
+                      <td className="px-5 py-4">
+                        <ProductImageUpload
+                          productId={p.id}
+                          imageUrl={p.imageUrl}
+                          onChange={(url) =>
+                            setRows((prev) => prev.map((r) => (r.id === p.id ? { ...r, imageUrl: url } : r)))
+                          }
+                        />
+                      </td>
                       <td className="px-5 py-4">
                         <Link href={`/panel/urunler/${p.id}`} className="font-bold text-ink hover:text-brand">
                           {p.name}
@@ -360,7 +384,21 @@ export default function UrunlerPage() {
                         <p className="text-xs text-ink/45">
                           {p.sku || "SKU yok"} · {p.unit}
                           {p.serialized && " · seri takipli"}
+                          {p.isService && " · hizmet"}
                         </p>
+                        {p.specs?.length > 0 && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {p.specs.map((s, i) => (
+                              <span
+                                key={i}
+                                className="rounded-full bg-brand/8 px-2 py-0.5 text-[11px] font-semibold text-brand"
+                                title={`${s.key}: ${s.value}`}
+                              >
+                                {s.key}: {s.value}
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </td>
                       <td className="px-5 py-4">
                         <p className="font-semibold text-ink/80">{p.brand || "-"}</p>
@@ -369,7 +407,11 @@ export default function UrunlerPage() {
                       <td className="px-5 py-4 text-ink/70">{p.category || "-"}</td>
                       {canViewCosts && (
                         <td className="px-5 py-4 text-right text-ink/55">
-                          {fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)}
+                          {p.isService ? (
+                            <Badge tone="gray">Hizmet — alış bedeli yok</Badge>
+                          ) : (
+                            fmtMoneyWithTry(p.costPrice ?? 0, p.currency, p.exchangeRate)
+                          )}
                         </td>
                       )}
                       <td className="px-5 py-4 text-right font-bold text-ink">
@@ -389,19 +431,25 @@ export default function UrunlerPage() {
                         </td>
                       )}
                       <td className="px-5 py-4 text-right">
-                        <span
-                          className={
-                            p.stockQty <= LOW_STOCK_THRESHOLD
-                              ? "font-bold text-red-500"
-                              : "text-ink/70"
-                          }
-                        >
-                          {p.stockQty}
-                        </span>
-                        {p.stockQty <= LOW_STOCK_THRESHOLD && (
-                          <span className="ml-2">
-                            <Badge tone="red">Kritik</Badge>
-                          </span>
+                        {p.isService ? (
+                          <Badge tone="gray">Sınırsız</Badge>
+                        ) : (
+                          <>
+                            <span
+                              className={
+                                p.stockQty <= LOW_STOCK_THRESHOLD
+                                  ? "font-bold text-red-500"
+                                  : "text-ink/70"
+                              }
+                            >
+                              {p.stockQty}
+                            </span>
+                            {p.stockQty <= LOW_STOCK_THRESHOLD && (
+                              <span className="ml-2">
+                                <Badge tone="red">Kritik</Badge>
+                              </span>
+                            )}
+                          </>
                         )}
                       </td>
                       {canManageProducts && (
@@ -508,23 +556,34 @@ export default function UrunlerPage() {
                 />
               </Field>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Alış fiyatı (yalnızca sizde görünür)">
-                <CurrencyAmountInput
-                  amount={form.costPrice}
-                  currency={form.currency}
-                  exchangeRate={form.exchangeRate}
-                  onChange={(patch) =>
-                    setForm((f) => ({
-                      ...f,
-                      costPrice: patch.amount ?? f.costPrice,
-                      currency: patch.currency ?? f.currency,
-                      exchangeRate: patch.exchangeRate ?? f.exchangeRate,
-                    }))
-                  }
-                />
-              </Field>
-              <Field label="Satış fiyatı">
+
+            <label className="flex items-center gap-2.5 rounded-xl border border-ink/10 bg-surface px-3.5 py-3">
+              <input
+                type="checkbox"
+                checked={form.isService}
+                onChange={(e) =>
+                  setForm((f) => ({
+                    ...f,
+                    isService: e.target.checked,
+                    // Hizmette alış bedeli/seri takip kavramı yok; birim de otomatik "hizmet".
+                    ...(e.target.checked
+                      ? { costPrice: "0", serialized: false, unit: f.unit === "adet" ? "hizmet" : f.unit }
+                      : {}),
+                  }))
+                }
+                className="h-4 w-4 accent-brand"
+              />
+              <span className="text-sm text-ink">
+                <span className="font-semibold">Hizmet / işçilik kalemi</span>
+                <span className="block text-xs text-ink/50">
+                  Örn: montaj işçiliği, keşif ücreti. Fiziksel stok ve alış bedeli tutulmaz —
+                  yalnızca satış (hizmet) fiyatı geçerlidir.
+                </span>
+              </span>
+            </label>
+
+            {form.isService ? (
+              <Field label="Satış (hizmet) fiyatı">
                 <CurrencyAmountInput
                   amount={form.salePrice}
                   currency={form.currency}
@@ -539,48 +598,88 @@ export default function UrunlerPage() {
                   }
                 />
               </Field>
-            </div>
-            <p className="-mt-2 text-xs text-ink/40">
-              Alış ve satış fiyatı aynı para biriminde kaydedilir; para birimini satış fiyatından değiştirin.
-            </p>
-
-            <label className="flex items-center gap-2.5 rounded-xl border border-ink/10 bg-surface px-3.5 py-3">
-              <input
-                type="checkbox"
-                checked={form.serialized}
-                onChange={(e) => setForm((f) => ({ ...f, serialized: e.target.checked }))}
-                className="h-4 w-4 accent-brand"
-              />
-              <span className="text-sm text-ink">
-                <span className="font-semibold">Seri numaralı takip</span>
-                <span className="block text-xs text-ink/50">
-                  Her fiziksel cihaz ayrı seri numarasıyla izlenir (kamera, DVR/NVR gibi). Kablo/
-                  sarf malzemede kapalı bırakın.
-                </span>
-              </span>
-            </label>
-
-            {form.serialized ? (
-              <p className="rounded-xl bg-surface px-4 py-3 text-xs text-ink/55">
-                Stok adedi artık seri numaralarından otomatik hesaplanır.
-                {editing && (
-                  <>
-                    {" "}
-                    <Link href={`/panel/urunler/${editing.id}`} className="font-semibold text-brand">
-                      Seri numaralarını yönet →
-                    </Link>
-                  </>
-                )}
-              </p>
             ) : (
-              <Field label="Stok adedi">
-                <Input
-                  type="number"
-                  value={form.stockQty}
-                  onChange={(e) => setForm((f) => ({ ...f, stockQty: e.target.value }))}
-                />
-              </Field>
+              <>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Alış fiyatı (yalnızca sizde görünür)">
+                    <CurrencyAmountInput
+                      amount={form.costPrice}
+                      currency={form.currency}
+                      exchangeRate={form.exchangeRate}
+                      onChange={(patch) =>
+                        setForm((f) => ({
+                          ...f,
+                          costPrice: patch.amount ?? f.costPrice,
+                          currency: patch.currency ?? f.currency,
+                          exchangeRate: patch.exchangeRate ?? f.exchangeRate,
+                        }))
+                      }
+                    />
+                  </Field>
+                  <Field label="Satış fiyatı">
+                    <CurrencyAmountInput
+                      amount={form.salePrice}
+                      currency={form.currency}
+                      exchangeRate={form.exchangeRate}
+                      onChange={(patch) =>
+                        setForm((f) => ({
+                          ...f,
+                          salePrice: patch.amount ?? f.salePrice,
+                          currency: patch.currency ?? f.currency,
+                          exchangeRate: patch.exchangeRate ?? f.exchangeRate,
+                        }))
+                      }
+                    />
+                  </Field>
+                </div>
+                <p className="-mt-2 text-xs text-ink/40">
+                  Alış ve satış fiyatı aynı para biriminde kaydedilir; para birimini satış fiyatından değiştirin.
+                </p>
+
+                <label className="flex items-center gap-2.5 rounded-xl border border-ink/10 bg-surface px-3.5 py-3">
+                  <input
+                    type="checkbox"
+                    checked={form.serialized}
+                    onChange={(e) => setForm((f) => ({ ...f, serialized: e.target.checked }))}
+                    className="h-4 w-4 accent-brand"
+                  />
+                  <span className="text-sm text-ink">
+                    <span className="font-semibold">Seri numaralı takip</span>
+                    <span className="block text-xs text-ink/50">
+                      Her fiziksel cihaz ayrı seri numarasıyla izlenir (kamera, DVR/NVR gibi). Kablo/
+                      sarf malzemede kapalı bırakın.
+                    </span>
+                  </span>
+                </label>
+
+                {form.serialized ? (
+                  <p className="rounded-xl bg-surface px-4 py-3 text-xs text-ink/55">
+                    Stok adedi artık seri numaralarından otomatik hesaplanır.
+                    {editing && (
+                      <>
+                        {" "}
+                        <Link href={`/panel/urunler/${editing.id}`} className="font-semibold text-brand">
+                          Seri numaralarını yönet →
+                        </Link>
+                      </>
+                    )}
+                  </p>
+                ) : (
+                  <Field label="Stok adedi">
+                    <Input
+                      type="number"
+                      value={form.stockQty}
+                      onChange={(e) => setForm((f) => ({ ...f, stockQty: e.target.value }))}
+                    />
+                  </Field>
+                )}
+              </>
             )}
+
+            <ProductSpecsEditor
+              specs={form.specs}
+              onChange={(specs) => setForm((f) => ({ ...f, specs }))}
+            />
 
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn

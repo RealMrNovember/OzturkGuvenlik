@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { products } from "@/lib/db/schema";
+import { products, SERVICE_STOCK_SENTINEL } from "@/lib/db/schema";
 import { and, eq, ne } from "drizzle-orm";
 import { updateProductSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
@@ -24,12 +24,12 @@ export async function PATCH(req: Request, { params }: Ctx) {
   }
 
   if (parsed.data.barcode) {
-    const [existing] = await db
+    const [dupe] = await db
       .select({ id: products.id })
       .from(products)
       .where(and(eq(products.barcode, parsed.data.barcode), ne(products.id, numericId)))
       .limit(1);
-    if (existing) return jsonErr("Bu barkod zaten başka bir ürüne kayıtlı", 409);
+    if (dupe) return jsonErr("Bu barkod zaten başka bir ürüne kayıtlı", 409);
   }
 
   const set: Record<string, unknown> = { ...parsed.data };
@@ -38,6 +38,15 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (parsed.data.exchangeRate !== undefined) set.exchangeRate = String(parsed.data.exchangeRate);
   // "" değil null: barcode unique kısıtlı — bkz. POST /api/products'taki not.
   if (parsed.data.barcode !== undefined) set.barcode = parsed.data.barcode || null;
+
+  // Hizmet/işçilik kalemlerinin alış bedeli ve seri takibi kavramı yok —
+  // isService bu istekte true'ya çekiliyorsa (ya da zaten true'ysa ve
+  // costPrice/serialized birlikte gönderiliyorsa) sunucu tarafında sabitlenir.
+  if (parsed.data.isService === true) {
+    set.costPrice = "0";
+    set.serialized = false;
+    set.stockQty = SERVICE_STOCK_SENTINEL;
+  }
 
   const [updated] = await db
     .update(products)

@@ -7,6 +7,8 @@ import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
 import { BarcodeScannerModal } from "@/components/panel/BarcodeScanner";
+import { ProductImageUpload } from "@/components/panel/ProductImageUpload";
+import type { ProductSpec } from "@/lib/db/schema";
 import {
   Badge,
   Btn,
@@ -34,6 +36,9 @@ type Product = {
   stockQty: number;
   barcode: string | null;
   serialized: boolean;
+  imageUrl: string | null;
+  isService: boolean;
+  specs: ProductSpec[];
   active: boolean;
   createdAt: string;
 };
@@ -193,22 +198,43 @@ export default function UrunDetayPage() {
         <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm text-ink/70">{notice}</p>
       )}
 
-      <div className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border border-ink/8 bg-white p-6 shadow-sm">
-        <div>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h1 className="text-2xl font-bold tracking-tight text-ink">{product.name}</h1>
-            {product.serialized && <Badge tone="brand">Seri takipli</Badge>}
-            {!product.active && <Badge tone="gray">Pasif</Badge>}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink/60">
-            {(product.brand || product.model) && (
-              <span className="font-semibold text-ink/75">
-                {[product.brand, product.model].filter(Boolean).join(" · ")}
-              </span>
+      <div className="flex flex-wrap items-start justify-between gap-4 rounded-2xl border border-ink/8 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-start gap-4">
+          <ProductImageUpload
+            productId={product.id}
+            imageUrl={product.imageUrl}
+            onChange={(url) => setProduct((p) => (p ? { ...p, imageUrl: url } : p))}
+            size="lg"
+          />
+          <div>
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h1 className="text-2xl font-bold tracking-tight text-ink">{product.name}</h1>
+              {product.serialized && <Badge tone="brand">Seri takipli</Badge>}
+              {product.isService && <Badge tone="gray">Hizmet</Badge>}
+              {!product.active && <Badge tone="gray">Pasif</Badge>}
+            </div>
+            <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink/60">
+              {(product.brand || product.model) && (
+                <span className="font-semibold text-ink/75">
+                  {[product.brand, product.model].filter(Boolean).join(" · ")}
+                </span>
+              )}
+              <span>{product.category || "Kategori yok"}</span>
+              <span>{product.sku || "SKU yok"}</span>
+              {product.barcode && <span>Barkod: {product.barcode}</span>}
+            </div>
+            {product.specs?.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {product.specs.map((s, i) => (
+                  <span
+                    key={i}
+                    className="rounded-full bg-brand/8 px-2.5 py-1 text-xs font-semibold text-brand"
+                  >
+                    {s.key}: {s.value}
+                  </span>
+                ))}
+              </div>
             )}
-            <span>{product.category || "Kategori yok"}</span>
-            <span>{product.sku || "SKU yok"}</span>
-            {product.barcode && <span>Barkod: {product.barcode}</span>}
           </div>
         </div>
         <Link href={`/panel/urunler?edit=${product.id}`}>
@@ -220,23 +246,27 @@ export default function UrunDetayPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {canViewCosts && (
+        {canViewCosts && !product.isService && (
           <div className="rounded-2xl border border-ink/8 bg-white p-5 shadow-sm">
             <p className="text-xs font-semibold text-ink/55">Alış fiyatı</p>
             <p className="mt-1 text-2xl font-black text-ink">{fmtMoney(product.costPrice ?? 0)}</p>
           </div>
         )}
         <div className="rounded-2xl border border-ink/8 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold text-ink/55">Satış fiyatı</p>
+          <p className="text-xs font-semibold text-ink/55">
+            {product.isService ? "Hizmet fiyatı" : "Satış fiyatı"}
+          </p>
           <p className="mt-1 text-2xl font-black text-ink">{fmtMoney(product.salePrice)}</p>
         </div>
-        <div className="rounded-2xl border border-ink/8 bg-white p-5 shadow-sm">
-          <p className="text-xs font-semibold text-ink/55">Stokta</p>
-          <p className="mt-1 text-2xl font-black text-ink">{product.stockQty}</p>
-        </div>
+        {!product.isService && (
+          <div className="rounded-2xl border border-ink/8 bg-white p-5 shadow-sm">
+            <p className="text-xs font-semibold text-ink/55">Stokta</p>
+            <p className="mt-1 text-2xl font-black text-ink">{product.stockQty}</p>
+          </div>
+        )}
       </div>
 
-      {canViewCosts && (
+      {canViewCosts && !product.isService && (
         <Card title="Alım geçmişi">
           {purchaseHistory.length === 0 ? (
             <div className="px-5 py-8 text-center text-sm text-ink/50">
@@ -269,7 +299,7 @@ export default function UrunDetayPage() {
         </Card>
       )}
 
-      {!product.serialized ? (
+      {product.isService ? null : !product.serialized ? (
         <Card>
           <div className="px-5 py-8 text-center text-sm text-ink/50">
             Bu ürün seri takipli değil — stok adedi düz sayı olarak tutuluyor.

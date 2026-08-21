@@ -31,6 +31,7 @@ import {
 type Customer = {
   id: number;
   name: string;
+  contactName: string;
   phone: string;
   placeType: string;
   address: string;
@@ -220,6 +221,9 @@ export default function MusteriDetayPage() {
             <Badge tone="gray">{SOURCE_LABEL[customer.source] ?? customer.source}</Badge>
             {customer.placeType && <Badge tone="gray">{customer.placeType}</Badge>}
           </div>
+          {customer.contactName && (
+            <p className="mt-1 text-sm font-semibold text-ink/60">Yetkili: {customer.contactName}</p>
+          )}
           <div className="mt-2 flex flex-wrap gap-4 text-sm text-ink/60">
             {customer.phone && (
               <a href={`tel:+${customer.phone.replace(/\D/g, "")}`} className="font-semibold text-brand hover:underline">

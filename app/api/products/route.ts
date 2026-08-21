@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { products, productUnits } from "@/lib/db/schema";
+import { products, productUnits, SERVICE_STOCK_SENTINEL } from "@/lib/db/schema";
 import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { createProductSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
@@ -51,6 +51,9 @@ export async function GET() {
         stockQty: r.stockQty,
         barcode: r.barcode,
         serialized: r.serialized,
+        imageUrl: r.imageUrl,
+        isService: r.isService,
+        specs: r.specs,
         active: r.active,
         createdAt: r.createdAt,
       }))
@@ -79,16 +82,22 @@ export async function POST(req: Request) {
     if (existing) return jsonErr("Bu barkod zaten başka bir ürüne kayıtlı", 409);
   }
 
+  // Hizmet/işçilik kalemlerinin alış bedeli ve seri takibi kavramı yok —
+  // istemci ne gönderirse göndersin sunucu tarafında sabitlenir (bkz.
+  // lib/db/schema.ts'teki isService/SERVICE_STOCK_SENTINEL notu).
+  const isService = parsed.data.isService;
+
   const [created] = await db
     .insert(products)
     .values({
       ...parsed.data,
-      costPrice: String(parsed.data.costPrice),
+      costPrice: isService ? "0" : String(parsed.data.costPrice),
       salePrice: String(parsed.data.salePrice),
       exchangeRate: String(parsed.data.exchangeRate),
+      serialized: isService ? false : parsed.data.serialized,
       // Seri takipli üründe stok elle girilmez, ilk seri numaraları
-      // eklenince kendiliğinden oluşur.
-      stockQty: parsed.data.serialized ? 0 : parsed.data.stockQty,
+      // eklenince kendiliğinden oluşur. Hizmette "sınırsız" stoğu temsil eder.
+      stockQty: isService ? SERVICE_STOCK_SENTINEL : parsed.data.serialized ? 0 : parsed.data.stockQty,
       // "" değil null: barcode unique kısıtlı — boş string ile kaydedilirse
       // barkodsuz ikinci bir ürün eklenirken "duplicate key" hatası verir.
       barcode: parsed.data.barcode || null,

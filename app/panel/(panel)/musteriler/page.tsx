@@ -25,6 +25,7 @@ import {
 type CustomerRow = {
   id: number;
   name: string;
+  contactName: string;
   phone: string;
   placeType: string;
   address: string;
@@ -35,12 +36,25 @@ type CustomerRow = {
 
 const blank = {
   name: "",
+  contactName: "",
   phone: "",
   placeType: "",
   address: "",
   note: "",
   source: "panel",
 };
+
+// Contact Picker API — yalnızca Android Chrome/Edge'de desteklenir (HTTPS +
+// kullanıcı jesti şart). Desteklenmeyen tarayıcılarda buton hiç gösterilmez
+// (aşamalı iyileştirme) — desktop'ta herhangi bir hata/karışıklık oluşmaz.
+type PickedContact = { name?: string[]; tel?: string[] };
+declare global {
+  interface Navigator {
+    contacts?: {
+      select: (properties: string[], options?: { multiple?: boolean }) => Promise<PickedContact[]>;
+    };
+  }
+}
 
 export default function MusterilerPage() {
   const canDelete = usePanelCan("delete_records");
@@ -63,6 +77,7 @@ export default function MusterilerPage() {
   const openEdit = (row: CustomerRow) => {
     setForm({
       name: row.name,
+      contactName: row.contactName ?? "",
       phone: row.phone,
       placeType: row.placeType,
       address: row.address,
@@ -70,6 +85,32 @@ export default function MusterilerPage() {
       source: row.source,
     });
     setEditing(row);
+  };
+
+  const [contactPickerSupported, setContactPickerSupported] = useState(false);
+  useEffect(() => {
+    setContactPickerSupported(
+      typeof navigator !== "undefined" && "contacts" in navigator && "ContactsManager" in window
+    );
+  }, []);
+
+  const pickFromContacts = async () => {
+    if (!navigator.contacts) return;
+    try {
+      const picked = await navigator.contacts.select(["name", "tel"], { multiple: false });
+      if (!picked || picked.length === 0) return;
+      const c = picked[0];
+      const pickedName = (c.name?.[0] ?? "").trim();
+      const pickedPhone = (c.tel?.[0] ?? "").trim();
+      // Rehber kişisi bireysel bir isimdir — hem "Firma Adı" hem "Yetkili Ad
+      // Soyad" alanına önceden doldurulur; kullanıcı kaydetmeden önce firma
+      // adıysa düzenleyebilir (bkz. save öncesi inceleme akışı).
+      setForm({ ...blank, name: pickedName, contactName: pickedName, phone: pickedPhone });
+      setError("");
+      setCreating(true);
+    } catch {
+      // Kullanıcı iptal etti ya da izin reddedildi — sessizce geç.
+    }
   };
 
   const load = useCallback(async () => {
@@ -145,10 +186,16 @@ export default function MusterilerPage() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="İsim, telefon, adres ara…"
+              placeholder="Firma, yetkili, telefon, adres ara…"
               className="w-64 pl-10"
             />
           </div>
+          {contactPickerSupported && (
+            <Btn variant="ghost" onClick={pickFromContacts}>
+              <Icon name="users" className="h-4 w-4" />
+              Rehberden Seç
+            </Btn>
+          )}
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
             Yeni Müşteri
@@ -186,6 +233,9 @@ export default function MusterilerPage() {
                       <Link href={`/panel/musteriler/${c.id}`} className="font-bold text-ink hover:text-brand">
                         {c.name}
                       </Link>
+                      {c.contactName && (
+                        <p className="mt-0.5 text-xs font-semibold text-ink/55">{c.contactName}</p>
+                      )}
                       {c.address && (
                         <p className="mt-0.5 max-w-[220px] truncate text-xs text-ink/45">
                           {c.address}
@@ -254,11 +304,19 @@ export default function MusterilerPage() {
           <form onSubmit={save} className="space-y-4">
             {error && <ErrorBox message={error} />}
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Ad Soyad / Firma">
+              <Field label="Firma Adı (bireysel müşteride ad soyad yazın)">
                 <Input
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  placeholder="Örn: ABC Tekstil"
+                />
+              </Field>
+              <Field label="Yetkili Ad Soyad (opsiyonel)">
+                <Input
+                  value={form.contactName}
+                  onChange={(e) => setForm({ ...form, contactName: e.target.value })}
+                  placeholder="Örn: Ahmet Gedik"
                 />
               </Field>
               <Field label="Telefon">

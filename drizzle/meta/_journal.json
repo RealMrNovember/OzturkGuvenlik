@@ -127,6 +127,20 @@
       "when": 1787267306373,
       "tag": "0017_familiar_stellaris",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1787270621831,
+      "tag": "0018_dashing_payback",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1787271119098,
+      "tag": "0019_free_otto_octavius",
+      "breakpoints": true
     }
   ]
 }

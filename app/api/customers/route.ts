@@ -19,6 +19,7 @@ export async function GET(req: Request) {
       q
         ? or(
             ilike(customers.name, `%${q}%`),
+            ilike(customers.contactName, `%${q}%`),
             ilike(customers.phone, `%${q}%`),
             ilike(customers.address, `%${q}%`)
           )
