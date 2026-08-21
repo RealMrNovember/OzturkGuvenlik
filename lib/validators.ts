@@ -420,6 +420,31 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Şifre gerekli").max(100),
 });
 
+export const twoFactorLoginSchema = z.object({
+  code: z.string().trim().min(6, "Kod gerekli").max(20),
+});
+
+export const updateAccountSchema = z.object({
+  name: z.string().trim().min(2, "Ad en az 2 karakter olmalı").max(120).optional(),
+  email: z.string().trim().toLowerCase().email("Geçersiz e-posta adresi").max(190).optional(),
+  phone: z.string().trim().max(30).optional(),
+  specialty: z.string().trim().max(255).optional(),
+});
+
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Mevcut şifre gerekli").max(100),
+  newPassword: z.string().min(8, "Yeni şifre en az 8 karakter olmalı").max(100),
+});
+
+export const twoFactorConfirmSchema = z.object({
+  secret: z.string().trim().min(1, "Geçersiz istek").max(64),
+  code: z.string().trim().min(6, "Kod gerekli").max(20),
+});
+
+export const twoFactorDisableSchema = z.object({
+  password: z.string().min(1, "Şifre gerekli").max(100),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string().email("E-posta geçersiz").max(190),
 });

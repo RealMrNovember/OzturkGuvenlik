@@ -30,6 +30,12 @@ export const users = pgTable("users", {
   // Kullanılınca ya da yeni bir istek gelince her ikisi de temizlenir/yenilenir.
   resetToken: varchar("reset_token", { length: 64 }).unique(),
   resetTokenExpiresAt: timestamp("reset_token_expires_at"),
+  // İki adımlı doğrulama (TOTP, opsiyonel) — kullanıcı kendi hesabından
+  // (/panel/profil) açıp kapatabilir. Yedek kodlar tek kullanımlık, şifre
+  // gibi bcrypt ile hash'lenmiş saklanır (düz metin asla DB'ye yazılmaz).
+  twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
+  twoFactorSecret: varchar("two_factor_secret", { length: 64 }),
+  twoFactorBackupCodes: jsonb("two_factor_backup_codes").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

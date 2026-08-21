@@ -142,10 +142,18 @@ export function PanelShell({
       {menuOpen && (
         <div className="border-b border-ink/8 bg-ink px-4 py-4 lg:hidden">
             <SidebarLinks pathname={pathname} onNavigate={() => setMenuOpen(false)} />
+          <Link
+            href="/panel/profil"
+            onClick={() => setMenuOpen(false)}
+            className="mt-3 flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/65 hover:text-white"
+          >
+            <Icon name="users" className="h-4.5 w-4.5" />
+            Profilim
+          </Link>
           <button
             type="button"
             onClick={logout}
-            className="mt-3 flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/65 hover:text-white"
+            className="mt-1 flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/65 hover:text-white"
           >
             <Icon name="logout" className="h-4.5 w-4.5" />
             Çıkış Yap
@@ -174,7 +182,12 @@ export function PanelShell({
             <SidebarLinks pathname={pathname} onNavigate={() => setMenuOpen(false)} />
           </div>
           <div className="shrink-0 border-t border-white/10 p-4">
-            <p className="px-3.5 text-sm font-semibold text-white">{session.name}</p>
+            <Link
+              href="/panel/profil"
+              className="block rounded-lg px-3.5 py-1 text-sm font-semibold text-white transition-colors hover:text-brand-light"
+            >
+              {session.name}
+            </Link>
             <div className="mt-1 flex items-center justify-between px-3.5">
               <Badge tone={session.role === "admin" ? "brand" : "gray"}>
                 {session.role === "admin" ? "Yönetici" : "Personel"}

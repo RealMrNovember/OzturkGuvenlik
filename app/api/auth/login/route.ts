@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { createSession, verifyPassword } from "@/lib/auth";
+import { createSession, createPendingTwoFactorToken, verifyPassword } from "@/lib/auth";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { loginSchema } from "@/lib/validators";
 
@@ -25,6 +25,11 @@ export async function POST(req: Request) {
   const valid = await verifyPassword(password, user.passwordHash);
   if (!valid) {
     return jsonErr("E-posta veya şifre hatalı", 401);
+  }
+
+  if (user.twoFactorEnabled) {
+    await createPendingTwoFactorToken(user.id);
+    return jsonOk({ twoFactorRequired: true });
   }
 
   await createSession({

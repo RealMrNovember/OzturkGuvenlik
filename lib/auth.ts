@@ -5,6 +5,8 @@ import bcrypt from "bcryptjs";
 
 const COOKIE_NAME = "og_panel";
 const SESSION_DAYS = 7;
+const PENDING_2FA_COOKIE = "og_2fa_pending";
+const PENDING_2FA_MINUTES = 5;
 
 export type SessionUser = {
   id: number;
@@ -64,6 +66,45 @@ export async function requireUser(): Promise<SessionUser> {
   const session = await getSession();
   if (!session) redirect("/panel/giris");
   return session;
+}
+
+/**
+ * Şifre doğrulandı ama 2FA kodu henüz girilmedi — bu ara durumu, gerçek
+ * oturum çerezinden ayrı, kısa ömürlü (5 dk) bir çerezle tutar. Böylece
+ * /api/auth/2fa/verify çağrısı hangi kullanıcının kod girdiğini bilir,
+ * ama tam oturum (panel erişimi) yalnızca kod doğrulanınca açılır.
+ */
+export async function createPendingTwoFactorToken(userId: number): Promise<void> {
+  const token = await new SignJWT({ purpose: "2fa-pending" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setSubject(String(userId))
+    .setIssuedAt()
+    .setExpirationTime(`${PENDING_2FA_MINUTES}m`)
+    .sign(secretKey());
+
+  const store = await cookies();
+  store.set(PENDING_2FA_COOKIE, token, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: PENDING_2FA_MINUTES * 60,
+  });
+}
+
+export async function consumePendingTwoFactorToken(): Promise<number | null> {
+  const store = await cookies();
+  const token = store.get(PENDING_2FA_COOKIE)?.value;
+  store.delete(PENDING_2FA_COOKIE);
+  if (!token) return null;
+  try {
+    const { payload } = await jwtVerify(token, secretKey());
+    if (payload.purpose !== "2fa-pending") return null;
+    const id = Number(payload.sub);
+    return id || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function hashPassword(password: string): Promise<string> {
