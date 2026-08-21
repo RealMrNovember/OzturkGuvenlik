@@ -47,6 +47,8 @@ const blank = {
 // Contact Picker API — yalnızca Android Chrome/Edge'de desteklenir (HTTPS +
 // kullanıcı jesti şart). Desteklenmeyen tarayıcılarda buton hiç gösterilmez
 // (aşamalı iyileştirme) — desktop'ta herhangi bir hata/karışıklık oluşmaz.
+// multiple:true ile işletim sisteminin kendi rehber arayüzünde birden fazla
+// kişi işaretlenip tek seferde çekilebilir.
 type PickedContact = { name?: string[]; tel?: string[] };
 declare global {
   interface Navigator {
@@ -55,6 +57,11 @@ declare global {
     };
   }
 }
+
+type BulkContact = { name: string; phone: string; include: boolean; alreadyExists: boolean };
+
+/** Karşılaştırma için telefonu sadece rakamlara indirger, başındaki 90/0'ı atar. */
+const normalizePhone = (p: string) => p.replace(/\D/g, "").replace(/^90/, "").replace(/^0/, "");
 
 export default function MusterilerPage() {
   const canDelete = usePanelCan("delete_records");
@@ -94,23 +101,69 @@ export default function MusterilerPage() {
     );
   }, []);
 
+  const [bulkPicked, setBulkPicked] = useState<BulkContact[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkNotice, setBulkNotice] = useState("");
+
   const pickFromContacts = async () => {
     if (!navigator.contacts) return;
     try {
-      const picked = await navigator.contacts.select(["name", "tel"], { multiple: false });
+      const picked = await navigator.contacts.select(["name", "tel"], { multiple: true });
       if (!picked || picked.length === 0) return;
-      const c = picked[0];
-      const pickedName = (c.name?.[0] ?? "").trim();
-      const pickedPhone = (c.tel?.[0] ?? "").trim();
-      // Rehber kişisi bireysel bir isimdir — hem "Firma Adı" hem "Yetkili Ad
-      // Soyad" alanına önceden doldurulur; kullanıcı kaydetmeden önce firma
-      // adıysa düzenleyebilir (bkz. save öncesi inceleme akışı).
-      setForm({ ...blank, name: pickedName, contactName: pickedName, phone: pickedPhone });
+      const existingPhones = new Set(rows.map((r) => normalizePhone(r.phone)).filter(Boolean));
+      const seen = new Set<string>();
+      const list: BulkContact[] = picked
+        .map((c) => ({ name: (c.name?.[0] ?? "").trim(), phone: (c.tel?.[0] ?? "").trim() }))
+        .filter((c) => c.name) // isimsiz rehber kaydı eklenmez
+        .filter((c) => {
+          const key = normalizePhone(c.phone) || c.name.toLowerCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        })
+        .map((c) => {
+          const alreadyExists = normalizePhone(c.phone) !== "" && existingPhones.has(normalizePhone(c.phone));
+          // Rehberden gelen kişi isim-soyisim olarak eklenir (firma adı
+          // kavramı yok) — Firma Adı alanına yazılır, kullanıcı isterse
+          // sonradan düzenleyip gerçek firma adını girebilir (kullanıcı isteği).
+          return { ...c, alreadyExists, include: !alreadyExists };
+        });
+      setBulkPicked(list);
+      setBulkNotice("");
       setError("");
-      setCreating(true);
     } catch {
       // Kullanıcı iptal etti ya da izin reddedildi — sessizce geç.
     }
+  };
+
+  const toggleBulk = (idx: number) =>
+    setBulkPicked((prev) => prev.map((c, i) => (i === idx ? { ...c, include: !c.include } : c)));
+
+  const bulkSave = async () => {
+    const toAdd = bulkPicked.filter((c) => c.include);
+    if (toAdd.length === 0) {
+      setBulkPicked([]);
+      return;
+    }
+    setBulkSaving(true);
+    setError("");
+    let ok = 0;
+    let fail = 0;
+    for (const c of toAdd) {
+      try {
+        await api("/api/customers", {
+          method: "POST",
+          body: JSON.stringify({ name: c.name, phone: c.phone, source: "telefon" }),
+        });
+        ok++;
+      } catch {
+        fail++;
+      }
+    }
+    setBulkSaving(false);
+    setBulkPicked([]);
+    await load();
+    setBulkNotice(fail > 0 ? `${ok} müşteri eklendi, ${fail} tanesi eklenemedi.` : `${ok} müşteri eklendi.`);
   };
 
   const load = useCallback(async () => {
@@ -193,7 +246,7 @@ export default function MusterilerPage() {
           {contactPickerSupported && (
             <Btn variant="ghost" onClick={pickFromContacts}>
               <Icon name="users" className="h-4 w-4" />
-              Rehberden Seç
+              Rehberden Toplu Ekle
             </Btn>
           )}
           <Btn onClick={openCreate}>
@@ -204,6 +257,9 @@ export default function MusterilerPage() {
       </div>
 
       {error && <ErrorBox message={error} />}
+      {bulkNotice && (
+        <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm text-ink/70">{bulkNotice}</p>
+      )}
 
       {loading ? (
         <Loading />
@@ -381,6 +437,48 @@ export default function MusterilerPage() {
               </Btn>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {bulkPicked.length > 0 && (
+        <Modal open onClose={() => setBulkPicked([])} title={`Rehberden Ekle (${bulkPicked.length} kişi)`} wide>
+          <div className="space-y-4">
+            <p className="text-sm text-ink/60">
+              İşaretli kişiler isim soyisim olarak müşteri eklenir — firma adını sonradan
+              düzenleyerek girebilirsiniz. Telefonu sistemde zaten kayıtlı olanların işareti
+              otomatik kaldırıldı.
+            </p>
+            <div className="max-h-96 divide-y divide-ink/6 overflow-y-auto rounded-xl border border-ink/8">
+              {bulkPicked.map((c, idx) => (
+                <label
+                  key={idx}
+                  className="flex items-center gap-3 px-4 py-2.5 hover:bg-ink/2"
+                >
+                  <input
+                    type="checkbox"
+                    checked={c.include}
+                    onChange={() => toggleBulk(idx)}
+                    className="h-4 w-4 accent-brand"
+                  />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold text-ink">{c.name}</span>
+                    <span className="block truncate text-xs text-ink/45">{c.phone || "Telefon yok"}</span>
+                  </span>
+                  {c.alreadyExists && <Badge tone="amber">Zaten kayıtlı</Badge>}
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
+              <Btn variant="ghost" onClick={() => setBulkPicked([])}>
+                Vazgeç
+              </Btn>
+              <Btn onClick={bulkSave} disabled={bulkSaving || bulkPicked.every((c) => !c.include)}>
+                {bulkSaving
+                  ? "Ekleniyor…"
+                  : `${bulkPicked.filter((c) => c.include).length} Kişiyi Ekle`}
+              </Btn>
+            </div>
+          </div>
         </Modal>
       )}
     </div>
