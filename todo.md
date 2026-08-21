@@ -731,7 +731,12 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 - [ ] Google Business profili ile site bağla (hizmet alanı, saatler, fotoğraf)
 - [ ] Web analytics kur (Vercel Analytics / GA4)
 - [ ] Sosyal paylaşım (Open Graph / Twitter Card) görselleri kontrol et
-- [ ] Yerel SEO: hizmet sayfaları için `schema.org` LocalBusiness yapısı
+- [x] **Yerel SEO: `schema.org` yapısı (TAMAMLANDI — güncel değilmiş, daha
+      önce yapılmış)**: `lib/seo.ts` — `localBusinessJsonLd()` (adres,
+      koordinat, çalışma saatleri, puan, sosyal linkler; `app/layout.tsx`
+      üzerinden tüm sitede), `serviceJsonLd()` + `breadcrumbJsonLd()`
+      (her hizmet detay sayfasında). Production'da `<script
+      type="application/ld+json">` ile doğrulandı.
 
 ## 📦 Veri / Yedek
 

@@ -40,6 +40,14 @@ export const metadata: Metadata = {
     title: `${site.name} | Güvenlik Kamerası, Alarm, PDKS — İstanbul`,
     description:
       "2014'ten beri İstanbul genelinde güvenlik sistemleri: kamera, alarm, PDKS, bariyer ve turnike. Ücretsiz keşif.",
+    images: [{ url: "/images/hero-1.jpg", width: 2000, height: 1500, alt: site.name }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${site.name} | Güvenlik Kamerası, Alarm, PDKS — İstanbul`,
+    description:
+      "2014'ten beri İstanbul genelinde güvenlik sistemleri: kamera, alarm, PDKS, bariyer ve turnike. Ücretsiz keşif.",
+    images: ["/images/hero-1.jpg"],
   },
   robots: { index: true, follow: true },
   icons: { icon: "/images/logo-square.png" },
