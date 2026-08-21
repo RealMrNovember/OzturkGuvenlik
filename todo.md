@@ -712,7 +712,16 @@ logoları + Aypro + KNX Future.
 (ERP kapsamındaki PDF/export/dosya yükleme/bildirim maddeleri yukarıdaki
 Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmeler var.)
 
-- [ ] Yorum yönetimi: sitedeki google yorumlarını panelden yönet/onayla
+- [x] **Yorum yönetimi (TAMAMLANDI — 2026-08-21)**: yorumlar artık kodda
+      sabit değil, yeni `reviews` tablosunda; `/panel/yorumlar`'dan admin
+      ekleyip/düzenleyip/silebiliyor, sıralayabiliyor, yayından
+      kaldırabiliyor. Avatar rengi isimden otomatik üretiliyor, "X ay
+      önce" etiketi artık dondurulmuş metin değil gerçek tarihten
+      hesaplanıyor. Not: bunlar admin'in elle girdiği yorumlar — Google
+      yorumlarını API ile otomatik senkronize etmiyor (Google Places API
+      ayrı bir maliyetli entegrasyon; şu an admin Google'da gördüğü
+      yorumu buraya kendi kopyalıyor).
+      [lib/reviews-db.ts](lib/reviews-db.ts)
 - [x] **Şifremi unuttum / e-posta ile sıfırlama akışı (TAMAMLANDI — 2026-08-21)**:
       `users.resetToken`/`resetTokenExpiresAt` (tek kullanımlık, 1 saat),
       `/panel/sifremi-unuttum` → Resend ile link gönderir (kullanıcı
