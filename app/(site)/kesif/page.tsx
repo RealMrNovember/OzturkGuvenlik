@@ -44,16 +44,18 @@ export default function KesifPage() {
       website, // honeypot: botlar doldurur, biz yok sayarız
     };
     try {
-      await fetch("/api/requests", {
+      const res = await fetch("/api/requests", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+      const body = await res.json().catch(() => null);
+      const refId = body?.data?.id as number | undefined;
       setSaved(true);
-      window.open(waLink(waMessage), "_blank", "noopener");
+      window.open(waLink(buildMessage(refId)), "_blank", "noopener");
     } catch {
       setSaveError("Kayıt sırasında bir sorun oluştu. WhatsApp'tan devam edin.");
-      window.open(waLink(waMessage), "_blank", "noopener");
+      window.open(waLink(buildMessage()), "_blank", "noopener");
     } finally {
       setSending(false);
     }
@@ -64,23 +66,30 @@ export default function KesifPage() {
       cur.includes(slug) ? cur.filter((s) => s !== slug) : [...cur, slug]
     );
 
-  const message = [
-    "Merhaba, web sitesinden ücretsiz keşif talebi oluşturmak istiyorum.",
-    "",
-    `• Mekân: ${place ?? "—"}`,
-    `• İlgilendiğim sistemler: ${
-      selected.length
-        ? selected
-            .map((s) => services.find((sv) => sv.slug === s)?.name ?? s)
-            .join(", ")
-        : "Henüz emin değilim"
-    }`,
-    `• Adım: ${name || "—"}`,
-    `• Telefon: ${phone || "—"}`,
-  ];
-  if (note.trim()) message.push(`• Not: ${note.trim()}`);
-  message.push("", "Uygun bir zamanda beni arayabilir misiniz?");
-  const waMessage = message.join("\n");
+  // refId, /api/requests kaydı oluşturulduktan sonra dönen id'dir — WhatsApp
+  // mesajına referans no olarak eklenir, panelde ("#K{id}") aynı kayda hızlı
+  // atıf yapmayı sağlar. Kayıt henüz oluşmadıysa (submit'ten önceki önizleme,
+  // ya da kayıt başarısız olduysa) referans satırı atlanır.
+  const buildMessage = (refId?: number) => {
+    const lines = [
+      "Merhaba, web sitesinden ücretsiz keşif talebi oluşturmak istiyorum.",
+      "",
+      ...(refId ? [`• Kayıt No: #K${refId}`] : []),
+      `• Mekân: ${place ?? "—"}`,
+      `• İlgilendiğim sistemler: ${
+        selected.length
+          ? selected
+              .map((s) => services.find((sv) => sv.slug === s)?.name ?? s)
+              .join(", ")
+          : "Henüz emin değilim"
+      }`,
+      `• Adım: ${name || "—"}`,
+      `• Telefon: ${phone || "—"}`,
+    ];
+    if (note.trim()) lines.push(`• Not: ${note.trim()}`);
+    lines.push("", "Uygun bir zamanda beni arayabilir misiniz?");
+    return lines.join("\n");
+  };
 
   const canNext =
     (step === 1 && place !== null) ||
