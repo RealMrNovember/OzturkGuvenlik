@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { api } from "@/lib/fetch";
@@ -104,35 +104,79 @@ export default function MusterilerPage() {
   const [bulkPicked, setBulkPicked] = useState<BulkContact[]>([]);
   const [bulkSaving, setBulkSaving] = useState(false);
   const [bulkNotice, setBulkNotice] = useState("");
+  const vcardInputRef = useRef<HTMLInputElement>(null);
+
+  /** Ham (isim, telefon) listesini inceleme-modalı satırlarına çevirir —
+   * tekrarları eler, telefonu sistemde zaten kayıtlı olanları işaretsiz bırakır.
+   * Hem Contact Picker (Android) hem .vcf yükleme (iPhone/herkes) bu ortak
+   * mantığı kullanır. */
+  const buildBulkList = (raw: { name: string; phone: string }[]): BulkContact[] => {
+    const existingPhones = new Set(rows.map((r) => normalizePhone(r.phone)).filter(Boolean));
+    const seen = new Set<string>();
+    return raw
+      .map((c) => ({ name: c.name.trim(), phone: c.phone.trim() }))
+      .filter((c) => c.name)
+      .filter((c) => {
+        const key = normalizePhone(c.phone) || c.name.toLowerCase();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+      .map((c) => {
+        const alreadyExists = normalizePhone(c.phone) !== "" && existingPhones.has(normalizePhone(c.phone));
+        // Rehberden gelen kişi isim-soyisim olarak eklenir (firma adı
+        // kavramı yok) — Firma Adı alanına yazılır, kullanıcı isterse
+        // sonradan düzenleyip gerçek firma adını girebilir (kullanıcı isteği).
+        return { ...c, alreadyExists, include: !alreadyExists };
+      });
+  };
 
   const pickFromContacts = async () => {
     if (!navigator.contacts) return;
     try {
       const picked = await navigator.contacts.select(["name", "tel"], { multiple: true });
       if (!picked || picked.length === 0) return;
-      const existingPhones = new Set(rows.map((r) => normalizePhone(r.phone)).filter(Boolean));
-      const seen = new Set<string>();
-      const list: BulkContact[] = picked
-        .map((c) => ({ name: (c.name?.[0] ?? "").trim(), phone: (c.tel?.[0] ?? "").trim() }))
-        .filter((c) => c.name) // isimsiz rehber kaydı eklenmez
-        .filter((c) => {
-          const key = normalizePhone(c.phone) || c.name.toLowerCase();
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        })
-        .map((c) => {
-          const alreadyExists = normalizePhone(c.phone) !== "" && existingPhones.has(normalizePhone(c.phone));
-          // Rehberden gelen kişi isim-soyisim olarak eklenir (firma adı
-          // kavramı yok) — Firma Adı alanına yazılır, kullanıcı isterse
-          // sonradan düzenleyip gerçek firma adını girebilir (kullanıcı isteği).
-          return { ...c, alreadyExists, include: !alreadyExists };
-        });
-      setBulkPicked(list);
+      setBulkPicked(
+        buildBulkList(picked.map((c) => ({ name: c.name?.[0] ?? "", phone: c.tel?.[0] ?? "" })))
+      );
       setBulkNotice("");
       setError("");
     } catch {
       // Kullanıcı iptal etti ya da izin reddedildi — sessizce geç.
+    }
+  };
+
+  /** iPhone/Safari Contact Picker API'yi hiç desteklemiyor (Apple kısıtı) —
+   * yerine iOS'un "Kişi Kartını Paylaş" ile ürettiği .vcf dosyaları (tek ya
+   * da "Tüm Kişileri Dışa Aktar" ile birden çok VCARD bloğu içerebilir)
+   * yükletip aynı toplu-ekleme inceleme akışına bağlıyoruz — platform bağımsız.
+   */
+  const parseVCards = (text: string): { name: string; phone: string }[] =>
+    text
+      .split(/BEGIN:VCARD/i)
+      .slice(1)
+      .map((block) => {
+        const fn = block.match(/^FN[^:]*:(.*)$/im)?.[1]?.trim() ?? "";
+        const tel = block.match(/^TEL[^:]*:(.*)$/im)?.[1]?.trim() ?? "";
+        return { name: fn, phone: tel };
+      });
+
+  const handleVCardFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.length === 0) return;
+    setError("");
+    try {
+      const texts = await Promise.all(files.map((f) => f.text()));
+      const parsed = texts.flatMap(parseVCards);
+      if (parsed.length === 0) {
+        setError("Dosyada okunabilir kişi bulunamadı (.vcf bekleniyor).");
+        return;
+      }
+      setBulkPicked(buildBulkList(parsed));
+      setBulkNotice("");
+    } catch {
+      setError("Kişi kartı dosyası okunamadı.");
     }
   };
 
@@ -249,6 +293,18 @@ export default function MusterilerPage() {
               Rehberden Toplu Ekle
             </Btn>
           )}
+          <Btn variant="ghost" onClick={() => vcardInputRef.current?.click()}>
+            <Icon name="download" className="h-4 w-4 rotate-180" />
+            Kişi Kartı Yükle
+          </Btn>
+          <input
+            ref={vcardInputRef}
+            type="file"
+            accept=".vcf,text/vcard,text/x-vcard"
+            multiple
+            className="hidden"
+            onChange={handleVCardFiles}
+          />
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
             Yeni Müşteri
