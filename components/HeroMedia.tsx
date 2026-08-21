@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getSiteSettings } from "@/lib/site-settings";
 import { buildYoutubeBackgroundEmbedUrl } from "@/lib/youtube";
 
@@ -29,13 +30,13 @@ export async function HeroMedia() {
           />
         </div>
       ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src="/images/hero-1.jpg"
           alt=""
-          className="h-full w-full object-cover opacity-50"
-          width={2000}
-          height={1500}
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover opacity-50"
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-b from-ink/80 via-ink/55 to-ink" />

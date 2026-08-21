@@ -721,7 +721,22 @@ logoları + Aypro + KNX Future.
       `serviceRequests` sayısı `>0` ise erken `return` ile zaten tam
       idempotent. Madde muhtemelen bu koruma eklenmeden önce yazılmış,
       güncel değil.
-- [ ] Lighthouse / Core Web Vitals audit (LCP, CLS, INP)
+- [ ] **Lighthouse / Core Web Vitals audit (KISMEN — 2026-08-21)**: canlı
+      Lighthouse/PageSpeed taraması yapılamadı (bu oturumda tarayıcı aracı
+      "Policy check temporarily unavailable" hatasıyla erişilemez durumdaydı
+      — Anthropic tarafında geçici bir altyapı sorunu, kod tarafında bir
+      şey değil). Onun yerine kod incelemesiyle gerçek bir **LCP hatası**
+      bulundu ve düzeltildi: anasayfa hero arka plan görseli
+      ([components/HeroMedia.tsx](components/HeroMedia.tsx)) düz `<img>`
+      idi, `priority`/`fetchpriority` ipucu yoktu ve Next.js görsel
+      optimizasyonundan (AVIF/WebP, doğru boyutlandırma) faydalanmıyordu —
+      bu, sayfanın en büyük içerik öğesi (LCP adayı) olduğu için muhtemelen
+      LCP skorunu doğrudan etkiliyordu. `next/image` + `priority` + `fill`
+      ile düzeltildi. Aynı geçişte anasayfadaki "gerçek işler" fotoğraf
+      ızgarası ve Hakkımızda sayfasındaki 2 görsel de `next/image`'e
+      taşındı (önceden `loading="lazy"` bile yoktu, tam boyutlu kaynak
+      görsel her zaman indiriliyordu). **Kalan**: tarayıcı aracı düzelince
+      gerçek bir Lighthouse taraması yapılıp CLS/INP de doğrulanmalı.
 
 ## 🧹 Kod Tabanı / Bakım
 

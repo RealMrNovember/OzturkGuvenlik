@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { getResolvedSite } from "@/lib/site-settings";
 import { services, processSteps } from "@/lib/services";
 import { Icon } from "@/components/icons";
@@ -185,12 +186,12 @@ export default async function HomePage() {
             ].map((img, i) => (
               <Reveal key={img.src} delay={i * 90}>
                 <figure className="accent-frame group overflow-hidden rounded-2xl bg-ink shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={img.src}
                     alt={img.alt}
-                    width={2000}
-                    height={1500}
+                    width={800}
+                    height={600}
+                    sizes="(min-width: 640px) 33vw, 100vw"
                     className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                   <figcaption className="bg-white px-5 py-4 text-sm font-semibold text-ink">

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { site } from "@/lib/site";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
@@ -71,8 +72,7 @@ export default function AboutPage() {
               ))}
               <Reveal delay={220}>
                 <div className="flex items-center gap-4 rounded-2xl border border-ink/8 bg-surface p-5">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src="/images/ozkan.jpg"
                     alt="Recep Özkan Öztürk"
                     width={80}
@@ -91,12 +91,12 @@ export default function AboutPage() {
             </div>
 
             <Reveal delay={150}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+              <Image
                 src="/images/is-2.jpg"
                 alt="Öztürk Güvenlik saha çalışması"
-                width={2000}
-                height={1500}
+                width={1200}
+                height={900}
+                sizes="(min-width: 1024px) 400px, 100vw"
                 className="w-full rounded-3xl object-cover shadow-lg"
               />
             </Reveal>
