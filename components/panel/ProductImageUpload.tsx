@@ -26,6 +26,14 @@ export function ProductImageUpload({
   const cameraRef = useRef<HTMLInputElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Blob deposu private — çıplak blob URL'i tarayıcıda 403 verir. Görsel
+  // her zaman sunucu tarafında akıtan bu route üzerinden gösterilir; sorgu
+  // parametresi, imageUrl her değiştiğinde (yeni yükleme) tarayıcı önbelleğini
+  // kırmak için blob yolunun benzersiz son parçasını taşır.
+  const displaySrc = imageUrl
+    ? `/api/products/${productId}/image?v=${encodeURIComponent(imageUrl.split("/").pop() ?? "")}`
+    : null;
+
   const upload = async (file: File) => {
     setBusy(true);
     setError("");
@@ -76,9 +84,9 @@ export function ProductImageUpload({
     return (
       <div className="space-y-2.5">
         <div className="flex h-40 w-40 items-center justify-center overflow-hidden rounded-2xl border border-ink/10 bg-surface">
-          {imageUrl ? (
+          {displaySrc ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="Ürün görseli" className="h-full w-full object-cover" />
+            <img src={displaySrc} alt="Ürün görseli" className="h-full w-full object-cover" />
           ) : (
             <Icon name="box" className="h-10 w-10 text-ink/20" />
           )}
@@ -119,9 +127,9 @@ export function ProductImageUpload({
         aria-label={imageUrl ? "Görseli değiştir" : "Görsel ekle"}
         className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-ink/10 bg-surface"
       >
-        {imageUrl ? (
+        {displaySrc ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt="" className="h-full w-full object-cover" />
+          <img src={displaySrc} alt="" className="h-full w-full object-cover" />
         ) : (
           <Icon name="box" className="h-5 w-5 text-ink/20" />
         )}
