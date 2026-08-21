@@ -4,6 +4,8 @@ import { desc, eq } from "drizzle-orm";
 import { createRequestSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { sendEmail, emailLayout } from "@/lib/email";
+import { site } from "@/lib/site";
 
 // Herkese açık: keşif sihirbazından kayıt (honeypot korumalı)
 export async function POST(req: Request) {
@@ -29,6 +31,26 @@ export async function POST(req: Request) {
       status: "yeni",
     })
     .returning({ id: serviceRequests.id });
+
+  // Bildirim gönderimi kaydın başarısını etkilemez — sendEmail kendi içinde
+  // hataları yutar (bkz. lib/email.ts), burada ayrıca try/catch gerekmez.
+  await sendEmail(
+    site.email,
+    `Yeni keşif talebi — ${data.name}`,
+    emailLayout(
+      "Yeni Keşif Talebi",
+      `
+        <p style="margin: 0 0 8px;"><strong>Ad Soyad:</strong> ${data.name}</p>
+        <p style="margin: 0 0 8px;"><strong>Telefon:</strong> ${data.phone}</p>
+        <p style="margin: 0 0 8px;"><strong>Mekân:</strong> ${data.placeType || "-"}</p>
+        <p style="margin: 0 0 8px;"><strong>Sistemler:</strong> ${data.systems?.join(", ") || "-"}</p>
+        ${data.note ? `<p style="margin: 12px 0 0; color: #555;">${data.note}</p>` : ""}
+        <p style="margin: 16px 0 0;">
+          <a href="${site.url}/panel/talepler" style="color: #0e6fb8;">Panelde görüntüle →</a>
+        </p>
+      `
+    )
+  );
 
   return jsonOk({ id: created.id });
 }
