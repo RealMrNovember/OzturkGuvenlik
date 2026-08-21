@@ -1,5 +1,6 @@
+import { del } from "@vercel/blob";
 import { db } from "@/lib/db";
-import { jobs, type JobItem } from "@/lib/db/schema";
+import { jobs, type JobItem, type PhotoRef } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { updateJobSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
@@ -59,15 +60,19 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const numericId = Number(id);
   if (!Number.isInteger(numericId)) return jsonErr("Geçersiz ID", 400);
 
-  const deleted = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [job] = await tx.select().from(jobs).where(eq(jobs.id, numericId)).limit(1);
     if (!job) return null;
     // İş silinince, işte kullanılmış ürünleri stoğa geri ekle.
     await applyStockDelta(tx, job.items as JobItem[], []);
     const [row] = await tx.delete(jobs).where(eq(jobs.id, numericId)).returning({ id: jobs.id });
-    return row;
+    return { row, photos: job.photos as PhotoRef[] };
   });
 
-  if (!deleted) return jsonErr("İş bulunamadı", 404);
-  return jsonOk({ id: deleted.id });
+  if (!result) return jsonErr("İş bulunamadı", 404);
+  // Blob'da birikmesin — iş kaydıyla birlikte fotoğrafları da sil.
+  if (result.photos.length > 0) {
+    await del(result.photos.map((p) => p.url)).catch(() => {});
+  }
+  return jsonOk({ id: result.row.id });
 }

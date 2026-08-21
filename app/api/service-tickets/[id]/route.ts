@@ -1,5 +1,6 @@
+import { del } from "@vercel/blob";
 import { db } from "@/lib/db";
-import { serviceTickets, type JobItem } from "@/lib/db/schema";
+import { serviceTickets, type JobItem, type PhotoRef } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { updateServiceTicketSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
@@ -67,7 +68,7 @@ export async function DELETE(_req: Request, { params }: Ctx) {
   const numericId = Number(id);
   if (!Number.isInteger(numericId)) return jsonErr("Geçersiz ID", 400);
 
-  const deleted = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [ticket] = await tx
       .select()
       .from(serviceTickets)
@@ -79,9 +80,12 @@ export async function DELETE(_req: Request, { params }: Ctx) {
       .delete(serviceTickets)
       .where(eq(serviceTickets.id, numericId))
       .returning({ id: serviceTickets.id });
-    return row;
+    return { row, photos: ticket.photos as PhotoRef[] };
   });
 
-  if (!deleted) return jsonErr("Servis kaydı bulunamadı", 404);
-  return jsonOk({ id: deleted.id });
+  if (!result) return jsonErr("Servis kaydı bulunamadı", 404);
+  if (result.photos.length > 0) {
+    await del(result.photos.map((p) => p.url)).catch(() => {});
+  }
+  return jsonOk({ id: result.row.id });
 }
