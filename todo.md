@@ -894,6 +894,16 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 
 ## ✅ Tamamlananlar (referans)
 
+- **Teslim öncesi son tarama (TAMAMLANDI — 2026-08-21)**: 3 bağımsız ajan
+  (kod kalitesi, güvenlik, sessiz hata avcısı) bugünkü tüm değişiklikler
+  üzerinde paralel çalıştırıldı + elle yapılan tutarlılık kontrolleri.
+  Bulunan 5 gerçek sorunun tamamı düzeltildi: (1) 2FA girişte yanlış kod
+  kullanıcıyı tamamen dışarı atıyordu, (2) personel kendi şifresini
+  mevcut şifre doğrulaması olmadan değiştirebiliyordu, (3) keşif formu
+  sunucu reddetse bile "kaydedildi" gösteriyordu, (4) herkese açık
+  formdan/cron özetinden gelen metin e-postaya kaçışsız gömülüyordu,
+  (5) kalıntı `console.log`'lar. `tsc`/`vitest`/`next build` üçü de
+  yeşil. Detaylar için commit `85c5a16`.
 - Kurumsal site (hero, 11 hizmet, süreç, işler, yorumlar, gerçek marka logoları, harita, CTA)
 - Yönetim paneli: giriş, dashboard, talepler, randevular, müşteriler, teklifler, işler
 - **Faturalar + Kasa (gelir/gider) + Ürün kataloğu modülleri** (2026-08-19, bkz. Faz 1 yukarıda)
