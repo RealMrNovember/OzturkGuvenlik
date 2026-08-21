@@ -683,10 +683,16 @@ logoları + Aypro + KNX Future.
 ## 🔐 Güvenlik / Sır Yönetimi
 
 - [ ] **ACİL — Supabase anahtarlarını döndür**: DB şifresi, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_SECRET_KEY`, `SUPABASE_JWT_SECRET` **iki ayrı sohbete** (OpenCode + Claude) yapıştırıldı. Bu satır zaten bir kere yazılmıştı, hâlâ yapılmadı — bu sefer gerçekten yapılmalı: Supabase → Settings → Database (şifre) ve Settings → API (anahtarlar) yenile, Vercel'de `DATABASE_URL` güncelle.
-- [ ] Panel admin şifresini (`Ozk4n!2026`, aynı şekilde sohbete yapıştırıldı) ilk girişten sonra değiştir
+- [ ] **Panel admin şifresini değiştir** (`Ozk4n!2026`, sohbete yapıştırıldı) —
+      artık kendi panelinizden yapabilirsiniz: `/panel/profil` → "Şifre
+      Değiştir" (2026-08-21'de eklendi, bkz. aşağıdaki 2FA maddesi).
 - [ ] Bu iş için kullanılan Vercel Personal Access Token'ı iptal et (vercel.com/account/tokens) — iş bitti, sohbet geçmişinde duruyor
 - [ ] `AUTH_SECRET` güvenli yerde sakla (password manager) — `.env.local` dışında yere yazma
-- [ ] Admin/personel şifre politikası gözden geçir (ilk girişte şifre değiştirme zorunluluğu önerilir)
+- [x] **Admin/personel şifre politikası (KARARLAŞTIRILDI — 2026-08-21)**:
+      kullanıcıyla netleştirildi — "ilk girişte şifre değiştirme
+      zorunluluğu" özelliği İSTENMEDİ (yalnızca 2FA istendi, bkz. aşağı).
+      Madde kapatıldı; ileride fikir değişirse `updateAccountSchema`/
+      `/panel/profil` altyapısı üzerine kolayca eklenebilir.
 
 ## 🧪 Test / Kalite
 
@@ -759,7 +765,11 @@ logoları + Aypro + KNX Future.
       `BLOB_READ_WRITE_TOKEN`, `CRON_SECRET`, `RESEND_API_KEY`,
       `EMAIL_FROM` eklendi (kodda kullanılan ama listede olmayan
       değişkenler).
-- [ ] Drizzle migration'ları tek kaynak — yeni şema değişiklikleri için `db:generate` + `db:migrate`
+- [x] **Drizzle migration'ları tek kaynak (KONTROL EDİLDİ — 2026-08-21)**:
+      zaten bu oturum boyunca tutarlı şekilde uygulanan pratik — her şema
+      değişikliği önce `lib/db/schema.ts`'e yazılıp `db:generate` ile
+      migration üretiliyor, elle SQL yazılmıyor. Ayrıca bir aksiyon
+      gerekmiyor, bilgi notu olarak kapatıldı.
 
 ## 💼 Diğer Panel Geliştirmeleri
 
@@ -782,7 +792,15 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
       numaralandırmayı önlemek için e-posta kayıtlı olsun olmasın aynı
       genel mesaj döner), `/panel/sifre-sifirla/[token]`. Production'da
       hem enumeration koruması hem geçersiz token reddi doğrulandı.
-- [ ] 2FA (admin için opsiyonel)
+- [x] **2FA (TAMAMLANDI — 2026-08-21)**: `/panel/profil` üzerinden her
+      kullanıcı kendi hesabında opsiyonel TOTP tabanlı iki adımlı
+      doğrulama açabiliyor (Google Authenticator/Authy uyumlu, QR kod +
+      10 tek kullanımlık yedek kod). Aynı geçişte tam bir **Profil
+      sayfası** eklendi — kullanıcı kendi ad/e-posta/telefon/uzmanlık
+      bilgisini düzenleyebiliyor ve kendi şifresini değiştirebiliyor
+      (proje teslim edildikten sonra admin artık geliştiriciye ihtiyaç
+      duymadan kendi şifresini değiştirebilir). [lib/two-factor.ts](lib/two-factor.ts),
+      [app/panel/profil/page.tsx](app/panel/profil/page.tsx)
 - [x] **Keşif formu: WhatsApp mesajına kayıt referans no ekle (TAMAMLANDI
       — 2026-08-21)**: kayıt oluşturulduktan sonra dönen id artık
       okunup mesaja `#K{id}` olarak ekleniyor (önceden fetch yanıtı hiç
@@ -858,8 +876,17 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 
 ## 📦 Veri / Yedek
 
-- [ ] Supabase backup politikası belirle (otomatik yedek + periyodik export)
-- [ ] Veritabanı büyüme takibi (pooler bağlantı limitleri)
+- [x] **Supabase backup politikası (KARARLAŞTIRILDI — 2026-08-21)**:
+      kullanıcıyla netleştirildi — ekstra bir dış yedekleme sistemi
+      kurulmayacak, Supabase'in kendi otomatik günlük yedeklerine
+      güvenilecek (plana göre 7-30 gün saklama, Supabase Dashboard →
+      Database → Backups'tan görülebilir/geri yüklenebilir).
+- [ ] **Veritabanı büyüme takibi** — kod tarafında yapılacak bir şey yok,
+      Supabase Dashboard → Project Settings → Usage'tan DB boyutu/pooler
+      bağlantı sayısı periyodik olarak elle kontrol edilmeli (otomatik
+      bir uyarı sistemi kurulmadı — istenirse Supabase'in kendi
+      "Usage Alerts" özelliği ile e-posta uyarısı ayarlanabilir, bu da
+      hesap içi bir ayar, kod değişikliği gerektirmiyor).
 - [x] **Eski WordPress içeriği (TAMAMLANDI — 2026-08-21)**: kullanıcıyla
       netleştirildi — aktarılacak ayrı bir blog/yazı içeriği yoktu, esas
       içerik (ana sayfa metni, iletişim/sosyal medya bilgileri) zaten
