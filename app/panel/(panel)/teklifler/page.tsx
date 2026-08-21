@@ -57,6 +57,8 @@ export default function TekliflerPage() {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [viewing, setViewing] = useState<OfferRow | null>(null);
+  const [linkCopyingId, setLinkCopyingId] = useState<number | null>(null);
+  const [notice, setNotice] = useState("");
 
   const [title, setTitle] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -183,6 +185,21 @@ export default function TekliflerPage() {
     }
   };
 
+  const copyLink = async (row: OfferRow) => {
+    setLinkCopyingId(row.id);
+    setError("");
+    setNotice("");
+    try {
+      const res = await api<{ url: string }>(`/api/offers/${row.id}/public-link`, { method: "POST" });
+      await navigator.clipboard.writeText(res.url);
+      setNotice("Onay bağlantısı kopyalandı — müşteriye WhatsApp/e-postadan gönderebilirsiniz.");
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLinkCopyingId(null);
+    }
+  };
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -197,6 +214,7 @@ export default function TekliflerPage() {
       </div>
 
       {error && <ErrorBox message={error} />}
+      {notice && <p className="rounded-xl bg-brand/5 px-4 py-3 text-sm text-ink/70">{notice}</p>}
 
       {loading ? (
         <Loading />
@@ -292,6 +310,15 @@ export default function TekliflerPage() {
                         >
                           <Icon name="download" className="h-4 w-4" />
                         </a>
+                        <button
+                          type="button"
+                          onClick={() => copyLink(o)}
+                          disabled={linkCopyingId === o.id}
+                          aria-label="Onay bağlantısını kopyala"
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-ink/55 hover:bg-ink/5 hover:text-ink disabled:opacity-50"
+                        >
+                          <Icon name="whatsapp" className="h-4 w-4" />
+                        </button>
                         {canDelete && (
                           <button
                             type="button"

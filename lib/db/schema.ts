@@ -214,6 +214,11 @@ export const offers = pgTable("offers", {
   status: varchar("status", { length: 20 }).notNull().default("tasarim"), // tasarim | gonderildi | onaylandi | reddedildi
   sentDate: date("sent_date", { mode: "string" }),
   note: text("note").default(""),
+  // Müşterinin oturum açmadan teklifi görüp onaylayabildiği herkese açık
+  // bağlantının sırrı — panelde "Linki Kopyala" ilk tıklandığında
+  // (get-or-create) üretilir, /teklif/[token] bu alanla eşleşir.
+  publicToken: varchar("public_token", { length: 64 }).unique(),
+  respondedAt: timestamp("responded_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
