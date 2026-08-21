@@ -11,6 +11,7 @@ import {
   Btn,
   EmptyState,
   ErrorBox,
+  ExportCsvLink,
   Field,
   Input,
   Loading,
@@ -207,10 +208,13 @@ export default function TekliflerPage() {
           <h1 className="text-2xl font-bold tracking-tight text-ink">Teklifler</h1>
           <p className="mt-1 text-sm text-ink/55">{rows.length} kayıt</p>
         </div>
-        <Btn onClick={openCreate}>
-          <Icon name="plus" className="h-4 w-4" />
-          Yeni Teklif
-        </Btn>
+        <div className="flex gap-2.5">
+          <ExportCsvLink href="/api/offers/export" />
+          <Btn onClick={openCreate}>
+            <Icon name="plus" className="h-4 w-4" />
+            Yeni Teklif
+          </Btn>
+        </div>
       </div>
 
       {error && <ErrorBox message={error} />}

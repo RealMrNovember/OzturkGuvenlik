@@ -16,6 +16,7 @@ import {
   Btn,
   EmptyState,
   ErrorBox,
+  ExportCsvLink,
   Field,
   Input,
   Loading,
@@ -258,10 +259,13 @@ export default function IslerPage() {
             {" · kurulum ve saha işleri"}
           </p>
         </div>
-        <Btn onClick={openCreate}>
-          <Icon name="plus" className="h-4 w-4" />
-          Yeni İş
-        </Btn>
+        <div className="flex gap-2.5">
+          <ExportCsvLink href="/api/jobs/export" />
+          <Btn onClick={openCreate}>
+            <Icon name="plus" className="h-4 w-4" />
+            Yeni İş
+          </Btn>
+        </div>
       </div>
 
       {rows.length > 0 && (

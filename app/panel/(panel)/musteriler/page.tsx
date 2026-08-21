@@ -12,6 +12,7 @@ import {
   Btn,
   EmptyState,
   ErrorBox,
+  ExportCsvLink,
   Field,
   Input,
   Loading,
@@ -305,6 +306,7 @@ export default function MusterilerPage() {
             className="hidden"
             onChange={handleVCardFiles}
           />
+          <ExportCsvLink href="/api/customers/export" />
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
             Yeni Müşteri

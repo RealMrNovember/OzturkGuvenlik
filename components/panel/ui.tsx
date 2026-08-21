@@ -124,6 +124,20 @@ export function StatusBadge({
   return <Badge tone={statusTone(status) as keyof typeof tones}>{labels[status] ?? status}</Badge>;
 }
 
+/** Btn'in ghost stiliyle aynı görünen, gerçek bir indirme linki — bir CSV
+ * export ucuna işaret eder, tarayıcı otomatik indirir (JS/fetch gerekmez). */
+export function ExportCsvLink({ href, label = "Dışa Aktar (CSV)" }: { href: string; label?: string }) {
+  return (
+    <a
+      href={href}
+      className="inline-flex items-center justify-center gap-2 rounded-full border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-ink/40"
+    >
+      <Icon name="download" className="h-4 w-4" />
+      {label}
+    </a>
+  );
+}
+
 export function Btn({
   variant = "primary",
   className = "",

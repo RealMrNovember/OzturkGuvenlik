@@ -11,6 +11,7 @@ import {
   Card,
   EmptyState,
   ErrorBox,
+  ExportCsvLink,
   Field,
   Input,
   Loading,
@@ -204,6 +205,7 @@ export default function KasaPage() {
           <p className="mt-1 text-sm text-ink/55">Gelir ve gider takibi</p>
         </div>
         <div className="flex gap-2.5">
+          <ExportCsvLink href="/api/transactions/export" />
           <Btn variant="ghost" onClick={() => openCreate("gider")}>
             <Icon name="plus" className="h-4 w-4" />
             Gider ekle
