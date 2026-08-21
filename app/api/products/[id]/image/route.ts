@@ -39,18 +39,22 @@ export async function POST(req: Request, { params }: Ctx) {
   const ext = file.type.split("/")[1];
   const pathname = `${PRODUCT_IMAGE_PREFIX}${numericId}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-  const blob = await put(pathname, file, {
-    access: "public",
-    contentType: file.type,
-  });
+  try {
+    const blob = await put(pathname, file, {
+      access: "public",
+      contentType: file.type,
+    });
 
-  // Eski görseli değiştiriyorsak öncekini sil — depolamada birikmesin.
-  if (existing.imageUrl) {
-    await del(existing.imageUrl).catch(() => {});
+    // Eski görseli değiştiriyorsak öncekini sil — depolamada birikmesin.
+    if (existing.imageUrl) {
+      await del(existing.imageUrl).catch(() => {});
+    }
+
+    await db.update(products).set({ imageUrl: blob.url }).where(eq(products.id, numericId));
+    return jsonOk({ imageUrl: blob.url });
+  } catch (err) {
+    return jsonErr(`Yükleme başarısız: ${(err as Error).message}`, 500);
   }
-
-  await db.update(products).set({ imageUrl: blob.url }).where(eq(products.id, numericId));
-  return jsonOk({ imageUrl: blob.url });
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {
