@@ -727,10 +727,65 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 
 ## 📈 SEO / Pazarlama
 
-- [ ] Google Search Console + Bing Webmaster ekle
+- [x] **Site Ayarları paneline SEO/Google/İletişim/Sosyal Medya alanları
+      eklendi (TAMAMLANDI — 2026-08-21)**: `/panel/ayarlar` artık 4
+      kategorili sekmeye ayrıldı (Görünüm, İletişim, Sosyal Medya &
+      WhatsApp, SEO & Google). Admin artık telefon(lar), e-posta, adres,
+      harita linki, Instagram/Facebook/WhatsApp, Google puanı/yorum
+      sayısı/yorumlar linki, GA4 Ölçüm Kimliği, Search Console doğrulama
+      kodu, SEO başlık/açıklama/anahtar kelime/OG görselini **kod
+      değişikliği ve geliştirici müdahalesi olmadan** kendisi
+      değiştirebiliyor (`lib/site-resolve.ts`, `lib/site-settings.ts`,
+      `drizzle/0024_quiet_starjammers.sql`).
+- [x] **Eski siteden (`Eski-Dosyalar/`) veri taşındı + profesyonel SEO
+      metni yazıldı (TAMAMLANDI — 2026-08-21)**: eski site kaynağı
+      taranarak Facebook/Instagram/adres/telefon/Google Haritalar embed
+      linki/Google puanı (5.0, 33 yorum, Place ID) doğrulandı — hepsi
+      zaten `lib/site.ts`'te doğru duruyordu, panel alanlarına
+      taşınması için kullanıcıya tam değer listesi verildi (adminin
+      kendisi girdi, giriş/parola gerektirdiği için ben giremedim).
+      Eski sitede **Google Analytics/Search Console hiç kurulu
+      değilmiş** — taşınacak bir ID yok, sıfırdan hesap açılması
+      gerekiyor (bkz. aşağıdaki iki madde).
+- [x] **Kapsamlı teknik SEO denetimi + düzeltmeleri (TAMAMLANDI —
+      2026-08-21)**: `seo-specialist` ajanıyla tam site taraması yapıldı,
+      bulunan 11 sorunun tamamı düzeltildi — tüm public sayfalara
+      `alternates.canonical` eklendi (önceden yalnızca hizmet detay
+      sayfalarında vardı, apex/www/punycode domain varyantları için
+      yinelenen içerik riski taşıyordu), SSS ve 9 hizmet sayfasına
+      `FAQPage` schema.org işaretlemesi eklendi (Google zengin sonuç
+      fırsatı), Referanslarımız sayfasına `Review` şeması eklendi,
+      `localBusinessJsonLd()`'deki **sabit kodlanmış adres** artık
+      admin'in panelden girdiği gerçek adresi kullanıyor (önceden admin
+      adresi değiştirse görünen içerik güncellenirken yapısal veri eski
+      adreste kalıyordu — NAP tutarsızlığı), HDD hesaplama/keşif/SSS
+      sayfaları client-only olduğu için kendi meta başlık/açıklaması
+      yoktu, server bileşenine ayrıştırılıp eklendi
+      (`components/HesaplamaContent.tsx`, `KesifContent.tsx`,
+      `SssContent.tsx`), müşteriye özel teklif linki (`/teklif/[token]`
+      — ad + fiyat içeriyor) `noindex` yapıldı, sitemap'e eksik 7 sayfa
+      eklendi + sabit `lastModified` (önceden her build'de "bugün
+      değişti" yanlış sinyali veriyordu), marka logoları `next/image`'e
+      taşındı, `next.config.ts`'e AVIF/WebP format desteği eklendi.
+      [lib/seo.ts](lib/seo.ts), [app/sitemap.ts](app/sitemap.ts)
+- [ ] **Google Analytics 4 hesabı** — panel altyapısı hazır
+      (`googleAnalyticsId` alanı doldurulunca `app/layout.tsx` otomatik
+      `gtag.js` enjekte ediyor), ama gerçek bir Google hesabıyla
+      `analytics.google.com`'da mülk oluşturulması gerekiyor — hesap
+      girişi/oluşturma benim yapamayacağım bir işlem, admin kendisi
+      yapmalı.
+- [ ] **Google Search Console** — panel altyapısı hazır
+      (`googleSiteVerification` alanı `metadata.verification.google`'a
+      otomatik bağlanıyor), ama `search.google.com/search-console`'da
+      mülk doğrulaması admin'in kendi Google hesabıyla yapılması
+      gerekiyor.
+- [ ] Bing Webmaster ekle
 - [ ] Google Business profili ile site bağla (hizmet alanı, saatler, fotoğraf)
-- [ ] Web analytics kur (Vercel Analytics / GA4)
-- [ ] Sosyal paylaşım (Open Graph / Twitter Card) görselleri kontrol et
+- [x] **Web analytics (GA4) — altyapı TAMAMLANDI**: bkz. yukarıdaki GA4
+      maddesi, yalnızca hesap oluşturma adımı kalıyor.
+- [x] **Sosyal paylaşım (Open Graph / Twitter Card) görselleri
+      (TAMAMLANDI — 2026-08-20)**: eksikti, `/images/hero-1.jpg` ile
+      eklendi; artık admin panelden de değiştirilebiliyor (`ogImageUrl`).
 - [x] **Yerel SEO: `schema.org` yapısı (TAMAMLANDI — güncel değilmiş, daha
       önce yapılmış)**: `lib/seo.ts` — `localBusinessJsonLd()` (adres,
       koordinat, çalışma saatleri, puan, sosyal linkler; `app/layout.tsx`
