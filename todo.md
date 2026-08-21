@@ -1,6 +1,6 @@
 # Öztürk Güvenlik — Proje Yapılacaklar Listesi
 
-Son güncelleme: 2026-08-21
+Son güncelleme: 2026-08-21 (Faz 5 tamamlandı)
 
 ## 🏗️ İş Yönetim Sistemi (ERP) — Yol Haritası
 
@@ -591,13 +591,44 @@ logoları + Aypro + KNX Future.
       (`products.image_url`/`specs`/`is_service`),
       `drizzle/0019_free_otto_octavius.sql` (`customers.contact_name`).
 
-### 🔜 Faz 5 — Otomasyon ve dış yüz
+### ✅ Faz 5 — Otomasyon ve dış yüz (TAMAMLANDI — 2026-08-21, SMS hariç)
 
-- [ ] Teklif/fatura PDF çıktısı
-- [ ] Teklife herkese açık onay linki (müşteri WhatsApp/e-postadan tıklayıp
-      onaylar → otomatik işe dönüşür)
-- [ ] Excel/CSV export (müşteri, teklif, iş, kasa)
-- [ ] E-posta/SMS bildirimleri (yeni talep, randevu hatırlatma, bakım zamanı)
+- [x] **Teklif/fatura PDF çıktısı** — `components/pdf/OfferInvoicePdf.tsx`,
+      servis formu PDF'iyle aynı desen (react-pdf, Inter font). Production'da
+      gerçek bir teklifle uçtan uca doğrulandı.
+- [x] **Teklife herkese açık onay linki** — `offers.publicToken`/`respondedAt`,
+      panelde "Linki Kopyala" (get-or-create) → `/teklif/[token]` genel
+      sayfası. Müşteri oturumsuz görüp onaylar/reddeder; onayda otomatik iş
+      kaydı açılır (kataloğa bağlı kalemler stok düşümüyle taşınır, serbest
+      metin kalemler işin notuna yazılır). Zaten yanıtlanmış teklif tekrar
+      değiştirilemez (409). Production'da doğrulandı.
+- [x] **Excel/CSV export** — `lib/csv.ts` (UTF-8 BOM, RFC4180), müşteri/
+      teklif/iş/kasa için `/api/*/export` uçları + panel listelerinde
+      "Dışa Aktar (CSV)" linki. Production'da gerçek veriyle doğrulandı.
+- [x] **E-posta bildirimleri (Resend)** — `lib/email.ts`, `RESEND_API_KEY`
+      yoksa sessizce atlar (uygulama e-postasız da çalışır). Yeni keşif
+      talebinde anında yönetici e-postası; günde bir (Vercel Cron, 07:00
+      İstanbul, `app/api/cron/daily-digest`) yarının randevuları + önümüzdeki
+      7 gün içindeki/geciken bakımları özetleyen e-posta. Google Workspace
+      ile aynı alan adında çakışmadan bir arada çalışır (Resend SPF/DKIM TXT,
+      Workspace MX — ayrı kayıt türleri).
+      **SMS bildirimleri kullanıcı isteğiyle şimdilik atlandı** (Türkiye'de
+      SMS sağlayıcıları genelde ön ödemeli/kurumsal başvuru gerektiriyor).
+- [x] **Ek: müşteri e-postası + ayrı pazarlama izni (KVKK/İYS)** —
+      `customers.email`/`marketingConsent`. E-postanın kayıtlı olması
+      kampanya göndermeye yetmez, ayrı açık onay şart — form buna göre
+      kurgulandı. Rehber/vCard toplu içe aktarımı e-postayı da yakalıyor.
+      `?consentOnly=1` ile yalnızca izinli+e-postalı kayıtları veren ayrı bir
+      "Pazarlama İzinli Liste" CSV linki eklendi — gelecekteki kampanya
+      aracına (ya da bugün başka bir e-posta pazarlama servisine) hazır,
+      temiz bir liste üretir. Kampanya gönderim aracının kendisi henüz
+      yapılmadı — yalnızca altyapı/hukuki uyum hazır.
+- [x] **Yan bulgu: Kasa'da döviz çevirisi hatası** — 3 kayıt (Teletek
+      faturası + Kasa ödemesi + 3 Dahua ürününün maliyeti) yanlışlıkla
+      kur=1 ile kaydedilmişti, "Bu ay gider" kartı USD tutarı TL gibi
+      topluyordu (₺13.395 yerine gerçek ₺64.761,17). Frankfurter'dan fatura
+      tarihli gerçek kur (24 Haziran 2026: 1 USD = 46,489 TL) çekilip hepsi
+      düzeltildi, production'da doğrulandı.
 
 ## 🚀 Canlıya Alma / Deploy (ÖNCELİK YÜKSEK)
 
