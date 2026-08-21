@@ -745,8 +745,13 @@ logoları + Aypro + KNX Future.
 
 ## 🧹 Kod Tabanı / Bakım
 
-- [ ] **`Eski-Dosyalar/` (21 MB) kararı — kullanıcı kararı bekleniyor**: repo'da
-      tarihsel mi kalsın, yoksa arşivle kaldır mı?
+- [x] **`Eski-Dosyalar/` kararı (TAMAMLANDI — 2026-08-21)**: kullanıcı
+      "arşivle, repodan çıkar" dedi. Kopyalanmadan önce doğrulanarak
+      `C:\CiciByte\ÖztürkGüvenlik-Eski-Dosyalar-Arsiv`'e kopyalandı (138
+      dosya, 22 MB, kopya sonrası dosya sayısı teyit edildi), sonra
+      `git rm -r Eski-Dosyalar` ile repodan kaldırıldı. İçindeki
+      kullanılabilecek bilgiler (iletişim, sosyal medya, adres, SEO
+      metni) zaten bu oturumda koda taşınmıştı.
 - [x] **Kullanılmayan bağımlılık kontrolü (TAMAMLANDI — 2026-08-21)**:
       `@types/bcryptjs` kaldırıldı — `bcryptjs@3` kendi tiplerini
       (`umd/index.d.ts`) taşıyor, ayrı pakete gerek yoktu.
@@ -855,7 +860,10 @@ Faz 2-5'e taşındı — burada yalnızca ERP dışı, bağımsız iyileştirmel
 
 - [ ] Supabase backup politikası belirle (otomatik yedek + periyodik export)
 - [ ] Veritabanı büyüme takibi (pooler bağlantı limitleri)
-- [ ] Eski WordPress içeriğinden faydalı kalacakları aktarmayı tamamla (bloglar/yazılar)
+- [x] **Eski WordPress içeriği (TAMAMLANDI — 2026-08-21)**: kullanıcıyla
+      netleştirildi — aktarılacak ayrı bir blog/yazı içeriği yoktu, esas
+      içerik (ana sayfa metni, iletişim/sosyal medya bilgileri) zaten
+      `Eski-Dosyalar/` taraması sırasında koda taşınmıştı.
 
 ## ✅ Tamamlananlar (referans)
 
