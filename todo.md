@@ -1,6 +1,6 @@
 # Öztürk Güvenlik — Proje Yapılacaklar Listesi
 
-Son güncelleme: 2026-08-20
+Son güncelleme: 2026-08-21
 
 ## 🏗️ İş Yönetim Sistemi (ERP) — Yol Haritası
 
@@ -395,8 +395,8 @@ logoları + Aypro + KNX Future.
       üründen kaç adet alındı" bilgisini tutmuyor — bu, aşağıdaki
       **Toptancılar** planıyla genişletilecek.
 
-- [ ] **Toptancılar modülü (detaylı, Türkiye'ye özel) — kullanıcı isteği,
-      2026-08-20**: Yukarıdaki temel tedarikçi/fatura takibi kalem
+- [x] **Toptancılar modülü (detaylı, Türkiye'ye özel) — TAMAMLANDI (2026-08-20)**:
+      Yukarıdaki temel tedarikçi/fatura takibi kalem
       seviyesine çıkarılacak — hangi toptancıdan, ne zaman, hangi faturayla,
       hangi ürünlerden kaç adet, birim fiyatı ne olarak alındığı tek tek
       kayıt altına alınacak. Panelde **Müşteriler'in hemen altına**
@@ -445,8 +445,8 @@ logoları + Aypro + KNX Future.
       kalanından (personel izin/masraf, granüler yetki UI'ı — bu ikisi
       zaten ayrı yapıldı) sonra ele alınacak.
 
-- [ ] **Toptancılar — fatura/proforma/makbuz tarama ile otomatik stok girişi
-      (OCR, kullanıcı isteği — 2026-08-20)**: yukarıdaki kalem bazlı
+- [x] **Toptancılar — fatura/proforma/makbuz tarama ile otomatik stok girişi
+      (OCR) — TAMAMLANDI (2026-08-20)**: yukarıdaki kalem bazlı
       Toptancılar modülünün üzerine oturan bir katman. Kullanıcı kamerayla
       tarar ya da dosya (JPG/PDF) yükler, sistem tedarikçiyi, kalemleri ve
       toplamı **otomatik tahmin edip formu önceden doldurur** — kullanıcı
@@ -522,6 +522,74 @@ logoları + Aypro + KNX Future.
       (OCR'ın ne okuduğu vs. kullanıcının neye çevirdiği) zamanla loglanıp
       kural/eşleştirme eşiklerini elle iyileştirmek için kullanılabilir —
       makine öğrenmesi eğitimi gerekmez, sadece örüntü ince ayarı.
+
+      **Gerçek sonuç (yukarıdaki plandan sapmalar)**: e-Arşiv QR kodu
+      (`lib/invoice-qr.ts`) plana ek olarak eklendi — VKN/tutar/tarih için
+      OCR tahmininden çok daha güvenilir, mevcutsa OCR'ı ezer. Kullanıcının
+      3 gerçek faturayla (Teletek, Neutron, Legend) yaptığı testlerde çok
+      sayıda gerçek hata bulunup düzeltildi: Türkçe İ karakteri regex'lerde
+      eşleşmiyordu (`foldTr()` normalizasyonu eklendi), Tesseract'ın
+      varsayılan `recognize()` çağrısı küçük tablo hücrelerini atlıyordu
+      (`PSM.AUTO` + `blocks:true` zorunlu hale getirildi), düşük çözünürlüklü
+      yüklemelerde DPI yanlış tahmin edilip kalemler tamamen kayboluyordu
+      (`user_defined_dpi:"300"` — kök sebep, kullanıcının gerçek yüklediği
+      dosya Blob'dan indirilip yerel olarak tekrar üretilerek doğrulandı).
+      **Bulunan ayrı bir veri bütünlüğü sorunu**: bu düzeltmelerden önce
+      kaydedilmiş 2 fatura (Teletek, Neutron) yanlış miktar/fiyatla
+      kaydedilmiş ve zaten stoğa + Kasa'ya işlenmişti — canlı API üzerinden
+      hem faturalar hem ilgili stok/Kasa kayıtları gerçek faturalarla
+      eşleşecek şekilde düzeltildi, 3 sahte "ürün" (IBAN satırının yanlış
+      okunmasıyla oluşmuş) pasife alındı.
+
+### ✅ Faz 4 ek — Ürün görselleri/özellikleri + hizmet ayrıcalığı + müşteri
+      firma/yetkili ayrımı (TAMAMLANDI — 2026-08-21)
+
+- [x] **Ürün görselleri**: `products.imageUrl` — admin/personel farkı
+      olmadan (yalnızca oturum şartı) herkes ekleyip değiştirebiliyor, çünkü
+      alış fiyatının aksine gizlilik gerektirmiyor. Bu projenin Vercel Blob
+      deposu **private-only** yapılandırılmış (`access:"public"` reddediliyor)
+      — toptancı taramalarındaki private+proxy deseni burada da kullanıldı
+      (`app/api/products/[id]/image/route.ts`: POST private yükler, GET
+      oturumlu kullanıcıya sunucu tarafında akıtır, tarayıcıya çıplak blob
+      URL'i hiç verilmez). `components/panel/ProductImageUpload.tsx` —
+      kamera + dosya yükleme, liste (küçük) ve detay (büyük) boyutu.
+      4 gerçek ürüne (2 Dahua kamera, Dahua NVR, Neutron NVR) resmi
+      distribütör sitelerinden doğrulanmış fotoğraf yüklendi; bu arada
+      bullet/dome kameraların model kodundaki bir yazım hatası da (0208B →
+      doğrusu 0280B) 6 bağımsız kaynaktan teyitle düzeltildi.
+- [x] **Serbest ürün özellikleri**: `products.specs: jsonb` — key/value
+      listesi (örn. "Wi-Fi Desteği: Var", "RAID Desteği: RAID 0/1/5"),
+      `components/panel/ProductSpecsEditor.tsx` ile formdan eklenir. Stok
+      listesinde ayrı bir "Özellikler" sütununda (ilk denemede ürün adının
+      altında rozet yığını olarak gösterilmişti, liste anlamsız uzuyordu —
+      kullanıcı geri bildirimiyle ayrı sütuna taşınıp en fazla 2 rozet + "+N"
+      özetine indirildi), ürün detayında başlık altında rozet olarak.
+- [x] **Hizmet/işçilik ayrıcalığı**: `products.isService: boolean` — işaretli
+      ürünlerde alış fiyatı/seri takip formdan kalkar, sunucu tarafında
+      `costPrice`'ı her ihtimale karşı 0'a, stok adedini "sınırsız" sabitine
+      zorlar (`SERVICE_STOCK_SENTINEL`). Mevcut "Montaj İşçiliği" kalemi
+      bu bayrakla işaretlendi.
+- [x] **Müşteri firma/yetkili ayrımı**: `customers.contactName` eklendi —
+      mevcut `name` alanı (firma adı ya da bireysel müşteride kişinin adı)
+      korunarak yanına yetkili kişi adı için ayrı alan eklendi (geriye dönük
+      veri kaybı yok, salt ekleme migration).
+- [x] **Rehberden toplu müşteri ekleme**: Android/Chrome'da W3C Contact
+      Picker API (`navigator.contacts.select`, çoklu seçim) ile rehberden
+      işaretli kişiler toplu eklenir — işaretlenebilir bir inceleme
+      ekranından geçer (telefonu zaten kayıtlı olanlar otomatik işaretsiz).
+      **iPhone/Safari bu API'yi hiç desteklemiyor** (Apple platform kısıtı,
+      düzeltilemez) — bunun yerine iOS'un "Kişi Kartını Paylaş" ile
+      ürettiği `.vcf` dosyalarını yükleyip aynı inceleme akışına besleyen
+      platform bağımsız bir alternatif eklendi.
+- [x] **Ürünler sayfası tam responsive hale getirildi**: 10 sütunlu tablo
+      küçük ekranda taşıp okunaksızlaşıyordu — `lg` altında tablo yerine
+      dikey akışlı ürün kartları (görsel + fiyat/stok/kâr marjı grid'i +
+      özellik rozetleri), `lg` ve üstünde tablo (Alış+Kâr Marjı tek sütuna
+      birleştirildi, sütun sayısı azaltıldı), filtre çubuğu mobilde
+      yatay kaydırmalı.
+- [x] Migration'lar uygulandı: `drizzle/0018_dashing_payback.sql`
+      (`products.image_url`/`specs`/`is_service`),
+      `drizzle/0019_free_otto_octavius.sql` (`customers.contact_name`).
 
 ### 🔜 Faz 5 — Otomasyon ve dış yüz
 
