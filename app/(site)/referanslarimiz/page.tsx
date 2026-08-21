@@ -4,10 +4,12 @@ import { CtaBand } from "@/components/CtaBand";
 import { Icon } from "@/components/icons";
 import { getResolvedSite } from "@/lib/site-settings";
 import { reviews } from "@/lib/reviews";
+import { reviewsJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Referanslarımız",
   description: "Öztürk Güvenlik Sistemleri müşteri yorumları ve referansları.",
+  alternates: { canonical: "/referanslarimiz" },
 };
 
 function initials(name: string): string {
@@ -20,8 +22,13 @@ function initials(name: string): string {
 
 export default async function ReferanslarimizPage() {
   const site = await getResolvedSite();
+  const jsonLd = reviewsJsonLd(reviews.map((r) => ({ name: r.name, text: r.text, rating: 5 })));
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <section className="bg-surface py-14 sm:py-20">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <SectionHeading

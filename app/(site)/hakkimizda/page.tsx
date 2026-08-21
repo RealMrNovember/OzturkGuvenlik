@@ -9,6 +9,7 @@ import { CtaBand } from "@/components/CtaBand";
 export const metadata: Metadata = {
   title: "Hakkımızda",
   description: `2014'ten beri Yenibosna'da güvenlik sistemleri sektöründe hizmet veren ${site.name}. Kuruluş hikayemiz, değerlerimiz ve ekibimiz.`,
+  alternates: { canonical: "/hakkimizda" },
 };
 
 const values = [

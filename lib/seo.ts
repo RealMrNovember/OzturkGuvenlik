@@ -12,9 +12,8 @@ export function localBusinessJsonLd(resolved: ResolvedSite) {
     telephone: resolved.phoneDisplay,
     address: {
       "@type": "PostalAddress",
-      streetAddress: "Yenibosna Merkez Mahallesi, Kenanbey Sokak No: 11",
+      streetAddress: resolved.address,
       addressLocality: "İstanbul",
-      addressRegion: "Bahçelievler",
       addressCountry: "TR",
     },
     geo: { "@type": "GeoCoordinates", latitude: 41.0055, longitude: 28.8367 },
@@ -61,6 +60,32 @@ export function breadcrumbJsonLd(items: { name: string; path: string }[]) {
       position: i + 1,
       name: item.name,
       item: `${site.url}${item.path}`,
+    })),
+  };
+}
+
+export function faqPageJsonLd(faqs: { q: string; a: string }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map((faq) => ({
+      "@type": "Question",
+      name: faq.q,
+      acceptedAnswer: { "@type": "Answer", text: faq.a },
+    })),
+  };
+}
+
+export function reviewsJsonLd(items: { name: string; text: string; rating: number }[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "@id": `${site.url}/#business`,
+    review: items.map((r) => ({
+      "@type": "Review",
+      author: { "@type": "Person", name: r.name },
+      reviewBody: r.text,
+      reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
     })),
   };
 }

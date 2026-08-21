@@ -9,6 +9,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "İletişim",
     description: `${site.name} iletişim bilgileri: ${site.phoneDisplay}, WhatsApp, Yenibosna / İstanbul adres ve çalışma saatleri.`,
+    alternates: { canonical: "/iletisim" },
   };
 }
 

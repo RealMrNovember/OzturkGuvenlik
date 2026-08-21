@@ -19,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
     title: site.seoTitle || `${site.name} | Güvenlik Kamerası, Alarm, PDKS — İstanbul`,
     description: site.seoDescription || DEFAULT_DESCRIPTION,
     keywords: site.seoKeywords ? site.seoKeywords.split(",").map((k) => k.trim()) : undefined,
+    alternates: { canonical: "/" },
   };
 }
 

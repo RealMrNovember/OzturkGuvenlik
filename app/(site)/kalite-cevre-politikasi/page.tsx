@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   title: "Kalite ve Çevre Politikamız",
   description:
     "Öztürk Güvenlik Sistemleri'nin kalite, müşteri memnuniyeti ve çevreye duyarlı çalışma ilkeleri.",
+  alternates: { canonical: "/kalite-cevre-politikasi" },
 };
 
 const QUALITY_PRINCIPLES = [

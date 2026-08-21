@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { Reveal } from "@/components/Reveal";
 import { brands } from "@/lib/brands";
 
@@ -17,11 +18,12 @@ export function BrandsShowcase() {
                 key={brand.name}
                 className="group flex w-36 shrink-0 grow-0 items-center justify-center bg-white px-6 py-7 transition-colors duration-300"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
+                <Image
                   src={brand.src}
                   alt={brand.name}
-                  className="max-h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105 sm:max-h-9"
+                  width={144}
+                  height={36}
+                  className="h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105 sm:h-9"
                 />
               </div>
             ))}

@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "İş Ortaklarımız",
   description:
     "Öztürk Güvenlik Sistemleri'nin çözüm ortağı olduğu üretici ve teknoloji firmaları — kamera, alarm, geçiş kontrolü, network ve depolama alanlarında.",
+  alternates: { canonical: "/is-ortaklarimiz" },
 };
 
 export default function IsOrtaklarimizPage() {

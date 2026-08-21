@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Markalarımız",
   description:
     "Kurulumlarımızda kullandığımız kamera, alarm ve geçiş kontrolü sistemi markaları: Hikvision, Dahua, UNV, Hanwha Vision, Ajax, Paradox ve daha fazlası.",
+  alternates: { canonical: "/markalarimiz" },
 };
 
 const CATEGORY_ORDER: BrandCategory[] = ["kamera", "alarm", "gecis"];

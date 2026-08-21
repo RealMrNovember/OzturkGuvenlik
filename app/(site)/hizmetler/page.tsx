@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "Hizmetler",
   description:
     "Güvenlik kamerası, hırsız alarmı, yangın alarmı, PDKS, bariyer ve turnike, ses ve anons, network ve akıllı ev sistemleri. Ücretsiz keşif için arayın.",
+  alternates: { canonical: "/hizmetler" },
 };
 
 const groups: { key: "kamera" | "alarm" | "gecis" | "diger"; title: string; desc: string }[] = [

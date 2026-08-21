@@ -7,6 +7,7 @@ export const metadata: Metadata = {
   title: "Mobil Uygulamalar",
   description:
     "Kurduğumuz kamera ve alarm sistemlerini telefonunuzdan canlı izlemek için kullanacağınız marka uygulamaları ve indirme bağlantıları.",
+  alternates: { canonical: "/mobil-uygulamalar" },
 };
 
 type App = { brand: string; logo?: string; app: string; note: string };

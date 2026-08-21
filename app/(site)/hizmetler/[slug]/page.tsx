@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { services, getService } from "@/lib/services";
 import { getResolvedSite, resolvedWaLink } from "@/lib/site-settings";
-import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
+import { breadcrumbJsonLd, serviceJsonLd, faqPageJsonLd } from "@/lib/seo";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { CtaBand } from "@/components/CtaBand";
@@ -43,6 +43,7 @@ export default async function ServicePage({ params }: PageProps) {
         { name: service.name, path: `/hizmetler/${service.slug}` },
       ]),
       serviceJsonLd(service),
+      faqPageJsonLd(service.faqs),
     ],
   };
 
