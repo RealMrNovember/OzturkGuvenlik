@@ -2,7 +2,7 @@ import { and, eq, lte } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { appointments, customers, maintenanceContracts } from "@/lib/db/schema";
 import { jsonOk, jsonErr } from "@/lib/api";
-import { sendEmail, emailLayout } from "@/lib/email";
+import { sendEmail, emailLayout, escapeHtml } from "@/lib/email";
 import { getResolvedSite } from "@/lib/site-settings";
 
 function todayStr(): string {
@@ -70,7 +70,7 @@ export async function GET(req: Request) {
           ${tomorrowAppointments
             .map(
               (a) =>
-                `<li style="margin-bottom: 6px;">${a.time} — ${a.customerName ?? "Müşteri"} ${a.title ? `(${a.title})` : ""} ${a.address ? `· ${a.address}` : ""}</li>`
+                `<li style="margin-bottom: 6px;">${escapeHtml(a.time ?? "")} — ${escapeHtml(a.customerName ?? "Müşteri")} ${a.title ? `(${escapeHtml(a.title)})` : ""} ${a.address ? `· ${escapeHtml(a.address)}` : ""}</li>`
             )
             .join("")}
         </ul>
@@ -85,7 +85,7 @@ export async function GET(req: Request) {
           ${dueMaintenance
             .map((m) => {
               const overdue = m.nextServiceDate < today;
-              return `<li style="margin-bottom: 6px; ${overdue ? "color: #d32f2f;" : ""}">${m.customerName ?? "Müşteri"} — ${m.type || "Bakım"} — ${fmtDate(m.nextServiceDate)}${overdue ? " (GECİKTİ)" : ""}</li>`;
+              return `<li style="margin-bottom: 6px; ${overdue ? "color: #d32f2f;" : ""}">${escapeHtml(m.customerName ?? "Müşteri")} — ${escapeHtml(m.type || "Bakım")} — ${fmtDate(m.nextServiceDate)}${overdue ? " (GECİKTİ)" : ""}</li>`;
             })
             .join("")}
         </ul>

@@ -1,13 +1,17 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { createSession, consumePendingTwoFactorToken } from "@/lib/auth";
+import { createSession, peekPendingTwoFactorUserId, clearPendingTwoFactorToken } from "@/lib/auth";
 import { verifyTotpCode, consumeBackupCode } from "@/lib/two-factor";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { twoFactorLoginSchema } from "@/lib/validators";
 
 export async function POST(req: Request) {
-  const userId = await consumePendingTwoFactorToken();
+  // Çerez burada TÜKETİLMİYOR — yanlış kod girilirse kalan süre boyunca
+  // (5 dk) tekrar denenebilsin diye yalnızca sahibi okunuyor. Yalnızca
+  // doğrulama başarılı olunca aşağıda clearPendingTwoFactorToken() ile
+  // tüketiliyor.
+  const userId = await peekPendingTwoFactorUserId();
   if (!userId) return jsonErr("Oturum süresi doldu, tekrar giriş yapın", 401);
 
   const body = await readJson(req);
@@ -40,6 +44,7 @@ export async function POST(req: Request) {
       .where(eq(users.id, user.id));
   }
 
+  await clearPendingTwoFactorToken();
   await createSession(
     {
       id: user.id,

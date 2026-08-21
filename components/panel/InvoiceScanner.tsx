@@ -106,7 +106,6 @@ export function InvoiceScanner({
       const qrSource = ocrInput instanceof HTMLCanvasElement ? await canvasToFile(ocrInput) : file;
       const qrRaw = await tryDecodeQr(qrSource);
       const qrData = qrRaw ? parseEArsivQr(qrRaw) : null;
-      console.log("[Fatura Tara] QR kodu:", qrRaw ? (qrData ? "çözüldü (e-Arşiv verisi)" : "çözüldü ama e-Arşiv biçiminde değil") : "bulunamadı/okunamadı");
 
       const { createWorker, PSM } = await import("tesseract.js");
       const worker = await createWorker("tur", 1, {
@@ -132,8 +131,6 @@ export function InvoiceScanner({
 
       let extracted = extractInvoiceData(data.text, flattenWords(data), suppliers, products);
       if (qrData) extracted = mergeQrIntoExtraction(extracted, qrData, suppliers);
-      console.log("[Fatura Tara] Ham OCR metni:", data.text);
-      console.log("[Fatura Tara] Bulunan kalemler:", extracted.items);
 
       setStatus("uploading");
       const form = new FormData();

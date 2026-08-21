@@ -288,6 +288,11 @@ export const updateUserSchema = z.object({
   active: z.boolean().optional(),
   newPassword: z.string().min(6, "Şifre en az 6 karakter").max(100).optional(),
   permissions: z.array(z.enum(PERMISSION_KEYS)).optional(),
+  // Yalnızca kendi kaydını (isSelf) düzenleyen bir kullanıcı newPassword/
+  // email değiştirirken zorunlu — bkz. app/api/staff/[id]/route.ts. Bir
+  // yöneticinin BAŞKA bir personelin şifresini sıfırlaması bu alanı
+  // gerektirmez (farklı tehdit modeli: yönetici zaten yetkili).
+  currentPassword: z.string().max(100).optional(),
 });
 
 export const createInvoiceSchema = z.object({

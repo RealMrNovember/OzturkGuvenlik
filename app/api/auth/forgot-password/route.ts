@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { forgotPasswordSchema } from "@/lib/validators";
-import { sendEmail, emailLayout } from "@/lib/email";
+import { sendEmail, emailLayout, escapeHtml } from "@/lib/email";
 import { site } from "@/lib/site";
 
 const TOKEN_TTL_MS = 60 * 60 * 1000; // 1 saat
@@ -38,7 +38,7 @@ export async function POST(req: Request) {
       await emailLayout(
         "Şifre Sıfırlama",
         `
-          <p style="margin: 0 0 12px;">Merhaba ${user.name},</p>
+          <p style="margin: 0 0 12px;">Merhaba ${escapeHtml(user.name)},</p>
           <p style="margin: 0 0 16px;">
             Panel şifrenizi sıfırlamak için aşağıdaki bağlantıya tıklayın. Bu bağlantı
             <strong>1 saat</strong> geçerlidir ve yalnızca bir kez kullanılabilir.

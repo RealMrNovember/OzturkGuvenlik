@@ -52,6 +52,13 @@ export function KesifContent() {
         body: JSON.stringify(payload),
       });
       const body = await res.json().catch(() => null);
+      if (!res.ok) {
+        // Kayıt DB'ye yazılmadı — "kaydedildi" göstermeden WhatsApp'a
+        // yönlendiriyoruz ki talep en azından oradan iletilsin.
+        setSaveError(body?.error ?? "Kayıt sırasında bir sorun oluştu. WhatsApp'tan devam edin.");
+        window.open(resolvedWaLink(site, buildMessage()), "_blank", "noopener");
+        return;
+      }
       const refId = body?.data?.id as number | undefined;
       setSaved(true);
       window.open(resolvedWaLink(site, buildMessage(refId)), "_blank", "noopener");

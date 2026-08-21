@@ -24,9 +24,12 @@ export async function POST(req: Request) {
 
   const passwordHash = await hashPassword(parsed.data.password);
   // Token tek kullanımlık — başarılı sıfırlamadan sonra hemen temizlenir.
+  // passwordChangedAt de güncellenir: şifremi unuttum akışı genelde bir
+  // hesap ele geçirilmişken kullanılır — bu yüzden bu andan önce basılmış
+  // her oturum çerezi (çalınmış olsa bile) otomatik geçersiz sayılmalı.
   await db
     .update(users)
-    .set({ passwordHash, resetToken: null, resetTokenExpiresAt: null })
+    .set({ passwordHash, resetToken: null, resetTokenExpiresAt: null, passwordChangedAt: new Date() })
     .where(eq(users.id, user.id));
 
   return jsonOk({ ok: true });

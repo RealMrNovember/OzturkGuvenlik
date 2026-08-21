@@ -402,15 +402,23 @@ export default function PersonelPage() {
                   <option value="0">Pasif (giriş engelli)</option>
                 </Select>
               </Field>
-              <Field label="Yeni şifre (değiştirmek için)">
-                <Input
-                  type="password"
-                  autoComplete="new-password"
-                  value={editForm.newPassword}
-                  onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
-                  placeholder="Boş bırakılırsa değişmez"
-                />
-              </Field>
+              {editing.id !== sessionId ? (
+                <Field label="Yeni şifre (değiştirmek için)">
+                  <Input
+                    type="password"
+                    autoComplete="new-password"
+                    value={editForm.newPassword}
+                    onChange={(e) => setEditForm({ ...editForm, newPassword: e.target.value })}
+                    placeholder="Boş bırakılırsa değişmez"
+                  />
+                </Field>
+              ) : (
+                <Field label="Şifre">
+                  <p className="pt-2 text-xs text-ink/50">
+                    Kendi şifrenizi <Link href="/panel/profil" className="font-semibold text-brand hover:underline">Profilim</Link> sayfasından değiştirebilirsiniz.
+                  </p>
+                </Field>
+              )}
             </div>
             {isAdmin && editForm.role === "staff" && (
               <PermissionCheckboxes

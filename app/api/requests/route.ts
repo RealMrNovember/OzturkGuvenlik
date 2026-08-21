@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import { createRequestSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
-import { sendEmail, emailLayout } from "@/lib/email";
+import { sendEmail, emailLayout, escapeHtml } from "@/lib/email";
 import { getResolvedSite } from "@/lib/site-settings";
 
 // Herkese açık: keşif sihirbazından kayıt (honeypot korumalı)
@@ -41,11 +41,11 @@ export async function POST(req: Request) {
     await emailLayout(
       "Yeni Keşif Talebi",
       `
-        <p style="margin: 0 0 8px;"><strong>Ad Soyad:</strong> ${data.name}</p>
-        <p style="margin: 0 0 8px;"><strong>Telefon:</strong> ${data.phone}</p>
-        <p style="margin: 0 0 8px;"><strong>Mekân:</strong> ${data.placeType || "-"}</p>
-        <p style="margin: 0 0 8px;"><strong>Sistemler:</strong> ${data.systems?.join(", ") || "-"}</p>
-        ${data.note ? `<p style="margin: 12px 0 0; color: #555;">${data.note}</p>` : ""}
+        <p style="margin: 0 0 8px;"><strong>Ad Soyad:</strong> ${escapeHtml(data.name)}</p>
+        <p style="margin: 0 0 8px;"><strong>Telefon:</strong> ${escapeHtml(data.phone)}</p>
+        <p style="margin: 0 0 8px;"><strong>Mekân:</strong> ${escapeHtml(data.placeType || "-")}</p>
+        <p style="margin: 0 0 8px;"><strong>Sistemler:</strong> ${escapeHtml(data.systems?.join(", ") || "-")}</p>
+        ${data.note ? `<p style="margin: 12px 0 0; color: #555;">${escapeHtml(data.note)}</p>` : ""}
         <p style="margin: 16px 0 0;">
           <a href="${site.url}/panel/talepler" style="color: #0e6fb8;">Panelde görüntüle →</a>
         </p>

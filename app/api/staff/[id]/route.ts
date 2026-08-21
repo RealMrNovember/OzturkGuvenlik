@@ -3,7 +3,7 @@ import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { updateUserSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
-import { getSession, hashPassword } from "@/lib/auth";
+import { getSession, createSession, hashPassword, verifyPassword } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -25,7 +25,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
   if (!parsed.success) {
     return jsonErr(parsed.error.issues[0]?.message ?? "Geçersiz istek");
   }
-  const { newPassword, role, permissions, ...rest } = parsed.data;
+  const { newPassword, role, permissions, currentPassword, ...rest } = parsed.data;
 
   // Rol ve izin değişikliği yalnızca gerçek yöneticiye açık — manage_staff
   // izni verilmiş bir personelin kendini/başkasını admin yapması veya izin
@@ -34,13 +34,33 @@ export async function PATCH(req: Request, { params }: Ctx) {
     return jsonErr("Rol ve izin değişikliği yalnızca yönetici tarafından yapılabilir", 403);
   }
 
+  const [target] = await db.select().from(users).where(eq(users.id, numericId)).limit(1);
+  if (!target) return jsonErr("Personel bulunamadı", 404);
+
+  // Kendi şifresini/e-postasını değiştiren kullanıcı mevcut şifresini
+  // kanıtlamalı — aksi halde çalınmış bir oturum çerezi, eski şifreyi
+  // hiç bilmeden kalıcı bir hesap devralmaya dönüşebilir. Bir yöneticinin
+  // BAŞKA bir personelin şifresini sıfırlaması bu kontrole tabi değil.
+  const changingOwnCredential = isSelf && (newPassword !== undefined || (rest.email !== undefined && rest.email !== target.email));
+  if (changingOwnCredential) {
+    if (!currentPassword) {
+      return jsonErr("Şifre veya e-posta değiştirmek için mevcut şifrenizi girmelisiniz");
+    }
+    const valid = await verifyPassword(currentPassword, target.passwordHash);
+    if (!valid) return jsonErr("Mevcut şifre hatalı", 401);
+  }
+
   const data = { ...rest, ...(role !== undefined ? { role } : {}), ...(permissions !== undefined ? { permissions } : {}) };
 
+  // Şifre değişince (kendi şifresi ya da yönetici tarafından başka bir
+  // personele atanan yeni şifre), passwordChangedAt güncellenip o ana
+  // kadar basılmış tüm oturum çerezleri bir sonraki istekte otomatik
+  // geçersiz sayılır (bkz. lib/auth.ts getSession).
   const [updated] = await db
     .update(users)
     .set({
       ...data,
-      ...(newPassword ? { passwordHash: await hashPassword(newPassword) } : {}),
+      ...(newPassword ? { passwordHash: await hashPassword(newPassword), passwordChangedAt: new Date() } : {}),
     })
     .where(eq(users.id, numericId))
     .returning({
@@ -52,10 +72,29 @@ export async function PATCH(req: Request, { params }: Ctx) {
       specialty: users.specialty,
       active: users.active,
       permissions: users.permissions,
+      passwordChangedAt: users.passwordChangedAt,
     });
 
   if (!updated) return jsonErr("Personel bulunamadı", 404);
-  return jsonOk(updated);
+
+  // Kendi kaydını düzenliyorsa (isim/şifre/vb.), oturumu güncel bilgi ve
+  // security-stamp ile yeniden imzalıyoruz — yoksa kendi şifresini
+  // değiştiren kullanıcı bir sonraki istekte kendi kendini kilitler.
+  if (isSelf && updated.active) {
+    await createSession(
+      {
+        id: updated.id,
+        name: updated.name,
+        email: updated.email,
+        role: updated.role as "admin" | "staff",
+        permissions: (updated.permissions as string[] | null) ?? session.permissions,
+      },
+      updated.passwordChangedAt
+    );
+  }
+
+  const { passwordChangedAt: _omit, ...response } = updated;
+  return jsonOk(response);
 }
 
 export async function DELETE(_req: Request, { params }: Ctx) {

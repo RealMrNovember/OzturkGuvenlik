@@ -73,11 +73,11 @@ export async function getSession(): Promise<SessionUser | null> {
     if (!id || !role || !tokenStamp) return null;
 
     const [row] = await db
-      .select({ passwordChangedAt: users.passwordChangedAt })
+      .select({ passwordChangedAt: users.passwordChangedAt, active: users.active })
       .from(users)
       .where(eq(users.id, id))
       .limit(1);
-    if (!row) return null;
+    if (!row || !row.active) return null;
     if (Math.floor(row.passwordChangedAt.getTime() / 1000) !== tokenStamp) return null;
 
     return { id, name, role, email: "", permissions };
@@ -117,10 +117,15 @@ export async function createPendingTwoFactorToken(userId: number): Promise<void>
   });
 }
 
-export async function consumePendingTwoFactorToken(): Promise<number | null> {
+/**
+ * Çerezi SİLMEDEN sahibini okur — 2FA kodu yanlış girilirse kullanıcı
+ * kalan süre boyunca (5 dk) tekrar deneyebilsin diye. Çerez yalnızca
+ * kod doğrulaması BAŞARILI olunca clearPendingTwoFactorToken() ile
+ * tüketilmeli (bkz. /api/auth/2fa/verify).
+ */
+export async function peekPendingTwoFactorUserId(): Promise<number | null> {
   const store = await cookies();
   const token = store.get(PENDING_2FA_COOKIE)?.value;
-  store.delete(PENDING_2FA_COOKIE);
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, secretKey());
@@ -130,6 +135,11 @@ export async function consumePendingTwoFactorToken(): Promise<number | null> {
   } catch {
     return null;
   }
+}
+
+export async function clearPendingTwoFactorToken(): Promise<void> {
+  const store = await cookies();
+  store.delete(PENDING_2FA_COOKIE);
 }
 
 export async function hashPassword(password: string): Promise<string> {

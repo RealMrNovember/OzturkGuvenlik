@@ -13,6 +13,18 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 // gerçek bir adrese geçilebilir.
 const FROM = process.env.EMAIL_FROM || "Öztürk Güvenlik <onboarding@resend.dev>";
 
+/** E-posta HTML gövdesine gömülecek kullanıcı girdisini kaçışlar — form
+ * alanları (isim, not, adres vb.) düz metin olarak yazılmalı, HTML olarak
+ * yorumlanmamalı. */
+export function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   if (!resend) {
     console.warn(`[email] RESEND_API_KEY ayarlı değil — bildirim gönderilmedi: "${subject}" → ${to}`);
