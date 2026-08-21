@@ -416,6 +416,15 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Şifre gerekli").max(100),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().email("E-posta geçersiz").max(190),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().trim().min(1, "Geçersiz bağlantı"),
+  password: z.string().min(8, "Şifre en az 8 karakter olmalı").max(100),
+});
+
 const hexColor = z
   .string()
   .trim()

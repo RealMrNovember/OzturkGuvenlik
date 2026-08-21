@@ -71,8 +71,11 @@ export default function PanelGirisPage() {
             />
           </label>
           <label className="mt-4 block">
-            <span className="mb-1.5 block text-xs font-semibold text-ink/70">
+            <span className="mb-1.5 flex items-center justify-between text-xs font-semibold text-ink/70">
               Şifre
+              <Link href="/panel/sifremi-unuttum" className="font-semibold text-brand hover:underline">
+                Şifremi unuttum
+              </Link>
             </span>
             <input
               type="password"

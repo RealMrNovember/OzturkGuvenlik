@@ -26,6 +26,10 @@ export const users = pgTable("users", {
   // role="admin" için anlamsız (admin her zaman tam yetkili) — yalnızca staff için
   // ince ayar sağlar. Anahtarlar lib/permissions.ts'teki PERMISSION_KEYS'te tanımlı.
   permissions: jsonb("permissions").notNull().default([]),
+  // Şifremi unuttum akışı — token yalnızca tek kullanımlık ve süreli (1 saat).
+  // Kullanılınca ya da yeni bir istek gelince her ikisi de temizlenir/yenilenir.
+  resetToken: varchar("reset_token", { length: 64 }).unique(),
+  resetTokenExpiresAt: timestamp("reset_token_expires_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
