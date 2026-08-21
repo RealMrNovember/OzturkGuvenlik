@@ -1,5 +1,5 @@
 import { getResolvedSite } from "@/lib/site-settings";
-import { reviews } from "@/lib/reviews";
+import { getPublishedReviews, avatarColorFor, relativeTimeFromDate } from "@/lib/reviews-db";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 
@@ -12,7 +12,7 @@ function initials(name: string): string {
 }
 
 export async function ReviewsSection() {
-  const site = await getResolvedSite();
+  const [site, reviews] = await Promise.all([getResolvedSite(), getPublishedReviews()]);
   return (
     <section id="yorumlar" className="bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">
@@ -35,25 +35,25 @@ export async function ReviewsSection() {
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {reviews.map((r, i) => (
-            <Reveal key={r.name} delay={i * 80}>
+            <Reveal key={r.id} delay={i * 80}>
               <figure className="accent-frame-left flex h-full flex-col rounded-2xl border border-ink/8 bg-white p-6 shadow-sm transition-shadow hover:shadow-md">
                 <div className="flex items-center gap-1 text-[#F5A623]">
-                  {Array.from({ length: 5 }).map((_, j) => (
+                  {Array.from({ length: r.rating }).map((_, j) => (
                     <Icon key={j} name="star" className="h-4 w-4" />
                   ))}
                 </div>
                 <blockquote className="mt-4 flex-1 text-sm leading-relaxed text-ink/75">
-                  “{r.text}”
+                  “{r.reviewText}”
                 </blockquote>
                 <figcaption className="mt-5 flex items-center gap-3">
                   <span
-                    className={`flex h-10 w-10 items-center justify-center rounded-full ${r.color} text-sm font-bold text-white`}
+                    className={`flex h-10 w-10 items-center justify-center rounded-full ${avatarColorFor(r.name)} text-sm font-bold text-white`}
                   >
                     {initials(r.name)}
                   </span>
                   <div>
                     <p className="text-sm font-semibold text-ink">{r.name}</p>
-                    <p className="text-xs text-ink/50">{r.time}</p>
+                    <p className="text-xs text-ink/50">{relativeTimeFromDate(r.reviewDate)}</p>
                   </div>
                 </figcaption>
               </figure>

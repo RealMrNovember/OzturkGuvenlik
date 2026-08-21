@@ -479,6 +479,19 @@ export const serviceMedia = pgTable("service_media", {
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });
 
+export const reviews = pgTable("reviews", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 120 }).notNull(),
+  reviewText: text("review_text").notNull(),
+  rating: integer("rating").notNull().default(5),
+  reviewDate: date("review_date", { mode: "string" }).notNull(),
+  published: boolean("published").notNull().default(true),
+  sortOrder: integer("sort_order").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
+});
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Customer = typeof customers.$inferSelect;
@@ -499,6 +512,7 @@ export type Product = typeof products.$inferSelect;
 export type ProductUnit = typeof productUnits.$inferSelect;
 export type SiteSettings = typeof siteSettings.$inferSelect;
 export type ServiceMedia = typeof serviceMedia.$inferSelect;
+export type Review = typeof reviews.$inferSelect;
 
 /** Bu adedin altındaki stok "kritik" sayılır (bkz. /panel/urunler, dashboard). */
 export const LOW_STOCK_THRESHOLD = 5;

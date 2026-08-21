@@ -607,3 +607,21 @@ export const updateSupplierInvoiceSchema = z.object({
   paidDate: isoDate.nullable().optional(),
   note: z.string().trim().max(2000).optional(),
 });
+
+export const createReviewSchema = z.object({
+  name: z.string().trim().min(1, "Müşteri adı gerekli").max(120),
+  reviewText: z.string().trim().min(1, "Yorum metni gerekli").max(2000),
+  rating: z.number().int().min(1, "En az 1 yıldız").max(5, "En fazla 5 yıldız").optional().default(5),
+  reviewDate: isoDate,
+  published: z.boolean().optional().default(true),
+  sortOrder: z.number().int().optional().default(0),
+});
+
+export const updateReviewSchema = z.object({
+  name: z.string().trim().min(1, "Müşteri adı gerekli").max(120).optional(),
+  reviewText: z.string().trim().min(1, "Yorum metni gerekli").max(2000).optional(),
+  rating: z.number().int().min(1, "En az 1 yıldız").max(5, "En fazla 5 yıldız").optional(),
+  reviewDate: isoDate.optional(),
+  published: z.boolean().optional(),
+  sortOrder: z.number().int().optional(),
+});

@@ -54,6 +54,12 @@ const nav = [
     requires: "manage_settings" as const,
   },
   {
+    href: "/panel/yorumlar",
+    label: "Müşteri Yorumları",
+    icon: "star" as const,
+    requires: "manage_settings" as const,
+  },
+  {
     href: "/panel/ayarlar",
     label: "Site Ayarları",
     icon: "palette" as const,
