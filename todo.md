@@ -685,13 +685,42 @@ logoları + Aypro + KNX Future.
 
 ## 🧪 Test / Kalite
 
-- [ ] Test altyapısı kur (vitest + React Testing Library)
-- [ ] Kritik akışlar için test yaz:
-  - [ ] Keşif formu → `/api/requests` kaydı + honeypot
-  - [ ] Auth: giriş/logout, rol bazlı erişim (admin vs personel)
-  - [ ] Randevu CRUD, müşteri arama, teklif toplam hesabı, iş ataması
-- [ ] API route'lardaki `p:any` tiplerini gerçek tiplerle değiştir
-- [ ] Seed idempotency: Supabase'te `db:seed` yeniden çalıştırılırsa örnek veri tekrar ekleniyor — örnek veri ekleme kısmını opsiyonel yap
+- [x] **Test altyapısı kuruldu (KISMEN TAMAMLANDI — 2026-08-21)**: `vitest`
+      eklendi (`vitest.config.ts`, `npm test` / `npm run test:watch`).
+      Saf iş mantığı (DB gerektirmeyen) için 29 test yazıldı ve yeşil:
+      `lib/money.test.ts` (teklif/fatura KDV hesabı), `lib/hdd-calc.test.ts`
+      (disk hesaplama), `lib/permissions.test.ts` (rol bazlı erişim),
+      `lib/validators.test.ts` (keşif formu honeypot doğrulaması + **daha
+      önce yaşanmış "kısmi PATCH alanları sıfırlıyor" hatasının bir daha
+      olmayacağını garanti eden regresyon testleri** — updateJob/
+      updateCustomer/updateOffer/updateAppointment şemaları). React Testing
+      Library eklenmedi — bu ilk geçişte yalnızca saf mantık kapsandı.
+      **Eksik kalan**: `/api/requests` POST + honeypot, giriş/çıkış,
+      randevu/müşteri CRUD gibi gerçek route/DB entegrasyon testleri —
+      bunlar için ya erişilebilir bir test veritabanı (local Docker Postgres
+      şu an ayakta değil) ya da `db` modülünün mock'lanması gerekiyor;
+      kapsam dışı bırakıldı, ayrı bir iş olarak aşağıda duruyor.
+  - [ ] `/api/requests` POST + honeypot — gerçek/mock DB gerekiyor
+  - [ ] Auth: giriş/logout, rol bazlı erişim route entegrasyonu — gerçek/mock DB gerekiyor
+  - [ ] Randevu CRUD, müşteri arama — gerçek/mock DB gerekiyor
+- [x] **Testler yazılırken gerçek bir üretim hatası bulundu ve düzeltildi
+      (TAMAMLANDI — 2026-08-21)**: `/hesaplama` sayfasındaki RAID 1 disk
+      önerisi ([lib/hdd-calc.ts](lib/hdd-calc.ts) `suggestDisks()`) veri
+      miktarını önce ikiye katlayıp SONRA disk boyutu seçiyordu, en sonda
+      disk adedini de ayrıca ikiye katlıyordu — sonuç, önerilen toplam
+      kapasitenin gerekenin **~2 katı** olmasıydı (ör. 1.5TB veri için 2×2TB
+      yerine 2×3TB öneriliyordu). Doğru RAID 1 mantığı: disk boyutu asıl
+      veri miktarına göre seçilir, yalnızca disk *adedi* ikiye katlanır.
+      Düzeltildi, regresyon testiyle korunuyor.
+- [x] **API route'lardaki `p:any` tipleri (KONTROL EDİLDİ — 2026-08-21)**:
+      proje genelinde (`.ts`/`.tsx`) `grep`'lendi, hiçbir `: any` kalmamış —
+      madde muhtemelen çok daha önceki bir aşamadan kalma, güncel değil.
+- [x] **Seed idempotency (KONTROL EDİLDİ — 2026-08-21)**: `scripts/seed.ts`
+      incelendi — admin/personel e-posta kontrolüyle, ürün kataloğu
+      `count===0` kontrolüyle, örnek müşteri/talep/randevu ise
+      `serviceRequests` sayısı `>0` ise erken `return` ile zaten tam
+      idempotent. Madde muhtemelen bu koruma eklenmeden önce yazılmış,
+      güncel değil.
 - [ ] Lighthouse / Core Web Vitals audit (LCP, CLS, INP)
 
 ## 🧹 Kod Tabanı / Bakım

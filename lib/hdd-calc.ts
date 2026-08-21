@@ -89,11 +89,21 @@ export const STANDARD_HDD_SIZES_TB = [1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20] 
 
 export type DiskSuggestion = { count: number; sizeTb: number; totalTb: number };
 
+/**
+ * RAID 1'de her disk verinin TAM bir kopyasını tutar — bu yüzden disk
+ * boyutu asıl veri miktarına göre seçilir (2 katına göre DEĞİL), yalnızca
+ * disk ADEDİ (count) ikiye katlanır. (Önceden veri miktarı önce ikiye
+ * katlanıp sonra bu katlanmış miktara göre disk boyutu seçiliyor, en
+ * sonda adet de ikiye katlanıyordu — bu, önerilen toplam kapasiteyi
+ * gerekenin ~2 katına çıkaran bir hesaplama hatasıydı.)
+ */
 export function suggestDisks(totalGB: number, raidMirror: boolean): DiskSuggestion {
-  const rawTb = (totalGB / 1024) * (raidMirror ? 2 : 1);
+  const dataTb = totalGB / 1024;
   const largest = STANDARD_HDD_SIZES_TB[STANDARD_HDD_SIZES_TB.length - 1];
-  const fit = STANDARD_HDD_SIZES_TB.find((tb) => tb >= rawTb);
-  if (fit) return { count: raidMirror ? 2 : 1, sizeTb: fit, totalTb: fit * (raidMirror ? 2 : 1) };
-  const count = Math.ceil(rawTb / largest) * (raidMirror ? 2 : 1);
+  const mirrorFactor = raidMirror ? 2 : 1;
+  const fit = STANDARD_HDD_SIZES_TB.find((tb) => tb >= dataTb);
+  if (fit) return { count: mirrorFactor, sizeTb: fit, totalTb: fit * mirrorFactor };
+  const perDiskCount = Math.ceil(dataTb / largest);
+  const count = perDiskCount * mirrorFactor;
   return { count, sizeTb: largest, totalTb: count * largest };
 }
