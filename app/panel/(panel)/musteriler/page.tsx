@@ -28,6 +28,8 @@ type CustomerRow = {
   name: string;
   contactName: string;
   phone: string;
+  email: string;
+  marketingConsent: boolean;
   placeType: string;
   address: string;
   note: string;
@@ -39,6 +41,8 @@ const blank = {
   name: "",
   contactName: "",
   phone: "",
+  email: "",
+  marketingConsent: false,
   placeType: "",
   address: "",
   note: "",
@@ -50,7 +54,7 @@ const blank = {
 // (aşamalı iyileştirme) — desktop'ta herhangi bir hata/karışıklık oluşmaz.
 // multiple:true ile işletim sisteminin kendi rehber arayüzünde birden fazla
 // kişi işaretlenip tek seferde çekilebilir.
-type PickedContact = { name?: string[]; tel?: string[] };
+type PickedContact = { name?: string[]; tel?: string[]; email?: string[] };
 declare global {
   interface Navigator {
     contacts?: {
@@ -59,7 +63,7 @@ declare global {
   }
 }
 
-type BulkContact = { name: string; phone: string; include: boolean; alreadyExists: boolean };
+type BulkContact = { name: string; phone: string; email: string; include: boolean; alreadyExists: boolean };
 
 /** Karşılaştırma için telefonu sadece rakamlara indirger, başındaki 90/0'ı atar. */
 const normalizePhone = (p: string) => p.replace(/\D/g, "").replace(/^90/, "").replace(/^0/, "");
@@ -87,6 +91,8 @@ export default function MusterilerPage() {
       name: row.name,
       contactName: row.contactName ?? "",
       phone: row.phone,
+      email: row.email ?? "",
+      marketingConsent: row.marketingConsent ?? false,
       placeType: row.placeType,
       address: row.address,
       note: row.note,
@@ -111,11 +117,11 @@ export default function MusterilerPage() {
    * tekrarları eler, telefonu sistemde zaten kayıtlı olanları işaretsiz bırakır.
    * Hem Contact Picker (Android) hem .vcf yükleme (iPhone/herkes) bu ortak
    * mantığı kullanır. */
-  const buildBulkList = (raw: { name: string; phone: string }[]): BulkContact[] => {
+  const buildBulkList = (raw: { name: string; phone: string; email?: string }[]): BulkContact[] => {
     const existingPhones = new Set(rows.map((r) => normalizePhone(r.phone)).filter(Boolean));
     const seen = new Set<string>();
     return raw
-      .map((c) => ({ name: c.name.trim(), phone: c.phone.trim() }))
+      .map((c) => ({ name: c.name.trim(), phone: c.phone.trim(), email: (c.email ?? "").trim() }))
       .filter((c) => c.name)
       .filter((c) => {
         const key = normalizePhone(c.phone) || c.name.toLowerCase();
@@ -135,10 +141,12 @@ export default function MusterilerPage() {
   const pickFromContacts = async () => {
     if (!navigator.contacts) return;
     try {
-      const picked = await navigator.contacts.select(["name", "tel"], { multiple: true });
+      const picked = await navigator.contacts.select(["name", "tel", "email"], { multiple: true });
       if (!picked || picked.length === 0) return;
       setBulkPicked(
-        buildBulkList(picked.map((c) => ({ name: c.name?.[0] ?? "", phone: c.tel?.[0] ?? "" })))
+        buildBulkList(
+          picked.map((c) => ({ name: c.name?.[0] ?? "", phone: c.tel?.[0] ?? "", email: c.email?.[0] ?? "" }))
+        )
       );
       setBulkNotice("");
       setError("");
@@ -152,14 +160,15 @@ export default function MusterilerPage() {
    * da "Tüm Kişileri Dışa Aktar" ile birden çok VCARD bloğu içerebilir)
    * yükletip aynı toplu-ekleme inceleme akışına bağlıyoruz — platform bağımsız.
    */
-  const parseVCards = (text: string): { name: string; phone: string }[] =>
+  const parseVCards = (text: string): { name: string; phone: string; email: string }[] =>
     text
       .split(/BEGIN:VCARD/i)
       .slice(1)
       .map((block) => {
         const fn = block.match(/^FN[^:]*:(.*)$/im)?.[1]?.trim() ?? "";
         const tel = block.match(/^TEL[^:]*:(.*)$/im)?.[1]?.trim() ?? "";
-        return { name: fn, phone: tel };
+        const email = block.match(/^EMAIL[^:]*:(.*)$/im)?.[1]?.trim() ?? "";
+        return { name: fn, phone: tel, email };
       });
 
   const handleVCardFiles = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -198,7 +207,7 @@ export default function MusterilerPage() {
       try {
         await api("/api/customers", {
           method: "POST",
-          body: JSON.stringify({ name: c.name, phone: c.phone, source: "telefon" }),
+          body: JSON.stringify({ name: c.name, phone: c.phone, email: c.email, source: "telefon" }),
         });
         ok++;
       } catch {
@@ -284,7 +293,7 @@ export default function MusterilerPage() {
             <Input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="Firma, yetkili, telefon, adres ara…"
+              placeholder="Firma, yetkili, telefon, e-posta, adres ara…"
               className="w-64 pl-10"
             />
           </div>
@@ -307,6 +316,7 @@ export default function MusterilerPage() {
             onChange={handleVCardFiles}
           />
           <ExportCsvLink href="/api/customers/export" />
+          <ExportCsvLink href="/api/customers/export?consentOnly=1" label="Pazarlama İzinli Liste" />
           <Btn onClick={openCreate}>
             <Icon name="plus" className="h-4 w-4" />
             Yeni Müşteri
@@ -366,6 +376,14 @@ export default function MusterilerPage() {
                         </a>
                       ) : (
                         <span className="text-ink/45">-</span>
+                      )}
+                      {c.email && (
+                        <p className="mt-0.5 flex items-center gap-1 text-xs text-ink/45">
+                          <a href={`mailto:${c.email}`} className="truncate hover:text-brand hover:underline">
+                            {c.email}
+                          </a>
+                          {c.marketingConsent && <Badge tone="green">Pazarlama izni</Badge>}
+                        </p>
                       )}
                     </td>
                     <td className="px-5 py-4 text-ink/70">{c.placeType || "-"}</td>
@@ -440,6 +458,14 @@ export default function MusterilerPage() {
                   placeholder="05XX XXX XX XX"
                 />
               </Field>
+              <Field label="E-posta">
+                <Input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="ornek@firma.com"
+                />
+              </Field>
               <Field label="Mekân tipi">
                 <CustomSelect
                   value={form.placeType}
@@ -470,6 +496,27 @@ export default function MusterilerPage() {
                   />
                 </Field>
               </div>
+              {form.email && (
+                <div className="sm:col-span-2">
+                  <label className="flex items-start gap-2.5 rounded-xl border border-ink/10 bg-surface px-3.5 py-3">
+                    <input
+                      type="checkbox"
+                      checked={form.marketingConsent}
+                      onChange={(e) => setForm({ ...form, marketingConsent: e.target.checked })}
+                      className="mt-0.5 h-4 w-4 accent-brand"
+                    />
+                    <span className="text-sm text-ink">
+                      <span className="font-semibold">Kampanya/pazarlama e-postası izni</span>
+                      <span className="block text-xs text-ink/50">
+                        Bu müşteri ticari elektronik ileti (kampanya, duyuru vb.) almayı kabul etti.
+                        Yalnızca fatura/randevu gibi mevcut iş ilişkisi kapsamındaki e-postalar için
+                        bu izin gerekmez — ileride kampanya göndermek isterseniz yalnızca bu kutusu
+                        işaretli müşterilere gönderilir (KVKK/İYS gereği).
+                      </span>
+                    </span>
+                  </label>
+                </div>
+              )}
               <div className="sm:col-span-2">
                 <Field label="Not">
                   <Textarea
@@ -520,7 +567,10 @@ export default function MusterilerPage() {
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold text-ink">{c.name}</span>
-                    <span className="block truncate text-xs text-ink/45">{c.phone || "Telefon yok"}</span>
+                    <span className="block truncate text-xs text-ink/45">
+                      {c.phone || "Telefon yok"}
+                      {c.email && ` · ${c.email}`}
+                    </span>
                   </span>
                   {c.alreadyExists && <Badge tone="amber">Zaten kayıtlı</Badge>}
                 </label>

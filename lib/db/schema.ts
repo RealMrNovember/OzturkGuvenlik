@@ -41,6 +41,14 @@ export const customers = pgTable("customers", {
   // Gedik") — bireysel müşteride genelde boş kalır (name zaten kişinin adı).
   contactName: varchar("contact_name", { length: 120 }).default(""),
   phone: varchar("phone", { length: 30 }).default(""),
+  email: varchar("email", { length: 190 }).default(""),
+  // Ticari e-posta (kampanya/pazarlama) gönderebilmek için ayrı, açık bir
+  // izin — Türkiye'de sadece e-postanın kayıtlı olması yeterli değil,
+  // Ticari Elektronik İleti Yönetmeliği/İYS kapsamında açık onay gerekir.
+  // Fatura/randevu gibi mevcut iş ilişkisi kapsamındaki e-postalar bu izne
+  // tabi değildir — yalnızca gelecekteki kampanya gönderimi bu alanı kontrol
+  // edecek (kullanıcı isteği, henüz kampanya gönderim aracı yapılmadı).
+  marketingConsent: boolean("marketing_consent").notNull().default(false),
   placeType: varchar("place_type", { length: 60 }).default(""),
   address: text("address").default(""), // ana / fatura adresi
   contacts: jsonb("contacts").notNull().default([]), // [{name, phone, title}] — birden fazla yetkili kişi

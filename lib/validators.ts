@@ -44,10 +44,17 @@ export const customerLocationSchema = z.object({
   address: z.string().trim().min(1, "Adres gerekli").max(1000),
 });
 
+const emailField = z
+  .union([z.string().trim().toLowerCase().email("Geçersiz e-posta adresi"), z.literal("")])
+  .optional()
+  .default("");
+
 export const createCustomerSchema = z.object({
   name: z.string().trim().min(2).max(120),
   contactName: z.string().trim().max(120).optional().default(""),
   phone: z.string().trim().max(30).optional().default(""),
+  email: emailField,
+  marketingConsent: z.boolean().optional().default(false),
   placeType: z.string().trim().max(60).optional().default(""),
   address: z.string().trim().max(1000).optional().default(""),
   contacts: z.array(customerContactSchema).max(20).optional().default([]),
@@ -67,6 +74,10 @@ export const updateCustomerSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   contactName: z.string().trim().max(120).optional(),
   phone: z.string().trim().max(30).optional(),
+  email: z
+    .union([z.string().trim().toLowerCase().email("Geçersiz e-posta adresi"), z.literal("")])
+    .optional(),
+  marketingConsent: z.boolean().optional(),
   placeType: z.string().trim().max(60).optional(),
   address: z.string().trim().max(1000).optional(),
   contacts: z.array(customerContactSchema).max(20).optional(),

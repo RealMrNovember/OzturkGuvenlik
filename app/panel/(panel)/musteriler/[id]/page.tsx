@@ -33,6 +33,8 @@ type Customer = {
   name: string;
   contactName: string;
   phone: string;
+  email: string;
+  marketingConsent: boolean;
   placeType: string;
   address: string;
   contacts: { name: string; phone: string; title: string }[];
@@ -230,7 +232,17 @@ export default function MusteriDetayPage() {
                 {customer.phone}
               </a>
             )}
+            {customer.email && (
+              <a href={`mailto:${customer.email}`} className="font-semibold text-brand hover:underline">
+                {customer.email}
+              </a>
+            )}
             {customer.address && <span>{customer.address}</span>}
+            {customer.email && (
+              <Badge tone={customer.marketingConsent ? "green" : "gray"}>
+                {customer.marketingConsent ? "Pazarlama izni var" : "Pazarlama izni yok"}
+              </Badge>
+            )}
           </div>
           {customer.note && <p className="mt-3 max-w-xl text-sm text-ink/70">{customer.note}</p>}
         </div>

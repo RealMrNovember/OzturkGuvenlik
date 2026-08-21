@@ -21,6 +21,7 @@ export async function GET(req: Request) {
             ilike(customers.name, `%${q}%`),
             ilike(customers.contactName, `%${q}%`),
             ilike(customers.phone, `%${q}%`),
+            ilike(customers.email, `%${q}%`),
             ilike(customers.address, `%${q}%`)
           )
         : undefined
