@@ -11,6 +11,8 @@ import {
   type JobProductOption,
 } from "@/components/panel/JobItemsEditor";
 import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
+import { PhotoGallery } from "@/components/panel/PhotoGallery";
+import type { PhotoRef } from "@/lib/db/schema";
 import {
   Badge,
   Btn,
@@ -51,6 +53,7 @@ type JobRow = {
   notes: string;
   staffIds: number[];
   staffNames: string[];
+  photos: PhotoRef[];
   createdAt: string;
   customerName: string | null;
   customerPhone: string | null;
@@ -559,6 +562,29 @@ export default function IslerPage() {
                 </Field>
               </div>
             </div>
+
+            {editing && (
+              <div className="border-t border-ink/8 pt-4">
+                <PhotoGallery
+                  basePath={`/api/jobs/${editing.id}`}
+                  photos={editing.photos ?? []}
+                  onChange={(photos) => {
+                    setEditing({ ...editing, photos });
+                    setRows((prev) => prev.map((r) => (r.id === editing.id ? { ...r, photos } : r)));
+                  }}
+                />
+                <a
+                  href={`/api/jobs/${editing.id}/delivery-receipt`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-3 inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline"
+                >
+                  <Icon name="download" className="h-4 w-4" />
+                  Teslim Tutanağı (PDF)
+                </a>
+              </div>
+            )}
+
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn
                 variant="ghost"

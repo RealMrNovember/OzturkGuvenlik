@@ -7,6 +7,8 @@ import { Icon } from "@/components/icons";
 import { CustomSelect } from "@/components/panel/form";
 import { JobItemsEditor, emptyJobItem, type JobProductOption } from "@/components/panel/JobItemsEditor";
 import { CurrencyAmountInput } from "@/components/panel/CurrencyAmountInput";
+import { PhotoGallery } from "@/components/panel/PhotoGallery";
+import type { PhotoRef } from "@/lib/db/schema";
 import {
   Badge,
   Btn,
@@ -46,6 +48,7 @@ type TicketRow = {
   billingType: string;
   startTime: string;
   endTime: string;
+  photos: PhotoRef[];
   createdAt: string;
   updatedAt: string;
   customerName: string | null;
@@ -517,6 +520,19 @@ export default function ServisPage() {
                 placeholder="Servis tamamlandığında ne yapıldığını yazın"
               />
             </Field>
+
+            {editing && (
+              <div className="border-t border-ink/8 pt-4">
+                <PhotoGallery
+                  basePath={`/api/service-tickets/${editing.id}`}
+                  photos={editing.photos ?? []}
+                  onChange={(photos) => {
+                    setEditing({ ...editing, photos });
+                    setRows((prev) => prev.map((r) => (r.id === editing.id ? { ...r, photos } : r)));
+                  }}
+                />
+              </div>
+            )}
 
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">
               <Btn

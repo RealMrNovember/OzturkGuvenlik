@@ -254,6 +254,10 @@ export const jobs = pgTable("jobs", {
   exchangeRate: numeric("exchange_rate", { precision: 14, scale: 6 }).notNull().default("1"),
   notes: text("notes").default(""),
   staffIds: pgInteger("staff_ids").array().default([]),
+  // Kurulum/teslim fotoğrafları — [{id, url}], url Vercel Blob'daki (private)
+  // dosyanın konumu. Teslim tutanağı PDF'ine gömülür (bkz. app/api/jobs/[id]/
+  // delivery-receipt).
+  photos: jsonb("photos").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -282,6 +286,8 @@ export const serviceTickets = pgTable("service_tickets", {
   billingType: varchar("billing_type", { length: 20 }).default(""), // garanti | ucretli | sozlesmeli
   startTime: varchar("start_time", { length: 5 }).default(""), // "HH:MM"
   endTime: varchar("end_time", { length: 5 }).default(""), // "HH:MM"
+  // Arıza/onarım fotoğrafları — [{id, url}], jobs.photos ile aynı desen.
+  photos: jsonb("photos").notNull().default([]),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -462,6 +468,9 @@ export const PRODUCT_UNIT_STATUSES = ["stokta", "kuruldu", "arizali", "iade"] as
 export type ProductUnitStatus = (typeof PRODUCT_UNIT_STATUSES)[number];
 
 export type ProductSpec = { key: string; value: string };
+
+/** jobs.photos / service_tickets.photos ortak biçimi — url private Blob'a işaret eder. */
+export type PhotoRef = { id: string; url: string };
 
 export type OfferItem = {
   name: string;
