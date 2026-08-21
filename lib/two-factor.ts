@@ -1,6 +1,7 @@
 import { authenticator } from "otplib";
 import QRCode from "qrcode";
 import bcrypt from "bcryptjs";
+import { randomInt } from "node:crypto";
 
 const ISSUER = "Öztürk Güvenlik Panel";
 const BACKUP_CODE_COUNT = 10;
@@ -26,7 +27,10 @@ function randomBackupCode(): string {
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // karışabilecek 0/O, 1/I çıkarıldı
   let code = "";
   for (let i = 0; i < 8; i++) {
-    code += alphabet[Math.floor(Math.random() * alphabet.length)];
+    // Math.random() kriptografik olarak güvenli değildir — yedek kodlar
+    // birer tek kullanımlık parola olduğu için node:crypto'nun CSPRNG'i
+    // kullanılıyor.
+    code += alphabet[randomInt(alphabet.length)];
   }
   return `${code.slice(0, 4)}-${code.slice(4)}`;
 }

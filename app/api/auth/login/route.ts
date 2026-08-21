@@ -32,13 +32,16 @@ export async function POST(req: Request) {
     return jsonOk({ twoFactorRequired: true });
   }
 
-  await createSession({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    role: user.role as "admin" | "staff",
-    permissions: (user.permissions as string[] | null) ?? [],
-  });
+  await createSession(
+    {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role as "admin" | "staff",
+      permissions: (user.permissions as string[] | null) ?? [],
+    },
+    user.passwordChangedAt
+  );
 
   return jsonOk({ name: user.name, role: user.role });
 }

@@ -429,6 +429,8 @@ export const updateAccountSchema = z.object({
   email: z.string().trim().toLowerCase().email("Geçersiz e-posta adresi").max(190).optional(),
   phone: z.string().trim().max(30).optional(),
   specialty: z.string().trim().max(255).optional(),
+  // Yalnızca e-posta değişirken zorunlu — bkz. app/api/account/route.ts.
+  currentPassword: z.string().max(100).optional(),
 });
 
 export const changePasswordSchema = z.object({

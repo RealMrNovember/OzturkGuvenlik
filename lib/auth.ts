@@ -1,7 +1,10 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
+import { db } from "@/lib/db";
+import { users } from "@/lib/db/schema";
 
 const COOKIE_NAME = "og_panel";
 const SESSION_DAYS = 7;
@@ -21,8 +24,20 @@ function secretKey(): Uint8Array {
   return new TextEncoder().encode(secret);
 }
 
-export async function createSession(user: SessionUser) {
-  const token = await new SignJWT({ role: user.role, name: user.name, permissions: user.permissions })
+/**
+ * securityStamp, users.passwordChangedAt'in saniye damgasıdır — JWT'ye
+ * gömülür ve getSession()'da DB'deki güncel değerle karşılaştırılır.
+ * Şifre/e-posta/2FA değiştiğinde bu alan güncellenip yeni bir oturum
+ * bu yeni damgayla açılmazsa, DEĞİŞİKLİKTEN ÖNCE basılmış her çerez
+ * (çalınmış olsa bile) bir sonraki istekte otomatik geçersiz sayılır.
+ */
+export async function createSession(user: SessionUser, securityStamp: Date) {
+  const token = await new SignJWT({
+    role: user.role,
+    name: user.name,
+    permissions: user.permissions,
+    sv: Math.floor(securityStamp.getTime() / 1000),
+  })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(String(user.id))
     .setIssuedAt()
@@ -54,7 +69,17 @@ export async function getSession(): Promise<SessionUser | null> {
     const role = payload.role as SessionUser["role"];
     const name = payload.name as string;
     const permissions = Array.isArray(payload.permissions) ? (payload.permissions as string[]) : [];
-    if (!id || !role) return null;
+    const tokenStamp = Number(payload.sv);
+    if (!id || !role || !tokenStamp) return null;
+
+    const [row] = await db
+      .select({ passwordChangedAt: users.passwordChangedAt })
+      .from(users)
+      .where(eq(users.id, id))
+      .limit(1);
+    if (!row) return null;
+    if (Math.floor(row.passwordChangedAt.getTime() / 1000) !== tokenStamp) return null;
+
     return { id, name, role, email: "", permissions };
   } catch {
     return null;

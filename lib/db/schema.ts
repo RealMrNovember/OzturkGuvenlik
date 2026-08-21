@@ -36,6 +36,12 @@ export const users = pgTable("users", {
   twoFactorEnabled: boolean("two_factor_enabled").notNull().default(false),
   twoFactorSecret: varchar("two_factor_secret", { length: 64 }),
   twoFactorBackupCodes: jsonb("two_factor_backup_codes").notNull().default([]),
+  // Şifre, e-posta veya 2FA değiştiğinde güncellenir; oturum JWT'sine bu
+  // değerin saniye damgası gömülür (bkz. lib/auth.ts createSession) — bu
+  // alan değiştikten sonra basılmış eski bir çerez (örn. çalınmış) bir
+  // sonraki istekte otomatik geçersiz sayılır. Yalnızca isim/telefon/
+  // uzmanlık gibi hassas olmayan alan değişiklikleri bunu güncellemez.
+  passwordChangedAt: timestamp("password_changed_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

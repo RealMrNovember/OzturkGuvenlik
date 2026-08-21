@@ -1,7 +1,7 @@
 import { db } from "@/lib/db";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { getSession } from "@/lib/auth";
+import { getSession, createSession } from "@/lib/auth";
 import { verifyTotpCode, generateBackupCodes } from "@/lib/two-factor";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { twoFactorConfirmSchema } from "@/lib/validators";
@@ -20,15 +20,33 @@ export async function POST(req: Request) {
   if (!isValid) return jsonErr("Kod geçersiz, tekrar deneyin");
 
   const { plain, hashed } = await generateBackupCodes();
+  const passwordChangedAt = new Date();
 
-  await db
+  const [updated] = await db
     .update(users)
     .set({
       twoFactorEnabled: true,
       twoFactorSecret: parsed.data.secret,
       twoFactorBackupCodes: hashed,
+      passwordChangedAt,
     })
-    .where(eq(users.id, session.id));
+    .where(eq(users.id, session.id))
+    .returning();
+  if (!updated) return jsonErr("Kullanıcı bulunamadı", 404);
+
+  // 2FA'nın açılması, çalınmış eski bir çerezle girişi de etkiler —
+  // önceki çerezler geçersiz sayılsın, ama bu isteği yapan oturum
+  // yeniden imzalanarak geçerli kalsın.
+  await createSession(
+    {
+      id: updated.id,
+      name: updated.name,
+      email: updated.email,
+      role: updated.role as "admin" | "staff",
+      permissions: session.permissions,
+    },
+    passwordChangedAt
+  );
 
   return jsonOk({ enabled: true, backupCodes: plain });
 }
