@@ -1,10 +1,11 @@
-import { waLinkDefault } from "@/lib/site";
+import { getResolvedSite, resolvedWaLinkDefault } from "@/lib/site-settings";
 import { Icon } from "@/components/icons";
 
-export function FloatingWhatsApp() {
+export async function FloatingWhatsApp() {
+  const site = await getResolvedSite();
   return (
     <a
-      href={waLinkDefault()}
+      href={resolvedWaLinkDefault(site)}
       target="_blank"
       rel="noopener noreferrer"
       aria-label="WhatsApp ile yazın"

@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { site, waLink } from "@/lib/site";
+import { getResolvedSite, resolvedWaLink } from "@/lib/site-settings";
 import { Icon } from "@/components/icons";
 
-export function CtaBand({
+export async function CtaBand({
   title = "Mekânınızı birlikte değerlendirelim.",
   subtitle = "Keşif ücretsizdir. Uzman ekibimiz ihtiyacınızı yerinde değerlendirir, size uygun çözümü belirler.",
   waText,
@@ -11,7 +11,10 @@ export function CtaBand({
   subtitle?: string;
   waText?: string;
 }) {
-  const wa = waText ? waLink(waText) : waLink(`Merhaba, ${site.name} web sitesinden ulaşıyorum. Keşif almak istiyorum.`);
+  const site = await getResolvedSite();
+  const wa = waText
+    ? resolvedWaLink(site, waText)
+    : resolvedWaLink(site, `Merhaba, ${site.name} web sitesinden ulaşıyorum. Keşif almak istiyorum.`);
   return (
     <section className="bg-ink">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-20">

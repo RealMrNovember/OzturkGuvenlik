@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/SectionHeading";
 import { CtaBand } from "@/components/CtaBand";
 import { Icon } from "@/components/icons";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 import type { IconName } from "@/lib/services";
 
 export const metadata: Metadata = {
@@ -77,7 +77,8 @@ function PrincipleGrid({ items }: { items: Principle[] }) {
   );
 }
 
-export default function KaliteCevrePolitikasiPage() {
+export default async function KaliteCevrePolitikasiPage() {
+  const site = await getResolvedSite();
   return (
     <>
       <section className="bg-surface py-14 sm:py-20">

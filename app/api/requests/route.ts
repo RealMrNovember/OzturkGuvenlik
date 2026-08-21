@@ -5,7 +5,7 @@ import { createRequestSchema } from "@/lib/validators";
 import { jsonOk, jsonErr, readJson } from "@/lib/api";
 import { getSession } from "@/lib/auth";
 import { sendEmail, emailLayout } from "@/lib/email";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 
 // Herkese açık: keşif sihirbazından kayıt (honeypot korumalı)
 export async function POST(req: Request) {
@@ -34,10 +34,11 @@ export async function POST(req: Request) {
 
   // Bildirim gönderimi kaydın başarısını etkilemez — sendEmail kendi içinde
   // hataları yutar (bkz. lib/email.ts), burada ayrıca try/catch gerekmez.
+  const site = await getResolvedSite();
   await sendEmail(
     site.email,
     `Yeni keşif talebi — ${data.name}`,
-    emailLayout(
+    await emailLayout(
       "Yeni Keşif Talebi",
       `
         <p style="margin: 0 0 8px;"><strong>Ad Soyad:</strong> ${data.name}</p>

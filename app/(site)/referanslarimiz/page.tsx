@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { SectionHeading } from "@/components/SectionHeading";
 import { CtaBand } from "@/components/CtaBand";
 import { Icon } from "@/components/icons";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 import { reviews } from "@/lib/reviews";
 
 export const metadata: Metadata = {
@@ -18,7 +18,8 @@ function initials(name: string): string {
     .join("");
 }
 
-export default function ReferanslarimizPage() {
+export default async function ReferanslarimizPage() {
+  const site = await getResolvedSite();
   return (
     <>
       <section className="bg-surface py-14 sm:py-20">

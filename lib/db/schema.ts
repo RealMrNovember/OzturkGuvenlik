@@ -427,9 +427,44 @@ export const siteSettings = pgTable("site_settings", {
   heroVideoMuted: boolean("hero_video_muted").notNull().default(true),
   heroVideoStart: integer("hero_video_start").notNull().default(0),
   heroVideoDuration: integer("hero_video_duration"),
+
+  // Aşağıdaki alanların tamamı boş/varsayılan bırakılabilir — boşsa
+  // lib/site-settings.ts'teki getResolvedSite() lib/site.ts'teki sabit
+  // (kod içi) değerlere düşer, site hiçbir zaman boş/kırık görünmez.
+  // Admin panelden doldurunca sabitlerin yerini alır.
+
+  // İletişim — birden fazla telefon numarası desteklenir.
+  // [{label: "Satış", number: "0535 014 65 93"}, ...]
+  phones: jsonb("phones").notNull().default([]),
+  contactEmail: varchar("contact_email", { length: 190 }).default(""),
+  address: text("address").default(""),
+  mapLink: text("map_link").default(""),
+  mapEmbedUrl: text("map_embed_url").default(""),
+
+  // Sosyal medya + WhatsApp
+  instagramUrl: varchar("instagram_url", { length: 300 }).default(""),
+  facebookUrl: varchar("facebook_url", { length: 300 }).default(""),
+  whatsappNumber: varchar("whatsapp_number", { length: 20 }).default(""), // yalnızca rakam, örn: 905350146593
+  whatsappDefaultText: text("whatsapp_default_text").default(""),
+
+  // Google — puan/yorum (schema.org'a da yansır), Analytics, Search Console
+  googleRating: varchar("google_rating", { length: 10 }).default(""),
+  googleReviewCount: integer("google_review_count"),
+  googleReviewsUrl: text("google_reviews_url").default(""),
+  googleAnalyticsId: varchar("google_analytics_id", { length: 20 }).default(""), // örn. G-XXXXXXXXXX
+  googleSiteVerification: varchar("google_site_verification", { length: 100 }).default(""),
+
+  // SEO — anasayfa varsayılan meta etiketleri + sosyal paylaşım görseli
+  seoTitle: varchar("seo_title", { length: 200 }).default(""),
+  seoDescription: text("seo_description").default(""),
+  seoKeywords: text("seo_keywords").default(""), // virgülle ayrılmış
+  ogImageUrl: text("og_image_url").default(""), // public/ altında bir yol ya da tam URL (OG görseli dış crawler'lara açık olmalı, private Blob kullanılamaz)
+
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });
+
+export type SitePhone = { label: string; number: string };
 
 /** Hizmet detay sayfalarının başlık arkasındaki koyu alanda oynatılan YouTube videosu — hizmet başına bir kayıt (bkz. lib/services.ts'teki statik slug listesi). */
 export const serviceMedia = pgTable("service_media", {

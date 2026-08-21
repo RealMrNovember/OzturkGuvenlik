@@ -1,14 +1,15 @@
 import { site } from "@/lib/site";
 import type { Service } from "@/lib/services";
+import type { ResolvedSite } from "@/lib/site-settings";
 
-export function localBusinessJsonLd() {
+export function localBusinessJsonLd(resolved: ResolvedSite) {
   return {
     "@context": "https://schema.org",
     "@type": "LocalBusiness",
     "@id": `${site.url}/#business`,
     name: site.googleName,
     url: site.url,
-    telephone: site.phoneDisplay,
+    telephone: resolved.phoneDisplay,
     address: {
       "@type": "PostalAddress",
       streetAddress: "Yenibosna Merkez Mahallesi, Kenanbey Sokak No: 11",
@@ -23,10 +24,10 @@ export function localBusinessJsonLd() {
     priceRange: "₺₺",
     aggregateRating: {
       "@type": "AggregateRating",
-      ratingValue: site.rating,
-      reviewCount: site.reviewCount,
+      ratingValue: resolved.rating,
+      reviewCount: resolved.reviewCount,
     },
-    sameAs: [site.instagram, site.facebook, site.googleReviewsUrl],
+    sameAs: [resolved.instagram, resolved.facebook, resolved.googleReviewsUrl],
     areaServed: "İstanbul",
   };
 }

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
-import { site } from "@/lib/site";
+import { useSite } from "@/components/SiteContext";
 
 const CURRENCY_SYMBOL: Record<string, string> = { TRY: "₺", USD: "$", EUR: "€" };
 
@@ -33,6 +33,7 @@ const STATUS_INFO: Record<string, { label: string; tone: string }> = {
 };
 
 export default function PublicOfferPage() {
+  const site = useSite();
   const params = useParams<{ token: string }>();
   const [offer, setOffer] = useState<OfferView | null>(null);
   const [loading, setLoading] = useState(true);

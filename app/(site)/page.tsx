@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 import { services, processSteps } from "@/lib/services";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
@@ -10,20 +10,28 @@ import { ReviewsSection } from "@/components/ReviewsSection";
 import { BrandsShowcase } from "@/components/BrandsShowcase";
 import { CtaBand } from "@/components/CtaBand";
 
-export const metadata: Metadata = {
-  title: `${site.name} | Güvenlik Kamerası, Alarm, PDKS — İstanbul`,
-  description:
-    "İstanbul genelinde güvenlik kamerası, hırsız ve yangın alarmı, PDKS, bariyer ve turnike sistemleri. Ücretsiz keşif: 0535 014 65 93. Yenibosna'dan tüm İstanbul'a hizmet.",
-};
+const DEFAULT_DESCRIPTION =
+  "İstanbul genelinde güvenlik kamerası, hırsız ve yangın alarmı, PDKS, bariyer ve turnike sistemleri. Ücretsiz keşif: 0535 014 65 93. Yenibosna'dan tüm İstanbul'a hizmet.";
 
-const trustChips = [
-  { label: "11+ yıl deneyim", icon: "clock" as const },
-  { label: "Google 5.0 puan", icon: "star" as const },
-  { label: "33+ gerçek yorum", icon: "whatsapp" as const },
-  { label: "Yenibosna · İstanbul geneli", icon: "pin" as const },
-];
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getResolvedSite();
+  return {
+    title: site.seoTitle || `${site.name} | Güvenlik Kamerası, Alarm, PDKS — İstanbul`,
+    description: site.seoDescription || DEFAULT_DESCRIPTION,
+    keywords: site.seoKeywords ? site.seoKeywords.split(",").map((k) => k.trim()) : undefined,
+  };
+}
 
-export default function HomePage() {
+export default async function HomePage() {
+  const site = await getResolvedSite();
+
+  const trustChips = [
+    { label: "11+ yıl deneyim", icon: "clock" as const },
+    { label: `Google ${site.rating} puan`, icon: "star" as const },
+    { label: `${site.reviewCount}+ gerçek yorum`, icon: "whatsapp" as const },
+    { label: "Yenibosna · İstanbul geneli", icon: "pin" as const },
+  ];
+
   return (
     <>
       {/* HERO */}

@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 
 // RESEND_API_KEY Vercel ortam değişkenlerinde ayarlanmalı (resend.com'dan
 // alınır) — kod sohbete/repoya asla yapıştırılmaz. Anahtar yoksa bildirimler
@@ -26,7 +26,8 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   }
 }
 
-export function emailLayout(title: string, bodyHtml: string): string {
+export async function emailLayout(title: string, bodyHtml: string): Promise<string> {
+  const site = await getResolvedSite();
   return `
     <div style="font-family: -apple-system, Segoe UI, Roboto, Arial, sans-serif; max-width: 560px; margin: 0 auto; color: #1a1a1a;">
       <div style="background: #0e6fb8; padding: 20px 24px; border-radius: 8px 8px 0 0;">

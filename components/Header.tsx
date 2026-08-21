@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
-import { site, waLinkDefault } from "@/lib/site";
+import { useSite } from "@/components/SiteContext";
+import { resolvedWaLinkDefault } from "@/lib/site-resolve";
 import { services, type IconName } from "@/lib/services";
 import { Icon } from "@/components/icons";
 
@@ -154,6 +155,7 @@ function MobileNavAccordion({
 }
 
 export function Header() {
+  const site = useSite();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -259,7 +261,7 @@ export function Header() {
               {site.phoneDisplay}
             </a>
             <a
-              href={waLinkDefault()}
+              href={resolvedWaLinkDefault(site)}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center gap-2 rounded-full bg-wa px-4 py-3 text-sm font-semibold text-white"

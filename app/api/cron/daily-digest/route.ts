@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { appointments, customers, maintenanceContracts } from "@/lib/db/schema";
 import { jsonOk, jsonErr } from "@/lib/api";
 import { sendEmail, emailLayout } from "@/lib/email";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 
 function todayStr(): string {
   return new Date().toISOString().slice(0, 10);
@@ -92,10 +92,11 @@ export async function GET(req: Request) {
       `
       : "";
 
+  const site = await getResolvedSite();
   await sendEmail(
     site.email,
     `Günlük özet — ${tomorrowAppointments.length} randevu, ${dueMaintenance.length} bakım`,
-    emailLayout(
+    await emailLayout(
       "Günlük Özet",
       `
         ${appointmentsHtml}

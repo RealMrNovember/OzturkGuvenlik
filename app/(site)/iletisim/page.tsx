@@ -1,41 +1,50 @@
 import type { Metadata } from "next";
-import { site, waLinkDefault } from "@/lib/site";
+import { getResolvedSite, resolvedWaLinkDefault } from "@/lib/site-settings";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { CtaBand } from "@/components/CtaBand";
 
-export const metadata: Metadata = {
-  title: "İletişim",
-  description: `${site.name} iletişim bilgileri: ${site.phoneDisplay}, WhatsApp, Yenibosna / İstanbul adres ve çalışma saatleri.`,
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const site = await getResolvedSite();
+  return {
+    title: "İletişim",
+    description: `${site.name} iletişim bilgileri: ${site.phoneDisplay}, WhatsApp, Yenibosna / İstanbul adres ve çalışma saatleri.`,
+  };
+}
 
-const cards = [
-  {
-    title: "Telefon",
-    desc: site.phoneDisplay,
-    sub: "Pzt–Cmt 09:00 – 19:00",
-    href: site.phoneHref,
-    icon: "phone" as const,
-  },
-  {
-    title: "WhatsApp",
-    desc: "7/24 mesaj alıyoruz",
-    sub: "Fotoğraf atın, hızlı fiyat alın",
-    href: waLinkDefault(),
-    icon: "whatsapp" as const,
-    external: true,
-  },
-  {
-    title: "Adres",
-    desc: site.address,
-    sub: "Yol tarifi için tıklayın",
-    href: site.mapLink,
-    icon: "pin" as const,
-    external: true,
-  },
-];
+export default async function ContactPage() {
+  const site = await getResolvedSite();
 
-export default function ContactPage() {
+  const cards = [
+    ...(site.phones.length > 1
+      ? []
+      : [
+          {
+            title: "Telefon",
+            desc: site.phoneDisplay,
+            sub: "Pzt–Cmt 09:00 – 19:00",
+            href: site.phoneHref,
+            icon: "phone" as const,
+          },
+        ]),
+    {
+      title: "WhatsApp",
+      desc: "7/24 mesaj alıyoruz",
+      sub: "Fotoğraf atın, hızlı fiyat alın",
+      href: resolvedWaLinkDefault(site),
+      icon: "whatsapp" as const,
+      external: true,
+    },
+    {
+      title: "Adres",
+      desc: site.address,
+      sub: "Yol tarifi için tıklayın",
+      href: site.mapLink,
+      icon: "pin" as const,
+      external: true,
+    },
+  ];
+
   return (
     <>
       <section className="bg-ink py-16 text-white sm:py-20">
@@ -57,6 +66,27 @@ export default function ContactPage() {
 
       <section className="bg-white">
         <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+          {site.phones.length > 1 ? (
+            <div className="mb-5 grid gap-5 sm:grid-cols-3">
+              {site.phones.map((p, i) => (
+                <Reveal key={i} delay={i * 60}>
+                  <a
+                    href={`tel:${p.number.replace(/\D/g, "")}`}
+                    className="flex h-full items-center gap-3 rounded-2xl border border-ink/8 bg-surface p-5 transition-all hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/10"
+                  >
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-brand shadow-sm">
+                      <Icon name="phone" className="h-5 w-5" />
+                    </span>
+                    <div className="min-w-0">
+                      {p.label && <p className="text-xs font-semibold text-ink/50">{p.label}</p>}
+                      <p className="font-bold text-ink">{p.number}</p>
+                    </div>
+                  </a>
+                </Reveal>
+              ))}
+            </div>
+          ) : null}
+
           <div className="grid gap-5 sm:grid-cols-3">
             {cards.map((c, i) => (
               <Reveal key={c.title} delay={i * 80}>

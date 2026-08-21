@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Icon } from "@/components/icons";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 
 export const metadata: Metadata = {
   title: "Mobil Uygulamalar",
@@ -114,7 +114,8 @@ function storeSearchUrl(store: "ios" | "android", query: string): string {
   return `https://play.google.com/store/search?q=${encodeURIComponent(query)}&c=apps`;
 }
 
-export default function MobilUygulamalarPage() {
+export default async function MobilUygulamalarPage() {
+  const site = await getResolvedSite();
   return (
     <section className="bg-surface py-14 sm:py-20">
       <div className="mx-auto max-w-5xl px-4 sm:px-6">

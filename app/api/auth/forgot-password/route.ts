@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     await sendEmail(
       parsed.data.email.toLowerCase(),
       "Şifre sıfırlama — Öztürk Güvenlik Paneli",
-      emailLayout(
+      await emailLayout(
         "Şifre Sıfırlama",
         `
           <p style="margin: 0 0 12px;">Merhaba ${user.name},</p>

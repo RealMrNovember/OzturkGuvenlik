@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Icon } from "@/components/icons";
-import { site, waLink } from "@/lib/site";
+import { useSite } from "@/components/SiteContext";
+import { resolvedWaLink } from "@/lib/site-resolve";
 import {
   RESOLUTIONS,
   FPS_OPTIONS,
@@ -164,6 +165,7 @@ function GroupCard({
 }
 
 export default function HesaplamaPage() {
+  const site = useSite();
   const [groups, setGroups] = useState<CameraGroup[]>([emptyGroup("g1")]);
   const [retentionDays, setRetentionDays] = useState(30);
   const [customRetention, setCustomRetention] = useState("");
@@ -302,7 +304,7 @@ export default function HesaplamaPage() {
               )}
 
               <a
-                href={waLink(waMessage)}
+                href={resolvedWaLink(site, waMessage)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-wa px-6 py-3 text-sm font-semibold text-white transition-all hover:brightness-110"

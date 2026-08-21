@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { site } from "@/lib/site";
+import { getResolvedSite, toTelHref } from "@/lib/site-settings";
 import { services } from "@/lib/services";
 import { Icon } from "@/components/icons";
 
-export function Footer() {
+export async function Footer() {
+  const site = await getResolvedSite();
   return (
     <footer className="bg-ink text-white/70">
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6">
@@ -129,12 +130,15 @@ export function Footer() {
                   {site.address}
                 </a>
               </li>
-              <li className="flex items-center gap-2.5">
-                <Icon name="phone" className="h-4 w-4 shrink-0 text-brand-light" />
-                <a href={site.phoneHref} className="hover:text-white">
-                  {site.phoneDisplay}
-                </a>
-              </li>
+              {site.phones.map((p, i) => (
+                <li key={i} className="flex items-center gap-2.5">
+                  <Icon name="phone" className="h-4 w-4 shrink-0 text-brand-light" />
+                  <a href={toTelHref(p.number)} className="hover:text-white">
+                    {p.label && <span className="text-white/40">{p.label}: </span>}
+                    {p.number}
+                  </a>
+                </li>
+              ))}
               <li className="flex items-center gap-2.5">
                 <Icon name="whatsapp" className="h-4 w-4 shrink-0 text-wa" />
                 <span>7/24 WhatsApp hattı</span>

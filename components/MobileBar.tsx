@@ -1,7 +1,8 @@
-import { site, waLinkDefault } from "@/lib/site";
+import { getResolvedSite, resolvedWaLinkDefault } from "@/lib/site-settings";
 import { Icon } from "@/components/icons";
 
-export function MobileBar() {
+export async function MobileBar() {
+  const site = await getResolvedSite();
   return (
     <>
       <div className="h-[60px] lg:hidden" aria-hidden="true" />
@@ -18,7 +19,7 @@ export function MobileBar() {
             <span className="text-[11px] font-semibold">Hemen Ara</span>
           </a>
           <a
-            href={waLinkDefault()}
+            href={resolvedWaLinkDefault(site)}
             target="_blank"
             rel="noopener noreferrer"
             className="flex flex-col items-center gap-1 py-2.5 text-white/90 active:bg-white/5"

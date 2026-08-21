@@ -1,4 +1,4 @@
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 import { reviews } from "@/lib/reviews";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
@@ -11,7 +11,8 @@ function initials(name: string): string {
     .join("");
 }
 
-export function ReviewsSection() {
+export async function ReviewsSection() {
+  const site = await getResolvedSite();
   return (
     <section id="yorumlar" className="bg-surface">
       <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">

@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { services } from "@/lib/services";
-import { site, waLink } from "@/lib/site";
+import { useSite } from "@/components/SiteContext";
+import { resolvedWaLink } from "@/lib/site-resolve";
 import { Icon } from "@/components/icons";
 
 const placeTypes = [
@@ -21,6 +22,7 @@ const steps = [
 ];
 
 export default function KesifPage() {
+  const site = useSite();
   const [step, setStep] = useState(1);
   const [place, setPlace] = useState<string | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
@@ -52,10 +54,10 @@ export default function KesifPage() {
       const body = await res.json().catch(() => null);
       const refId = body?.data?.id as number | undefined;
       setSaved(true);
-      window.open(waLink(buildMessage(refId)), "_blank", "noopener");
+      window.open(resolvedWaLink(site, buildMessage(refId)), "_blank", "noopener");
     } catch {
       setSaveError("Kayıt sırasında bir sorun oluştu. WhatsApp'tan devam edin.");
-      window.open(waLink(buildMessage()), "_blank", "noopener");
+      window.open(resolvedWaLink(site, buildMessage()), "_blank", "noopener");
     } finally {
       setSending(false);
     }

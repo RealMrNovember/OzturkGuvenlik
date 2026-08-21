@@ -430,6 +430,11 @@ const hexColor = z
   .trim()
   .regex(/^#[0-9a-fA-F]{6}$/, "Renk #rrggbb formatında olmalı");
 
+const sitePhoneSchema = z.object({
+  label: z.string().trim().max(40).optional().default(""),
+  number: z.string().trim().min(1, "Telefon numarası gerekli").max(30),
+});
+
 export const updateSiteSettingsSchema = z.object({
   brandColor: hexColor.optional(),
   brandLightColor: hexColor.optional(),
@@ -451,6 +456,37 @@ export const updateSiteSettingsSchema = z.object({
     .max(3600, "En fazla 3600 saniye olabilir")
     .nullable()
     .optional(),
+
+  // İletişim
+  phones: z.array(sitePhoneSchema).max(10, "En fazla 10 telefon numarası eklenebilir").optional(),
+  contactEmail: z.union([z.string().trim().email("Geçersiz e-posta adresi"), z.literal("")]).optional(),
+  address: z.string().trim().max(500).optional(),
+  mapLink: z.string().trim().max(1000).optional(),
+  mapEmbedUrl: z.string().trim().max(1000).optional(),
+
+  // Sosyal medya + WhatsApp
+  instagramUrl: z.string().trim().max(300).optional(),
+  facebookUrl: z.string().trim().max(300).optional(),
+  whatsappNumber: z
+    .string()
+    .trim()
+    .max(20)
+    .transform((v) => v.replace(/\D/g, ""))
+    .optional(),
+  whatsappDefaultText: z.string().trim().max(500).optional(),
+
+  // Google
+  googleRating: z.string().trim().max(10).optional(),
+  googleReviewCount: z.number().int().min(0).max(1_000_000).nullable().optional(),
+  googleReviewsUrl: z.string().trim().max(500).optional(),
+  googleAnalyticsId: z.string().trim().max(20).optional(),
+  googleSiteVerification: z.string().trim().max(100).optional(),
+
+  // SEO
+  seoTitle: z.string().trim().max(200).optional(),
+  seoDescription: z.string().trim().max(300).optional(),
+  seoKeywords: z.string().trim().max(500).optional(),
+  ogImageUrl: z.string().trim().max(500).optional(),
 });
 
 export const upsertServiceMediaSchema = z.object({

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { SectionHeading } from "@/components/SectionHeading";
 import { Icon } from "@/components/icons";
 import { services } from "@/lib/services";
-import { site } from "@/lib/site";
+import { useSite } from "@/components/SiteContext";
 
 const GROUPS: { key: "genel" | "kamera" | "alarm" | "gecis" | "diger"; title: string }[] = [
   { key: "genel", title: "Genel" },
@@ -75,6 +75,7 @@ function Accordion({ items }: { items: { q: string; a: string }[] }) {
 }
 
 export default function SssPage() {
+  const site = useSite();
   return (
     <section className="bg-surface py-14 sm:py-20">
       <div className="mx-auto max-w-3xl px-4 sm:px-6">

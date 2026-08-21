@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { site } from "@/lib/site";
+import { getResolvedSite } from "@/lib/site-settings";
 
-export default function NotFound() {
+export default async function NotFound() {
+  const site = await getResolvedSite();
   return (
     <section className="bg-surface py-24">
       <div className="mx-auto max-w-xl px-4 text-center sm:px-6">

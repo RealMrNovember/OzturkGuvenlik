@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { services, getService } from "@/lib/services";
-import { site, waLink } from "@/lib/site";
+import { getResolvedSite, resolvedWaLink } from "@/lib/site-settings";
 import { breadcrumbJsonLd, serviceJsonLd } from "@/lib/seo";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
@@ -21,6 +21,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { slug } = await params;
   const service = getService(slug);
   if (!service) return {};
+  const site = await getResolvedSite();
   return {
     title: service.name,
     description: `${service.tagline} İstanbul geneli ücretsiz keşif: ${site.phoneDisplay}.`,
@@ -32,6 +33,7 @@ export default async function ServicePage({ params }: PageProps) {
   const { slug } = await params;
   const service = getService(slug);
   if (!service) notFound();
+  const site = await getResolvedSite();
 
   const jsonLd = {
     "@graph": [
@@ -44,7 +46,7 @@ export default async function ServicePage({ params }: PageProps) {
     ],
   };
 
-  const waText = waLink(service.waText);
+  const waText = resolvedWaLink(site, service.waText);
 
   return (
     <>

@@ -169,6 +169,13 @@
       "when": 1787276667453,
       "tag": "0023_broad_pete_wisdom",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1787278835022,
+      "tag": "0024_quiet_starjammers",
+      "breakpoints": true
     }
   ]
 }
