@@ -5,7 +5,11 @@ import { buildYoutubeBackgroundEmbedUrl } from "@/lib/youtube";
 /**
  * Hero arka planı: Site Ayarları'nda bir YouTube linki girilmişse tam
  * ekran kaplayan (cover-fill), otomatik döngülü bir video gösterilir;
- * link boşsa mevcut statik görsele düşer.
+ * link boşsa mevcut statik görsele düşer. Video, yalnızca sm: ve üzeri
+ * ekranlarda gömülür — mobil tarayıcılar controls=0 parametresini yok
+ * sayıp kendi native video kontrol arayüzünü (oynat/duraklat/sonraki)
+ * üstte gösterebildiğinden, mobilde hiç iframe render edilmiyor ve
+ * statik görsele düşülüyor.
  */
 export async function HeroMedia() {
   const settings = await getSiteSettings();
@@ -20,15 +24,25 @@ export async function HeroMedia() {
   return (
     <div className="absolute inset-0">
       {embedUrl ? (
-        <div className="pointer-events-none absolute inset-0 overflow-hidden opacity-60">
-          <iframe
-            src={embedUrl}
-            title="Tanıtım videosu"
-            className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-0"
-            style={{ aspectRatio: "16 / 9", minWidth: "100%", minHeight: "100%" }}
-            allow="autoplay; encrypted-media"
+        <>
+          <div className="pointer-events-none absolute inset-0 hidden overflow-hidden opacity-60 sm:block">
+            <iframe
+              src={embedUrl}
+              title="Tanıtım videosu"
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-0"
+              style={{ aspectRatio: "16 / 9", minWidth: "100%", minHeight: "100%" }}
+              allow="autoplay; encrypted-media"
+            />
+          </div>
+          <Image
+            src="/images/hero-1.jpg"
+            alt=""
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover opacity-50 sm:hidden"
           />
-        </div>
+        </>
       ) : (
         <Image
           src="/images/hero-1.jpg"

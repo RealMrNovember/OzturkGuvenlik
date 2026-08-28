@@ -5,7 +5,9 @@ import { buildYoutubeBackgroundEmbedUrl } from "@/lib/youtube";
  * Hizmet detay sayfasının koyu başlık alanında oynatılan, hizmete özel
  * YouTube arka plan videosu — admin panelden hizmet bazında yönetilir
  * (bkz. /panel/hizmet-medya). Video tanımlı değilse hiçbir şey render etmez,
- * mevcut düz koyu arka plan (bg-ink) olduğu gibi kalır.
+ * mevcut düz koyu arka plan (bg-ink) olduğu gibi kalır. Yalnızca sm: ve üzeri
+ * ekranlarda gömülür — bkz. components/HeroMedia.tsx'teki aynı gerekçe
+ * (mobil tarayıcıların native video kontrol arayüzünü göstermesi).
  */
 export async function ServiceHeroMedia({ slug }: { slug: string }) {
   const media = await getServiceMedia(slug);
@@ -21,7 +23,7 @@ export async function ServiceHeroMedia({ slug }: { slug: string }) {
   if (!embedUrl) return null;
 
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden">
+    <div className="pointer-events-none absolute inset-0 hidden overflow-hidden sm:block">
       <iframe
         src={embedUrl}
         title="Hizmet tanıtım videosu"

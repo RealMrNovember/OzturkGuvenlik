@@ -52,6 +52,9 @@ export function buildYoutubeBackgroundEmbedUrl(config: YoutubeBackgroundConfig):
     modestbranding: "1",
     playsinline: "1",
     rel: "0",
+    fs: "0",
+    disablekb: "1",
+    iv_load_policy: "3",
     autoplay: config.autoplay ? "1" : "0",
     mute: config.muted ? "1" : "0",
   });
