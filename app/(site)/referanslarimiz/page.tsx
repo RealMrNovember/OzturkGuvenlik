@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { SectionHeading } from "@/components/SectionHeading";
 import { CtaBand } from "@/components/CtaBand";
 import { Icon } from "@/components/icons";
 import { getResolvedSite } from "@/lib/site-settings";
 import { getPublishedReviews, avatarColorFor, relativeTimeFromDate } from "@/lib/reviews-db";
 import { reviewsJsonLd } from "@/lib/seo";
+import { clientReferences } from "@/lib/client-references";
 
 export const metadata: Metadata = {
   title: "Referanslarımız",
@@ -93,6 +95,34 @@ export default async function ReferanslarimizPage() {
           </div>
         </div>
       </section>
+
+      <section className="border-y border-ink/8 bg-white py-14 sm:py-20">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
+          <SectionHeading
+            eyebrow="Müşterilerimiz"
+            title="Bize güvenen kurumlardan bazıları"
+            subtitle="Kamu kurumlarından bankalara, eğitim kurumlarından üretim ve perakende firmalarına kadar farklı sektörlerden kurumsal müşterilerimizin güvenlik altyapısını biz kuruyoruz."
+          />
+
+          <div className="mt-10 flex flex-wrap justify-center gap-px overflow-hidden rounded-2xl border border-ink/10 bg-ink/10">
+            {clientReferences.map((client) => (
+              <div
+                key={client.name}
+                className="group flex w-32 shrink-0 grow-0 items-center justify-center bg-white px-5 py-6 transition-colors duration-300 sm:w-36 sm:px-6 sm:py-7"
+              >
+                <Image
+                  src={client.src}
+                  alt={client.name}
+                  width={144}
+                  height={72}
+                  className="h-10 w-auto object-contain transition-transform duration-300 group-hover:scale-105 sm:h-12"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       <CtaBand
         title="Siz de referanslarımız arasına katılın."
         subtitle="Keşif ücretsizdir. Uzman ekibimiz ihtiyacınızı yerinde değerlendirir, size uygun çözümü belirler."
