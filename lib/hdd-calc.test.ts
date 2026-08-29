@@ -71,4 +71,16 @@ describe("suggestDisks", () => {
     const result = suggestDisks(25 * 1024, true);
     expect(result).toEqual({ count: 4, sizeTb: 20, totalTb: 80 });
   });
+
+  test("accounts for the decimal-vs-binary TB gap so a disk actually fits the data", () => {
+    // Regresyon testi: üreticiler diski ondalık esasla (1 TB = 10^12 bayt)
+    // etiketler, ama totalGB burada ikili (GiB, 2^30 bayt) birimdedir.
+    // Eski kod bu farkı gözetmeden "GiB/1024"ü doğrudan "TB" etiketiyle
+    // kıyaslıyordu — tam olarak 4x10^12 baytlık (nominal "4 TB") bir veri
+    // için yanlışlıkla "4 TB" disk öneriyordu; oysa nominal "4 TB" bir
+    // diskin ham kapasitesi yalnızca ~3.64 TiB'dir ve bu veriyi SIĞDIRMAZ.
+    const fourDecimalTbInGiB = (4 * 1e12) / 1024 ** 3;
+    const result = suggestDisks(fourDecimalTbInGiB, false);
+    expect(result.sizeTb).toBeGreaterThan(4);
+  });
 });

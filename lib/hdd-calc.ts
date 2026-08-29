@@ -90,6 +90,23 @@ export const STANDARD_HDD_SIZES_TB = [1, 2, 3, 4, 6, 8, 10, 12, 14, 16, 18, 20] 
 export type DiskSuggestion = { count: number; sizeTb: number; totalTb: number };
 
 /**
+ * Üreticiler disk kapasitesini ONDALIK esasla etiketler (1 TB = 10^12 bayt),
+ * ancak bu hesaptaki totalGB İKİLİ birimdedir (1 GB burada aslında GiB,
+ * 2^30 bayt). Bu iki birim karıştırılıp veri miktarı (GiB/1024 ile) doğrudan
+ * "TB" etiketli disklerle karşılaştırılırsa, önerilen disk gerçekte
+ * ihtiyacın ~%10 altında kalır — çünkü etiketindeki "1 TB" bir diskin gerçek
+ * ham kapasitesi yalnızca ~0.909 TiB'dir. Bu yüzden veri miktarı önce doğru
+ * şekilde ondalık TB'ye çevrilir, ardından dosya sistemi/biçimlendirme
+ * kaybı için küçük bir pay (~%5) eklenir.
+ */
+const USABLE_CAPACITY_FACTOR = 0.95;
+
+function toDecimalTb(totalGB: number): number {
+  // totalGB ikili birimdedir (GiB); bayta çevirip ondalık TB'ye böl.
+  return (totalGB * 1024 ** 3) / 1e12;
+}
+
+/**
  * RAID 1'de her disk verinin TAM bir kopyasını tutar — bu yüzden disk
  * boyutu asıl veri miktarına göre seçilir (2 katına göre DEĞİL), yalnızca
  * disk ADEDİ (count) ikiye katlanır. (Önceden veri miktarı önce ikiye
@@ -98,12 +115,12 @@ export type DiskSuggestion = { count: number; sizeTb: number; totalTb: number };
  * gerekenin ~2 katına çıkaran bir hesaplama hatasıydı.)
  */
 export function suggestDisks(totalGB: number, raidMirror: boolean): DiskSuggestion {
-  const dataTb = totalGB / 1024;
+  const dataTb = toDecimalTb(totalGB);
   const largest = STANDARD_HDD_SIZES_TB[STANDARD_HDD_SIZES_TB.length - 1];
   const mirrorFactor = raidMirror ? 2 : 1;
-  const fit = STANDARD_HDD_SIZES_TB.find((tb) => tb >= dataTb);
+  const fit = STANDARD_HDD_SIZES_TB.find((tb) => tb * USABLE_CAPACITY_FACTOR >= dataTb);
   if (fit) return { count: mirrorFactor, sizeTb: fit, totalTb: fit * mirrorFactor };
-  const perDiskCount = Math.ceil(dataTb / largest);
+  const perDiskCount = Math.ceil(dataTb / (largest * USABLE_CAPACITY_FACTOR));
   const count = perDiskCount * mirrorFactor;
   return { count, sizeTb: largest, totalTb: count * largest };
 }
