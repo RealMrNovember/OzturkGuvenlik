@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { extractYouTubeId } from "@/lib/youtube";
 import { CURRENCIES } from "@/lib/currency";
-import { STAFF_LEAVE_TYPES, STAFF_LEAVE_STATUSES, SUPPLIER_INVOICE_STATUSES } from "@/lib/db/schema";
+import {
+  STAFF_LEAVE_TYPES,
+  STAFF_LEAVE_STATUSES,
+  SUPPLIER_INVOICE_STATUSES,
+  GIB_INVOICE_DIRECTIONS,
+} from "@/lib/db/schema";
 import { PERMISSION_KEYS } from "@/lib/permissions";
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
@@ -642,6 +647,27 @@ export const updateSupplierInvoiceSchema = z.object({
   dueDate: isoDate.nullable().optional(),
   paidDate: isoDate.nullable().optional(),
   note: z.string().trim().max(2000).optional(),
+});
+
+/**
+ * GİB bookmarklet'inin, kullanıcının kendi tarayıcısından gönderdiği tek bir
+ * fatura satırı. Sunucu bu veriyi asla GİB'e bağlanarak doğrulamaz — DOM'dan
+ * okunan veri olduğu için (fiyat/tarih formatı vb.) toleranslı ayrıştırma
+ * yapılır, ağır alanlar (unvan/not) makul üst sınırlarla kısılır.
+ */
+export const gibInvoiceImportSchema = z.object({
+  direction: z.enum(GIB_INVOICE_DIRECTIONS),
+  ettn: z.string().trim().max(64).optional().nullable(),
+  invoiceNumber: z.string().trim().min(1, "Fatura no okunamadı").max(60),
+  issueDate: isoDate,
+  counterpartyName: z.string().trim().max(200).optional().default(""),
+  counterpartyTaxId: z.string().trim().max(20).optional().default(""),
+  amount: z.number().min(0).max(1_000_000_000),
+  taxAmount: z.number().min(0).max(1_000_000_000).optional().nullable(),
+  currency: z.string().trim().length(3).optional().default("TRY"),
+  gibStatus: z.string().trim().max(60).optional().default(""),
+  xmlUrl: z.string().trim().url().max(2048).optional().nullable(),
+  pdfUrl: z.string().trim().url().max(2048).optional().nullable(),
 });
 
 export const createReviewSchema = z.object({

@@ -492,6 +492,52 @@ export const serviceMedia = pgTable("service_media", {
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });
 
+export const GIB_INVOICE_DIRECTIONS = ["gelen", "giden"] as const;
+export type GibInvoiceDirection = (typeof GIB_INVOICE_DIRECTIONS)[number];
+
+/**
+ * GİB e-Fatura/e-Arşiv portalından, kullanıcının kendi tarayıcısında çalışan
+ * bir bookmarklet ile (bkz. lib/gib-bookmarklet.ts) aktarılan fatura arşivi.
+ * GİB faturaları yalnızca 6 ay portalda tutar — burası kalıcı, yasal 10 yıllık
+ * saklama için bağımsız bir arşiv kopyasıdır. `invoices`/`supplierInvoices`
+ * tablolarıyla KARIŞTIRILMAMALI — onlar şirketin kendi iş akışında (teklif/iş/
+ * tedarikçi ilişkili) oluşturduğu kayıtlardır, bu tablo ise GİB'in resmi
+ * kaydının birebir aynasıdır.
+ */
+export const gibInvoices = pgTable("gib_invoices", {
+  id: serial("id").primaryKey(),
+  direction: varchar("direction", { length: 10 }).notNull(), // gelen | giden
+  // GİB'in evrensel tekil fatura kimliği — listede her zaman görünmeyebilir,
+  // göründüğünde ek bir doğrulama/eşleştirme imkânı sağlar (zorunlu değil).
+  ettn: varchar("ettn", { length: 64 }),
+  invoiceNumber: varchar("invoice_number", { length: 60 }).notNull(),
+  issueDate: date("issue_date", { mode: "string" }).notNull(),
+  counterpartyName: varchar("counterparty_name", { length: 200 }).default(""),
+  counterpartyTaxId: varchar("counterparty_tax_id", { length: 20 }).default(""),
+  amount: numeric("amount", { precision: 12, scale: 2 }).notNull().default("0"),
+  taxAmount: numeric("tax_amount", { precision: 12, scale: 2 }),
+  currency: varchar("currency", { length: 3 }).notNull().default("TRY"),
+  gibStatus: varchar("gib_status", { length: 60 }).default(""), // GİB'in kendi durum etiketi (örn. "Onaylandı")
+  // Belgeler (varsa) Vercel Blob'da private olarak saklanır.
+  xmlUrl: text("xml_url"),
+  pdfUrl: text("pdf_url"),
+  // Bookmarklet'in gönderdiği ham veri — ayrıştırma (parsing) ileride
+  // iyileştirilirse eski kayıtlar bundan yeniden türetilebilir.
+  rawPayload: jsonb("raw_payload").notNull().default({}),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (table) => [
+  // Aynı faturanın tekrar tekrar gönderilmesine karşı asıl güvenlik burada:
+  // ETTN listede her zaman görünmeyebildiği için doğal anahtar olarak fatura
+  // no + tarih + yön + karşı taraf VKN'si kullanılır — bu dörtlü pratikte
+  // her zaman mevcuttur ve bir faturayı benzersiz tanımlar.
+  uniqueIndex("gib_invoices_natural_key").on(
+    table.direction,
+    table.invoiceNumber,
+    table.issueDate,
+    table.counterpartyTaxId
+  ),
+]);
+
 export const reviews = pgTable("reviews", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 120 }).notNull(),
@@ -526,6 +572,7 @@ export type ProductUnit = typeof productUnits.$inferSelect;
 export type SiteSettings = typeof siteSettings.$inferSelect;
 export type ServiceMedia = typeof serviceMedia.$inferSelect;
 export type Review = typeof reviews.$inferSelect;
+export type GibInvoice = typeof gibInvoices.$inferSelect;
 
 /** Bu adedin altındaki stok "kritik" sayılır (bkz. /panel/urunler, dashboard). */
 export const LOW_STOCK_THRESHOLD = 5;
