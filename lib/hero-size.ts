@@ -51,7 +51,7 @@ export function toHeroSize(value: string | null | undefined): HeroSize {
   return value && isHeroSize(value) ? value : "normal";
 }
 
-export type HeroVideo = { url: string; start?: number; duration?: number };
+export type HeroVideo = { url: string; start?: number; duration?: number; repeatCount?: number };
 
 /**
  * heroVideos (yeni, çoklu) doluysa onu kullanır; boşsa eski tek-video

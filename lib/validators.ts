@@ -20,6 +20,7 @@ const heroVideoItemSchema = z.object({
     .refine((v) => extractYouTubeId(v) !== null, "Geçerli bir YouTube linki girin"),
   start: z.number().int().min(0).max(86_400).optional(),
   duration: z.number().int().min(1).max(3600).optional(),
+  repeatCount: z.number().int().min(1).max(50).optional(),
 });
 
 export const optionalField = z.string().trim().max(2000).optional().default("");

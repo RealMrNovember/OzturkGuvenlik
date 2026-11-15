@@ -435,7 +435,7 @@ export default function SiteAyarlariPage() {
                         {!vValid && (
                           <p className="text-xs font-medium text-red-500">Geçerli bir YouTube linki girin</p>
                         )}
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                           <Input
                             type="number"
                             min="0"
@@ -449,12 +449,31 @@ export default function SiteAyarlariPage() {
                             type="number"
                             min="1"
                             value={v.duration ?? ""}
+                            disabled={Boolean(v.repeatCount)}
                             onChange={(e) =>
                               updateHeroVideo(i, { duration: e.target.value ? Number(e.target.value) : undefined })
                             }
                             placeholder="Gösterim süresi (sn)"
+                            className={v.repeatCount ? "opacity-40" : ""}
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={v.repeatCount ?? ""}
+                            onChange={(e) =>
+                              updateHeroVideo(i, {
+                                repeatCount: e.target.value ? Number(e.target.value) : undefined,
+                              })
+                            }
+                            placeholder="Tur sayısı (örn. 2)"
                           />
                         </div>
+                        <p className="text-xs text-ink/40">
+                          "Tur sayısı" doldurulursa video gerçekten o kadar kez oynatılıp sonra bir
+                          sonrakine geçilir (gösterim süresi alanı bu durumda kullanılmaz); boş
+                          bırakılırsa eski "gösterim süresi" davranışı geçerli olur.
+                        </p>
                       </div>
                       <button
                         type="button"
@@ -482,8 +501,9 @@ export default function SiteAyarlariPage() {
             )}
             {heroVideos.length > 1 && (
               <p className="text-xs text-ink/40">
-                Her video kendi "gösterim süresi" kadar ekranda kalır (boşsa 15 sn), sonra bir
-                sonrakine geçilir ve son videodan sonra başa döner.
+                Her video "tur sayısı" doluysa o kadar kez tam oynadıktan sonra, boşsa kendi
+                "gösterim süresi" kadar ekranda kalıp (boşsa 15 sn) bir sonrakine geçilir; son
+                videodan sonra başa döner.
               </p>
             )}
 
