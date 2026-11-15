@@ -62,11 +62,12 @@ function RepeatCountedVideo({
   muted: boolean;
   onDone: () => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const videoId = extractYouTubeId(video.url);
-    if (!videoId || !containerRef.current) return;
+    const wrapper = wrapperRef.current;
+    if (!videoId || !wrapper) return;
 
     let destroyed = false;
     let player: YTPlayer | null = null;
@@ -74,9 +75,19 @@ function RepeatCountedVideo({
     const target = Math.max(1, video.repeatCount ?? 1);
     const start = video.start ?? 0;
 
+    // YouTube'un Player API'si, verdiğimiz elemanı kendi iframe'iyle
+    // DEĞİŞTİRİR (DOM'u React'in kontrolü dışında mutasyona uğratır).
+    // React'in render ettiği bir düğümü doğrudan versek, React daha sonra
+    // onu kaldırmaya çalışırken "NotFoundError: removeChild" ile çökerdi
+    // (tam olarak canlıda yaşanan şey). Bu yüzden API'ye kendi oluşturduğumuz,
+    // React'in hiç bilmediği düz bir <div> veriyoruz; React yalnızca onu
+    // saran (içini hiç karıştırmadığı) sabit wrapper'ı yönetiyor.
+    const mountEl = document.createElement("div");
+    wrapper.appendChild(mountEl);
+
     loadYoutubeIframeApi().then(() => {
-      if (destroyed || !containerRef.current || !window.YT) return;
-      player = new window.YT.Player(containerRef.current, {
+      if (destroyed || !window.YT) return;
+      player = new window.YT.Player(mountEl, {
         videoId,
         playerVars: {
           autoplay: autoplay ? 1 : 0,
@@ -118,11 +129,12 @@ function RepeatCountedVideo({
     return () => {
       destroyed = true;
       player?.destroy();
+      wrapper.replaceChildren();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video.url, video.start, video.repeatCount]);
 
-  return <div ref={containerRef} />;
+  return <div ref={wrapperRef} className="absolute inset-0" />;
 }
 
 /**
