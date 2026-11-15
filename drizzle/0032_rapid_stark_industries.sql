@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "nette_fatura_vkn" varchar(11) DEFAULT '';

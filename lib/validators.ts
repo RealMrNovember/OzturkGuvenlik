@@ -553,6 +553,12 @@ export const updateSiteSettingsSchema = z.object({
       "Looker Studio'nun 'Embed report' linkini girin (lookerstudio.google.com/embed/... ile başlamalı)"
     )
     .optional(),
+  netteFaturaVkn: z
+    .string()
+    .trim()
+    .max(11)
+    .refine((v) => v === "" || /^\d{10,11}$/.test(v), "10 veya 11 haneli bir VKN/TCKN girin")
+    .optional(),
 
   // SEO
   seoTitle: z.string().trim().max(200).optional(),

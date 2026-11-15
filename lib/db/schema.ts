@@ -483,6 +483,12 @@ export const siteSettings = pgTable("site_settings", {
   // göstermek için kullanılır. Gerçek Google Ads API/OAuth entegrasyonu değil.
   googleAdsReportEmbedUrl: text("google_ads_report_embed_url").default(""),
 
+  // NetteFatura (İşNet) resmi SOAP Web Servis entegrasyonu için firma VKN'si
+  // — bkz. app/panel/(panel)/gib-faturalar sayfasındaki kurulum rehberi.
+  // Onboarding tamamlanınca (İşNet'in IP-VKN tanımlaması) zamanlanmış
+  // aktarım görevi bu değeri kullanacak.
+  netteFaturaVkn: varchar("nette_fatura_vkn", { length: 11 }).default(""),
+
   // SEO — anasayfa varsayılan meta etiketleri + sosyal paylaşım görseli
   seoTitle: varchar("seo_title", { length: 200 }).default(""),
   seoDescription: text("seo_description").default(""),

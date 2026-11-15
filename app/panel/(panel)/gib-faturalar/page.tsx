@@ -3,7 +3,11 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/fetch";
 import { Icon } from "@/components/icons";
-import { Badge, ErrorBox, Input, Loading, fmtDateTime } from "@/components/panel/ui";
+import { Badge, Btn, ErrorBox, Field, Input, Loading, fmtDateTime } from "@/components/panel/ui";
+
+// Entegrasyonu barındıracak sunucunun sabit genel IP'si — İşNet'in
+// firewall/IP-VKN tanımlamasında kullanılacak (bkz. NetteFaturaSetup).
+const SERVER_STATIC_IP = "187.126.19.251";
 
 type GibInvoiceRow = {
   id: number;
@@ -52,6 +56,7 @@ export default function GibFaturalarPage() {
   const [links, setLinks] = useState<BookmarkletLinks | null>(null);
   const [linksError, setLinksError] = useState("");
   const [showSetup, setShowSetup] = useState(false);
+  const [showNette, setShowNette] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -96,15 +101,27 @@ export default function GibFaturalarPage() {
             {rows.length} kayıt · GİB e-Fatura/e-Arşiv portalından aktarılan kalıcı fatura arşivi
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => setShowSetup((v) => !v)}
-          className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-brand/50"
-        >
-          <Icon name="download" className="h-4 w-4" />
-          {showSetup ? "Kurulumu gizle" : "Aktarım aracını kur"}
-        </button>
+        <div className="flex flex-wrap gap-2.5">
+          <button
+            type="button"
+            onClick={() => setShowNette((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-light"
+          >
+            <Icon name="refresh" className="h-4 w-4" />
+            {showNette ? "NetteFatura kurulumunu gizle" : "NetteFatura (İşNet) otomatik aktarım"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowSetup((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-full border border-ink/15 px-4 py-2 text-sm font-semibold text-ink transition-colors hover:border-brand/50"
+          >
+            <Icon name="download" className="h-4 w-4" />
+            {showSetup ? "Kurulumu gizle" : "GİB tarayıcı aracını kur"}
+          </button>
+        </div>
       </div>
+
+      {showNette && <NetteFaturaSetup />}
 
       {showSetup && (
         <div className="rounded-2xl border border-ink/8 bg-white p-5 shadow-sm">
@@ -251,6 +268,168 @@ export default function GibFaturalarPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+type NetteSettings = { netteFaturaVkn: string | null };
+
+function buildNetteFaturaEmail(vkn: string): string {
+  const vknLine = vkn ? vkn : "[VKN'nizi buraya yazın]";
+  return (
+    `Konu: Web Servis (SOAP) API erişimi için IP-VKN tanımlama talebi\n\n` +
+    `Merhaba,\n\n` +
+    `NetteFatura hesabımız (VKN: ${vknLine}) için Web Servis (SOAP) API entegrasyonu yapmak ` +
+    `istiyoruz. Faturalarımızı gelen/giden olarak otomatik sorgulamak amacıyla kullanacağız ` +
+    `(searchInvoice / searchArchiveInvoice).\n\n` +
+    `Sunucumuzun sabit IP adresi: ${SERVER_STATIC_IP}\n\n` +
+    `Bu IP'nin firewall'da VKN'imizle eşleştirilmesi için gerekli adımları ve varsa test ortamı ` +
+    `bilgilerini paylaşabilir misiniz?\n\n` +
+    `Teşekkürler.`
+  );
+}
+
+/**
+ * NetteFatura (İşNet) resmi SOAP Web Servisi, kullanıcı adı/şifre değil
+ * IP + VKN eşleştirmesiyle çalışır — bu yüzden otomatik aktarım, kodla değil,
+ * müşterinin İşNet'e bu bilgileri bildirip onay almasıyla başlar. Bu kart o
+ * süreci başlatmak için gereken HER ŞEYİ (statik IP, hazır e-posta metni)
+ * tek yerde toplar; VKN girilince e-posta otomatik güncellenir ve
+ * site_settings'e kaydedilir (ileride kurulacak zamanlanmış aktarım görevi
+ * bu VKN'yi kullanacaktır).
+ */
+function NetteFaturaSetup() {
+  const [vkn, setVkn] = useState("");
+  const [saved, setSaved] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    api<NetteSettings>("/api/site-settings")
+      .then((data) => {
+        setVkn(data.netteFaturaVkn ?? "");
+        setSaved(data.netteFaturaVkn ?? "");
+      })
+      .catch(() => {
+        /* görüntüleme yetkisi olmayan bir kullanıcı için sessizce boş bırak */
+      });
+  }, []);
+
+  const vknValid = vkn.trim() === "" || /^\d{10,11}$/.test(vkn.trim());
+  const dirty = saved !== null && vkn.trim() !== saved;
+  const email = buildNetteFaturaEmail(vkn.trim());
+
+  const saveVkn = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const data = await api<NetteSettings>("/api/site-settings", {
+        method: "PATCH",
+        body: JSON.stringify({ netteFaturaVkn: vkn.trim() }),
+      });
+      setSaved(data.netteFaturaVkn ?? "");
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const copyEmail = async () => {
+    try {
+      await navigator.clipboard.writeText(email);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      /* pano erişimi yoksa kullanıcı metni elle seçip kopyalayabilir */
+    }
+  };
+
+  return (
+    <div className="space-y-5 rounded-2xl border border-brand/20 bg-white p-5 shadow-sm">
+      <div>
+        <p className="text-sm font-bold text-ink">NetteFatura (İşNet) — Otomatik Aktarım Kurulumu</p>
+        <p className="mt-1.5 text-sm leading-relaxed text-ink/60">
+          NetteFatura, GİB&apos;in aksine gelen/giden faturaları{" "}
+          <strong>otomatik çekebileceğimiz resmi bir servis (Web Servis / SOAP API)</strong> sunuyor.
+          Ancak bu servis kullanıcı adı/şifre ile değil, <strong>sunucumuzun sabit IP adresi ile
+          şirketinizin VKN&apos;sinin İşNet tarafında eşleştirilmesiyle</strong> açılıyor. Bu adım
+          yalnızca İşNet ile sizin aranızda, bir kerelik yapılır — aşağıdaki bilgilerle İşNet&apos;e
+          başvurduktan sonra onaylanmayı beklemeniz yeterli, biz onay geldiğinde otomatik aktarımı
+          devreye alırız.
+        </p>
+      </div>
+
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field label="Şirket VKN / TCKN">
+          <Input
+            value={vkn}
+            onChange={(e) => setVkn(e.target.value.replace(/\D/g, ""))}
+            placeholder="10 veya 11 haneli vergi kimlik numarası"
+            maxLength={11}
+          />
+          {!vknValid && (
+            <p className="mt-1.5 text-xs font-medium text-red-500">10 veya 11 haneli bir numara girin</p>
+          )}
+        </Field>
+        <Field label="Sunucumuzun sabit IP adresi">
+          <div className="flex items-center gap-2">
+            <Input value={SERVER_STATIC_IP} readOnly className="font-mono" />
+          </div>
+          <p className="mt-1.5 text-xs text-ink/40">
+            Bu adres sabittir, değişmeyecektir — İşNet&apos;e olduğu gibi iletin.
+          </p>
+        </Field>
+      </div>
+
+      {error && <ErrorBox message={error} />}
+
+      <div className="flex items-center gap-3">
+        <Btn type="button" onClick={saveVkn} disabled={saving || !vknValid || !dirty}>
+          {saving ? "Kaydediliyor…" : "VKN'yi Kaydet"}
+        </Btn>
+        {saved && !dirty && saved.trim() !== "" && (
+          <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-600">
+            <Icon name="check" className="h-4 w-4" />
+            Kaydedildi
+          </span>
+        )}
+      </div>
+
+      <div>
+        <div className="mb-2 flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-ink/45">
+            İşNet&apos;e gönderilecek e-posta (hazır metin)
+          </span>
+          <button
+            type="button"
+            onClick={copyEmail}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
+          >
+            <Icon name={copied ? "check" : "download"} className="h-3.5 w-3.5" />
+            {copied ? "Kopyalandı" : "Metni kopyala"}
+          </button>
+        </div>
+        <textarea
+          readOnly
+          value={email}
+          rows={9}
+          className="w-full rounded-xl border border-ink/15 bg-surface px-3.5 py-2.5 font-mono text-xs leading-relaxed text-ink/75"
+          onFocus={(e) => e.currentTarget.select()}
+        />
+        <p className="mt-2 text-xs text-ink/45">
+          Bu metni kopyalayıp{" "}
+          <a href="mailto:efaturadestek@nettefatura.com.tr" className="font-semibold text-brand hover:underline">
+            efaturadestek@nettefatura.com.tr
+          </a>{" "}
+          (veya{" "}
+          <a href="mailto:servisyazilim@is.net.tr" className="font-semibold text-brand hover:underline">
+            servisyazilim@is.net.tr
+          </a>
+          ) adresine gönderin. İşNet onayladıktan sonra bize bildirin, aktarımı devreye alalım.
+        </p>
+      </div>
     </div>
   );
 }

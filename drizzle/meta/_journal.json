@@ -225,6 +225,13 @@
       "when": 1794759958753,
       "tag": "0031_omniscient_strong_guy",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794760809008,
+      "tag": "0032_rapid_stark_industries",
+      "breakpoints": true
     }
   ]
 }
