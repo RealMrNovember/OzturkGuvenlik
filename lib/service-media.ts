@@ -49,7 +49,12 @@ export async function getHomeServiceCards(): Promise<HomeServiceCard[]> {
       name: row?.cardTitle?.trim() || s.name,
       description: row?.cardDescription?.trim() || s.short,
       icon: s.icon,
-      imageUrl: row?.cardImageUrl ? `/api/public/service-cards/${s.slug}/image` : null,
+      // Proxy route'u uzun süreli (immutable) cache'leniyor; görsel admin
+      // tarafından değiştirildiğinde ziyaretçiye eskisinin gösterilmemesi
+      // için blob dosya adından bir versiyon sorgu parametresi ekleniyor.
+      imageUrl: row?.cardImageUrl
+        ? `/api/public/service-cards/${s.slug}/image?v=${encodeURIComponent(row.cardImageUrl.split("/").pop() ?? "")}`
+        : null,
     }));
 }
 

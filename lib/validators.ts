@@ -23,6 +23,11 @@ const heroVideoItemSchema = z.object({
   repeatCount: z.number().int().min(1).max(50).optional(),
 });
 
+const galleryItemSchema = z.object({
+  imageUrl: z.string().trim().max(500),
+  caption: z.string().trim().max(160).optional().default(""),
+});
+
 export const optionalField = z.string().trim().max(2000).optional().default("");
 
 const currencyEnum = z.enum(CURRENCIES);
@@ -513,6 +518,7 @@ export const updateSiteSettingsSchema = z.object({
     .optional(),
   heroVideos: z.array(heroVideoItemSchema).max(8, "En fazla 8 video eklenebilir").optional(),
   heroSize: heroSizeEnum.optional(),
+  galleryItems: z.array(galleryItemSchema).max(12, "En fazla 12 görsel eklenebilir").optional(),
 
   // İletişim
   phones: z.array(sitePhoneSchema).max(10, "En fazla 10 telefon numarası eklenebilir").optional(),

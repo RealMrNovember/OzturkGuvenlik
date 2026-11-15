@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
 import { api } from "@/lib/fetch";
 import { usePanelCan } from "@/components/panel/PanelShell";
 import { Icon } from "@/components/icons";
@@ -15,6 +15,7 @@ import { extractYouTubeId, youtubeThumbnailUrl } from "@/lib/youtube";
 import { HERO_SIZES, HERO_SIZE_LABELS, HERO_SIZE_DESCRIPTIONS, toHeroSize, type HeroSize, type HeroVideo } from "@/lib/hero-size";
 import type { IconName } from "@/lib/services";
 import { isEmbeddableMapUrl } from "@/lib/map-embed";
+import type { GalleryItem } from "@/lib/gallery";
 
 type SitePhone = { label: string; number: string };
 
@@ -36,6 +37,7 @@ type SiteSettings = {
   heroVideoAutoplay: boolean;
   heroVideoMuted: boolean;
   heroSize: string;
+  galleryItems: GalleryItem[];
   phones: SitePhone[];
   contactEmail: string | null;
   address: string | null;
@@ -105,6 +107,7 @@ export default function SiteAyarlariPage() {
   const [heroVideoAutoplay, setHeroVideoAutoplay] = useState(true);
   const [heroVideoMuted, setHeroVideoMuted] = useState(true);
   const [heroSize, setHeroSize] = useState<HeroSize>("normal");
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([]);
 
   const [phones, setPhones] = useState<SitePhone[]>([]);
   const [contactEmail, setContactEmail] = useState("");
@@ -124,6 +127,10 @@ export default function SiteAyarlariPage() {
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
 
+  const [galleryUploading, setGalleryUploading] = useState(false);
+  const [galleryError, setGalleryError] = useState("");
+  const galleryFileRef = useRef<HTMLInputElement>(null);
+
   const load = useCallback(async () => {
     try {
       const data = await api<SiteSettings>("/api/site-settings");
@@ -136,6 +143,7 @@ export default function SiteAyarlariPage() {
       setHeroVideoAutoplay(data.heroVideoAutoplay);
       setHeroVideoMuted(data.heroVideoMuted);
       setHeroSize(toHeroSize(data.heroSize));
+      setGalleryItems(Array.isArray(data.galleryItems) ? data.galleryItems : []);
       setPhones(Array.isArray(data.phones) ? data.phones : []);
       setContactEmail(data.contactEmail ?? "");
       setAddress(data.address ?? "");
@@ -167,6 +175,34 @@ export default function SiteAyarlariPage() {
   const updateHeroVideo = (idx: number, patch: Partial<HeroVideo>) =>
     setHeroVideos((prev) => prev.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
 
+  const addGalleryItem = (imageUrl: string) =>
+    setGalleryItems((prev) => [...prev, { imageUrl, caption: "" }]);
+  const removeGalleryItem = (idx: number) => setGalleryItems((prev) => prev.filter((_, i) => i !== idx));
+  const updateGalleryItem = (idx: number, patch: Partial<GalleryItem>) =>
+    setGalleryItems((prev) => prev.map((g, i) => (i === idx ? { ...g, ...patch } : g)));
+
+  const uploadGalleryImage = async (file: File) => {
+    setGalleryUploading(true);
+    setGalleryError("");
+    try {
+      const form = new FormData();
+      form.append("file", file);
+      const res = await fetch("/api/site-settings/gallery-image", { method: "POST", body: form });
+      const json = await res.json();
+      if (!res.ok || !json.ok) throw new Error(json.error ?? "Yükleme başarısız");
+      addGalleryItem(json.data.imageUrl as string);
+    } catch (err) {
+      setGalleryError((err as Error).message || "Yükleme başarısız");
+    } finally {
+      setGalleryUploading(false);
+    }
+  };
+  const handleGalleryFilePick = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) uploadGalleryImage(file);
+  };
+
   const save = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -186,6 +222,9 @@ export default function SiteAyarlariPage() {
           heroVideoAutoplay,
           heroVideoMuted,
           heroSize,
+          galleryItems: galleryItems
+            .map((g) => ({ imageUrl: g.imageUrl.trim(), caption: g.caption.trim() }))
+            .filter((g) => g.imageUrl),
           phones: phones.map((p) => ({ label: p.label.trim(), number: p.number.trim() })).filter((p) => p.number),
           contactEmail: contactEmail.trim(),
           address: address.trim(),
@@ -203,6 +242,7 @@ export default function SiteAyarlariPage() {
       setSettings(data);
       setAccentThickness(String(data.accentThickness));
       setHeroVideos(Array.isArray(data.heroVideos) ? data.heroVideos : []);
+      setGalleryItems(Array.isArray(data.galleryItems) ? data.galleryItems : []);
       setPhones(Array.isArray(data.phones) ? data.phones : []);
       setSaved(true);
     } catch (err) {
@@ -221,6 +261,7 @@ export default function SiteAyarlariPage() {
     setHeroVideoAutoplay(true);
     setHeroVideoMuted(true);
     setHeroSize("normal");
+    setGalleryItems([]);
     setSaved(false);
   };
 
@@ -253,6 +294,7 @@ export default function SiteAyarlariPage() {
       heroVideoAutoplay !== settings.heroVideoAutoplay ||
       heroVideoMuted !== settings.heroVideoMuted ||
       heroSize !== toHeroSize(settings.heroSize) ||
+      JSON.stringify(galleryItems) !== JSON.stringify(settings.galleryItems ?? []) ||
       JSON.stringify(phones) !== JSON.stringify(settings.phones ?? []) ||
       contactEmail.trim() !== (settings.contactEmail ?? "") ||
       address.trim() !== (settings.address ?? "") ||
@@ -279,7 +321,8 @@ export default function SiteAyarlariPage() {
     heroVideos.length === 0 &&
     heroVideoAutoplay === true &&
     heroVideoMuted === true &&
-    heroSize === "normal";
+    heroSize === "normal" &&
+    galleryItems.length === 0;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -579,6 +622,60 @@ export default function SiteAyarlariPage() {
                 );
               })}
             </div>
+          </div>
+        </Card>
+
+        <Card title="Sahadan Kareler (Gerçek İşler, Gerçek Mekânlar)">
+          <div className="space-y-4 p-5">
+            <p className="text-xs text-ink/50">
+              Anasayfada hemen aşağıda görünen saha fotoğrafları galerisi. Hiç eklenmezse mevcut
+              varsayılan 3 görsel kullanılmaya devam eder.
+            </p>
+            {galleryError && <ErrorBox message={galleryError} />}
+            <div className="grid gap-3 sm:grid-cols-3">
+              {galleryItems.map((item, i) => (
+                <div key={i} className="space-y-2 rounded-xl border border-ink/10 p-2.5">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={`/api/site-settings/gallery-image?url=${encodeURIComponent(item.imageUrl)}`}
+                    alt=""
+                    className="aspect-[4/3] w-full rounded-lg object-cover"
+                  />
+                  <Input
+                    value={item.caption}
+                    onChange={(e) => updateGalleryItem(i, { caption: e.target.value })}
+                    placeholder="Açıklama (örn. İş yeri kurulumu)"
+                    maxLength={160}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => removeGalleryItem(i)}
+                    className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-xs font-semibold text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <Icon name="trash" className="h-3.5 w-3.5" />
+                    Kaldır
+                  </button>
+                </div>
+              ))}
+            </div>
+            {galleryItems.length < 12 && (
+              <button
+                type="button"
+                disabled={galleryUploading}
+                onClick={() => galleryFileRef.current?.click()}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline disabled:opacity-50"
+              >
+                <Icon name="plus" className="h-4 w-4" />
+                {galleryUploading ? "Yükleniyor…" : "Görsel ekle"}
+              </button>
+            )}
+            <input
+              ref={galleryFileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleGalleryFilePick}
+            />
           </div>
         </Card>
         </>

@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "gallery_items" jsonb DEFAULT '[]'::jsonb NOT NULL;

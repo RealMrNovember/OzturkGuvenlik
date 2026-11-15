@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Image from "next/image";
-import { getResolvedSite } from "@/lib/site-settings";
+import { getResolvedSite, getSiteSettings } from "@/lib/site-settings";
 import { processSteps } from "@/lib/services";
 import { getHomeServiceCards } from "@/lib/service-media";
+import { resolveGalleryItems } from "@/lib/gallery";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { HeroMedia } from "@/components/HeroMedia";
@@ -29,6 +29,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function HomePage() {
   const site = await getResolvedSite();
   const serviceCards = await getHomeServiceCards();
+  const galleryItems = resolveGalleryItems(await getSiteSettings());
 
   const trustChips = [
     { label: "11+ yıl deneyim", icon: "clock" as const },
@@ -198,36 +199,20 @@ export default async function HomePage() {
             subtitle="Aşağıdaki görseller kurduğumuz sistemlerin saha fotoğraflarıdır."
           />
           <div className="mt-12 grid gap-5 sm:grid-cols-3">
-            {[
-              {
-                src: "/images/is-1.jpg",
-                alt: "Kurulan güvenlik kamerası sistemi",
-                caption: "İş yeri güvenlik kamerası kurulumu",
-              },
-              {
-                src: "/images/hero-1.jpg",
-                alt: "Kamera sistemi kurulum çalışması",
-                caption: "Saha keşif ve montaj çalışması",
-              },
-              {
-                src: "/images/is-2.jpg",
-                alt: "Kurulumu yapılmış güvenlik sistemi",
-                caption: "Kurulum sonrası sistem görünümü",
-              },
-            ].map((img, i) => (
-              <Reveal key={img.src} delay={i * 90}>
+            {galleryItems.map((img, i) => (
+              <Reveal key={img.imageUrl} delay={i * 90}>
                 <figure className="accent-frame group overflow-hidden rounded-2xl bg-ink shadow-sm">
-                  <Image
-                    src={img.src}
-                    alt={img.alt}
-                    width={800}
-                    height={600}
-                    sizes="(min-width: 640px) 33vw, 100vw"
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.imageUrl}
+                    alt={img.caption || "Saha fotoğrafı"}
                     className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <figcaption className="bg-white px-5 py-4 text-sm font-semibold text-ink">
-                    {img.caption}
-                  </figcaption>
+                  {img.caption && (
+                    <figcaption className="bg-white px-5 py-4 text-sm font-semibold text-ink">
+                      {img.caption}
+                    </figcaption>
+                  )}
                 </figure>
               </Reveal>
             ))}

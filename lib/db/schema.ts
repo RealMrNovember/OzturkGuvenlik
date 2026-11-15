@@ -449,6 +449,11 @@ export const siteSettings = pgTable("site_settings", {
   // Hero bölümünün (video/görsel oynadığı alan) dikey boyutu — bkz. lib/hero-size.ts.
   heroSize: varchar("hero_size", { length: 20 }).notNull().default("normal"),
 
+  // Anasayfa "Gerçek işler, gerçek mekânlar" (saha fotoğrafları) galerisi.
+  // [{imageUrl, caption}] — boşsa lib/gallery.ts'teki statik 3 görsele düşülür
+  // (veri kaybı riski olmadan geriye dönük uyumlu).
+  galleryItems: jsonb("gallery_items").notNull().default([]),
+
   // Aşağıdaki alanların tamamı boş/varsayılan bırakılabilir — boşsa
   // lib/site-settings.ts'teki getResolvedSite() lib/site.ts'teki sabit
   // (kod içi) değerlere düşer, site hiçbir zaman boş/kırık görünmez.
