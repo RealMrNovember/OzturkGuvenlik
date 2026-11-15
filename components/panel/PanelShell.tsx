@@ -55,7 +55,7 @@ const nav = [
   { href: "/panel/personel", label: "Personel", icon: "shield" as const },
   {
     href: "/panel/hizmet-medya",
-    label: "Hizmet Videoları",
+    label: "Hizmet Medya & Kartlar",
     icon: "video" as const,
     requires: "manage_settings" as const,
   },
