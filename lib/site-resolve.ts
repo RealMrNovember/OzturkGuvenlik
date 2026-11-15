@@ -26,6 +26,7 @@ export type ResolvedSite = {
   instagram: string;
   facebook: string;
   youtube: string;
+  tiktok: string;
   googleReviewsUrl: string;
   mapEmbedUrl: string;
   mapLink: string;

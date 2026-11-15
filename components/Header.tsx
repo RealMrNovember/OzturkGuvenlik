@@ -199,7 +199,7 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          {(site.instagram || site.facebook || site.youtube) && (
+          {(site.instagram || site.facebook || site.youtube || site.tiktok) && (
             <div className="flex items-center gap-1 border-r border-white/15 pr-3">
               {site.instagram && (
                 <a
@@ -232,6 +232,17 @@ export function Header() {
                   className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
                 >
                   <Icon name="youtube" className="h-4 w-4" />
+                </a>
+              )}
+              {site.tiktok && (
+                <a
+                  href={site.tiktok}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="TikTok"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Icon name="tiktok" className="h-4 w-4" />
                 </a>
               )}
             </div>
@@ -332,7 +343,7 @@ export function Header() {
             >
               Ücretsiz Keşif
             </Link>
-            {(site.instagram || site.facebook || site.youtube) && (
+            {(site.instagram || site.facebook || site.youtube || site.tiktok) && (
               <div className="mt-1 flex items-center justify-center gap-3">
                 {site.instagram && (
                   <a
@@ -365,6 +376,17 @@ export function Header() {
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70"
                   >
                     <Icon name="youtube" className="h-4 w-4" />
+                  </a>
+                )}
+                {site.tiktok && (
+                  <a
+                    href={site.tiktok}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="TikTok"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70"
+                  >
+                    <Icon name="tiktok" className="h-4 w-4" />
                   </a>
                 )}
               </div>

@@ -23,6 +23,7 @@ const FALLBACK: ResolvedSite = {
   heroSize: "normal",
   whatsappFloatLabel: "",
   youtube: "",
+  tiktok: "",
 };
 
 const SiteContext = createContext<ResolvedSite>(FALLBACK);

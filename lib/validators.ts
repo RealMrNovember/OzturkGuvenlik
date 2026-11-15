@@ -525,6 +525,7 @@ export const updateSiteSettingsSchema = z.object({
   instagramUrl: z.string().trim().max(300).optional(),
   facebookUrl: z.string().trim().max(300).optional(),
   youtubeUrl: z.string().trim().max(300).optional(),
+  tiktokUrl: z.string().trim().max(300).optional(),
   whatsappNumber: z
     .string()
     .trim()

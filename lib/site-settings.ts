@@ -89,6 +89,7 @@ export const getResolvedSite = cache(async (): Promise<ResolvedSite> => {
     instagram: s.instagramUrl || staticSite.instagram,
     facebook: s.facebookUrl || staticSite.facebook,
     youtube: s.youtubeUrl || "",
+    tiktok: s.tiktokUrl || "",
     googleReviewsUrl: s.googleReviewsUrl || staticSite.googleReviewsUrl,
     mapEmbedUrl: resolveMapEmbedUrl(mapEmbedCandidate, address),
     mapLink: s.mapLink || staticSite.mapLink,

@@ -466,6 +466,7 @@ export const siteSettings = pgTable("site_settings", {
   instagramUrl: varchar("instagram_url", { length: 300 }).default(""),
   facebookUrl: varchar("facebook_url", { length: 300 }).default(""),
   youtubeUrl: varchar("youtube_url", { length: 300 }).default(""),
+  tiktokUrl: varchar("tiktok_url", { length: 300 }).default(""),
   whatsappNumber: varchar("whatsapp_number", { length: 20 }).default(""), // yalnızca rakam, örn: 905350146593
   whatsappDefaultText: text("whatsapp_default_text").default(""),
   // Sağ altta sabit duran WhatsApp butonunun üzerinde gösterilen kısa etiket

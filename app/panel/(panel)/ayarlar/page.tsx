@@ -44,6 +44,7 @@ type SiteSettings = {
   instagramUrl: string | null;
   facebookUrl: string | null;
   youtubeUrl: string | null;
+  tiktokUrl: string | null;
   whatsappNumber: string | null;
   whatsappDefaultText: string | null;
   whatsappFloatLabel: string | null;
@@ -113,6 +114,7 @@ export default function SiteAyarlariPage() {
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [tiktokUrl, setTiktokUrl] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappDefaultText, setWhatsappDefaultText] = useState("");
   const [whatsappFloatLabel, setWhatsappFloatLabel] = useState("");
@@ -142,6 +144,7 @@ export default function SiteAyarlariPage() {
       setInstagramUrl(data.instagramUrl ?? "");
       setFacebookUrl(data.facebookUrl ?? "");
       setYoutubeUrl(data.youtubeUrl ?? "");
+      setTiktokUrl(data.tiktokUrl ?? "");
       setWhatsappNumber(data.whatsappNumber ?? "");
       setWhatsappDefaultText(data.whatsappDefaultText ?? "");
       setWhatsappFloatLabel(data.whatsappFloatLabel ?? "");
@@ -191,6 +194,7 @@ export default function SiteAyarlariPage() {
           instagramUrl: instagramUrl.trim(),
           facebookUrl: facebookUrl.trim(),
           youtubeUrl: youtubeUrl.trim(),
+          tiktokUrl: tiktokUrl.trim(),
           whatsappNumber: whatsappNumber.trim(),
           whatsappDefaultText: whatsappDefaultText.trim(),
           whatsappFloatLabel: whatsappFloatLabel.trim(),
@@ -257,6 +261,7 @@ export default function SiteAyarlariPage() {
       instagramUrl.trim() !== (settings.instagramUrl ?? "") ||
       facebookUrl.trim() !== (settings.facebookUrl ?? "") ||
       youtubeUrl.trim() !== (settings.youtubeUrl ?? "") ||
+      tiktokUrl.trim() !== (settings.tiktokUrl ?? "") ||
       whatsappNumber.trim() !== (settings.whatsappNumber ?? "") ||
       whatsappDefaultText.trim() !== (settings.whatsappDefaultText ?? "") ||
       whatsappFloatLabel.trim() !== (settings.whatsappFloatLabel ?? "")
@@ -701,6 +706,13 @@ export default function SiteAyarlariPage() {
                   value={youtubeUrl}
                   onChange={(e) => setYoutubeUrl(e.target.value)}
                   placeholder="https://www.youtube.com/@..."
+                />
+              </Field>
+              <Field label="TikTok linki">
+                <Input
+                  value={tiktokUrl}
+                  onChange={(e) => setTiktokUrl(e.target.value)}
+                  placeholder="https://www.tiktok.com/@..."
                 />
               </Field>
               <Field label="WhatsApp numarası (ülke koduyla, boşluksuz)">
