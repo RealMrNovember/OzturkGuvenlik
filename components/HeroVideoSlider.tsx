@@ -88,6 +88,13 @@ function RepeatCountedVideo({
     loadYoutubeIframeApi().then(() => {
       if (destroyed || !window.YT) return;
       player = new window.YT.Player(mountEl, {
+        // width/height vermezsek YouTube iframe'e 640x390 width/height
+        // HTML ATTRIBUTE'ü basıyor; bu, aşağıda uyguladığımız CSS
+        // tekniğiyle (min-width/min-height: 100% + aspect-ratio) çakışıp
+        // videonun küçük kalmasına yol açıyordu. "100%" vererek baştan
+        // önlüyoruz, yine de aşağıda attribute'leri tamamen temizliyoruz.
+        width: "100%",
+        height: "100%",
         videoId,
         playerVars: {
           autoplay: autoplay ? 1 : 0,
@@ -105,6 +112,8 @@ function RepeatCountedVideo({
           onReady: () => {
             const iframe = player?.getIframe();
             if (iframe) {
+              iframe.removeAttribute("width");
+              iframe.removeAttribute("height");
               iframe.className = IFRAME_CLASS;
               iframe.style.aspectRatio = "16 / 9";
               iframe.style.minWidth = "100%";
