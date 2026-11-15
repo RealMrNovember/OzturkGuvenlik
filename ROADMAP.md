@@ -62,10 +62,12 @@ atlanmasın diye buraya yazılıyor; tamamlanınca işaretlenir.
   slider'daki hatalardan hiç etkilenmemiş. Video olan/olmayan birkaç sayfa tek tek
   tarayıcıda test edildi, hepsi doğru boyutta ve hatasız çalışıyor.
 
-- [x] **"Gerçek işler, gerçek mekânlar" galerisi — admin'den düzenlenebilir** — canlıda
+- [x] **"Gerçek işler, gerçek mekânlar" galerisi — admin'den düzenlenebilir** — canlıda, kullanıcı panelden onayladı
   Anasayfadaki 3 sabit saha fotoğrafı artık Site Ayarları → Görünüm → "Sahadan Kareler"
-  bölümünden yönetiliyor: görsel yükleme + açıklama, sıralı liste. Hiç eklenmezse mevcut
-  3 varsayılan görsel kullanılmaya devam ediyor.
+  bölümünden yönetiliyor: görsel yükleme + açıklama, sıralı liste. Panel açıldığında
+  sitede hâlihazırda yayında olan 3 görsel dolu ve düzenlenebilir olarak geliyor (ilk
+  halde boş liste gösterme hatası düzeltildi); hiç dokunulmazsa aynı 3 görsel
+  kullanılmaya devam ediyor.
 
 ## Notlar
 
