@@ -199,6 +199,41 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
+          {(site.email || site.instagram || site.facebook) && (
+            <div className="flex items-center gap-1 border-r border-white/15 pr-3">
+              {site.email && (
+                <a
+                  href={`mailto:${site.email}`}
+                  aria-label="E-posta gönder"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Icon name="mail" className="h-4 w-4" />
+                </a>
+              )}
+              {site.instagram && (
+                <a
+                  href={site.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Instagram"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Icon name="instagram" className="h-4 w-4" />
+                </a>
+              )}
+              {site.facebook && (
+                <a
+                  href={site.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Facebook"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Icon name="facebook" className="h-4 w-4" />
+                </a>
+              )}
+            </div>
+          )}
           <a
             href={site.phoneHref}
             className="flex items-center gap-2 text-sm font-semibold text-white/90 transition-colors hover:text-white"
@@ -269,6 +304,15 @@ export function Header() {
               <Icon name="whatsapp" className="h-4 w-4" />
               WhatsApp'tan Yaz
             </a>
+            {site.email && (
+              <a
+                href={`mailto:${site.email}`}
+                className="flex items-center justify-center gap-2 rounded-full border border-white/20 px-4 py-3 text-sm font-semibold text-white"
+              >
+                <Icon name="mail" className="h-4 w-4" />
+                {site.email}
+              </a>
+            )}
             <Link
               href="/kesif"
               onClick={() => setOpen(false)}
@@ -276,6 +320,32 @@ export function Header() {
             >
               Ücretsiz Keşif
             </Link>
+            {(site.instagram || site.facebook) && (
+              <div className="mt-1 flex items-center justify-center gap-3">
+                {site.instagram && (
+                  <a
+                    href={site.instagram}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Instagram"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70"
+                  >
+                    <Icon name="instagram" className="h-4 w-4" />
+                  </a>
+                )}
+                {site.facebook && (
+                  <a
+                    href={site.facebook}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="Facebook"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70"
+                  >
+                    <Icon name="facebook" className="h-4 w-4" />
+                  </a>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}

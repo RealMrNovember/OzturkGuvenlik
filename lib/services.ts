@@ -45,7 +45,8 @@ export type IconName =
   | "help"
   | "video"
   | "truck"
-  | "target";
+  | "target"
+  | "mail";
 
 export type Service = {
   slug: string;
