@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { buildYoutubeBackgroundEmbedUrl, extractYouTubeId } from "@/lib/youtube";
 import type { HeroVideo } from "@/lib/hero-size";
 
@@ -159,29 +159,50 @@ export function HeroVideoSlider({
 
   if (!current) return null;
 
+  let videoNode: ReactNode;
   if (useRepeatCount) {
-    return (
+    videoNode = (
       <RepeatCountedVideo key={safeIndex} video={current} autoplay={autoplay} muted={muted} onDone={advance} />
     );
+  } else {
+    const embedUrl = buildYoutubeBackgroundEmbedUrl({
+      videoUrl: current.url,
+      autoplay,
+      muted,
+      start: current.start ?? 0,
+      duration: current.duration ?? null,
+    });
+    videoNode = embedUrl ? (
+      <iframe
+        key={safeIndex}
+        src={embedUrl}
+        title="Tanıtım videosu"
+        className={IFRAME_CLASS}
+        style={{ aspectRatio: "16 / 9", minWidth: "100%", minHeight: "100%" }}
+        allow="autoplay; encrypted-media"
+      />
+    ) : null;
   }
 
-  const embedUrl = buildYoutubeBackgroundEmbedUrl({
-    videoUrl: current.url,
-    autoplay,
-    muted,
-    start: current.start ?? 0,
-    duration: current.duration ?? null,
-  });
-  if (!embedUrl) return null;
-
   return (
-    <iframe
-      key={safeIndex}
-      src={embedUrl}
-      title="Tanıtım videosu"
-      className={IFRAME_CLASS}
-      style={{ aspectRatio: "16 / 9", minWidth: "100%", minHeight: "100%" }}
-      allow="autoplay; encrypted-media"
-    />
+    <>
+      {videoNode}
+      {videos.length > 1 && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-5 z-20 flex justify-center gap-2 sm:bottom-7">
+          {videos.map((_, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setIndex(i)}
+              aria-label={`${i + 1}. videoyu göster`}
+              aria-current={i === safeIndex}
+              className={`pointer-events-auto h-1 rounded-full transition-all duration-300 ${
+                i === safeIndex ? "w-8 bg-brand" : "w-5 bg-white/40 hover:bg-white/70"
+              }`}
+            />
+          ))}
+        </div>
+      )}
+    </>
   );
 }
