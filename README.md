@@ -49,11 +49,14 @@ Panel: http://localhost:3000/panel — giriş bilgileri `db:seed` çıktısında
 ## Üretim (Supabase + Vercel)
 
 1. Supabase'te proje oluşturun; Settings → Database → **Connection string**'den
-   pooler bağlantı dizesini kopyalayın (şifreyi dolduracak şekilde).
+   **"Transaction" pooler** sekmesindeki bağlantı dizesini kopyalayın (şifreyi
+   dolduracak şekilde) — port **6543** olmalı. "Session" pooler (port 5432)
+   KULLANMAYIN: Vercel gibi serverless ortamlarda eşzamanlı isteklerde bağlantı
+   havuzu hızla tükenir ve panelde "server error" ile sonuçlanır.
 2. Migration'ı uygulayın:
 
    ```bash
-   $env:DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres"
+   $env:DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres"
    npm run db:migrate
    ```
 
