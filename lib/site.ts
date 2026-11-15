@@ -23,10 +23,10 @@ export const site = {
     "https://maps.google.com/?q=Yenibosna+Merkez+Mahallesi+Kenanbey+Sokak+No:11+İstanbul",
   // Google Ads bu domain (ozturkguvenlik.com) üzerinden reklam vereceği için
   // kanonik host bu olmalı — sitemap, robots.txt, canonical/OG/JSON-LD hepsi
-  // buradan türüyor. Türkçe karakterli IDN (öztürkgüvenlik.com) Vercel'de ayrı
-  // bir domain olarak hâlâ yayında; aynı anda iki ayrı canlı domain aynı
-  // içeriği servis ettiği için (duplicate content) ileride o domainin de bu
-  // domaine 308 ile yönlendirilmesi önerilir. Vercel'de apex → www 308
+  // buradan türüyor. Türkçe karakterli IDN (öztürkgüvenlik.com) de Vercel'de
+  // aynı projeye bağlı; aynı içeriği iki ayrı domainden servis edip
+  // "duplicate content" oluşturmaması için middleware.ts o domaine gelen
+  // her isteği buraya 308 ile yönlendiriyor. Vercel'de apex → www 308
   // yönlendirmesi var, bu yüzden kanonik host www'lı.
   domain: "www.ozturkguvenlik.com",
   url: "https://www.ozturkguvenlik.com",
