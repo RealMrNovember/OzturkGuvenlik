@@ -34,6 +34,17 @@ export async function Footer() {
               >
                 <Icon name="facebook" className="h-4 w-4" />
               </a>
+              {site.youtube && (
+                <a
+                  href={site.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="YouTube"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-white/15 text-white/70 transition-colors hover:border-brand hover:text-brand-light"
+                >
+                  <Icon name="youtube" className="h-4 w-4" />
+                </a>
+              )}
             </div>
           </div>
 

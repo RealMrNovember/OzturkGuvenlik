@@ -20,10 +20,12 @@ export type ResolvedSite = {
   email: string;
   whatsappNumber: string;
   whatsappDefaultText: string;
+  whatsappFloatLabel: string;
   address: string;
   addressShort: string;
   instagram: string;
   facebook: string;
+  youtube: string;
   googleReviewsUrl: string;
   mapEmbedUrl: string;
   mapLink: string;

@@ -43,8 +43,10 @@ type SiteSettings = {
   mapEmbedUrl: string | null;
   instagramUrl: string | null;
   facebookUrl: string | null;
+  youtubeUrl: string | null;
   whatsappNumber: string | null;
   whatsappDefaultText: string | null;
+  whatsappFloatLabel: string | null;
   updatedAt: string;
 };
 
@@ -110,8 +112,10 @@ export default function SiteAyarlariPage() {
   const [mapEmbedUrl, setMapEmbedUrl] = useState("");
   const [instagramUrl, setInstagramUrl] = useState("");
   const [facebookUrl, setFacebookUrl] = useState("");
+  const [youtubeUrl, setYoutubeUrl] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappDefaultText, setWhatsappDefaultText] = useState("");
+  const [whatsappFloatLabel, setWhatsappFloatLabel] = useState("");
 
   const [loading, setLoading] = useState(() => isAdmin);
   const [saving, setSaving] = useState(false);
@@ -137,8 +141,10 @@ export default function SiteAyarlariPage() {
       setMapEmbedUrl(data.mapEmbedUrl ?? "");
       setInstagramUrl(data.instagramUrl ?? "");
       setFacebookUrl(data.facebookUrl ?? "");
+      setYoutubeUrl(data.youtubeUrl ?? "");
       setWhatsappNumber(data.whatsappNumber ?? "");
       setWhatsappDefaultText(data.whatsappDefaultText ?? "");
+      setWhatsappFloatLabel(data.whatsappFloatLabel ?? "");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -184,8 +190,10 @@ export default function SiteAyarlariPage() {
           mapEmbedUrl: mapEmbedUrl.trim(),
           instagramUrl: instagramUrl.trim(),
           facebookUrl: facebookUrl.trim(),
+          youtubeUrl: youtubeUrl.trim(),
           whatsappNumber: whatsappNumber.trim(),
           whatsappDefaultText: whatsappDefaultText.trim(),
+          whatsappFloatLabel: whatsappFloatLabel.trim(),
         }),
       });
       setSettings(data);
@@ -248,8 +256,10 @@ export default function SiteAyarlariPage() {
       mapEmbedUrl.trim() !== (settings.mapEmbedUrl ?? "") ||
       instagramUrl.trim() !== (settings.instagramUrl ?? "") ||
       facebookUrl.trim() !== (settings.facebookUrl ?? "") ||
+      youtubeUrl.trim() !== (settings.youtubeUrl ?? "") ||
       whatsappNumber.trim() !== (settings.whatsappNumber ?? "") ||
-      whatsappDefaultText.trim() !== (settings.whatsappDefaultText ?? "")
+      whatsappDefaultText.trim() !== (settings.whatsappDefaultText ?? "") ||
+      whatsappFloatLabel.trim() !== (settings.whatsappFloatLabel ?? "")
     : false;
 
   const addPhone = () => setPhones((prev) => [...prev, { label: "", number: "" }]);
@@ -686,6 +696,13 @@ export default function SiteAyarlariPage() {
                   placeholder="https://www.facebook.com/..."
                 />
               </Field>
+              <Field label="YouTube kanalı linki">
+                <Input
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="https://www.youtube.com/@..."
+                />
+              </Field>
               <Field label="WhatsApp numarası (ülke koduyla, boşluksuz)">
                 <Input
                   value={whatsappNumber}
@@ -699,6 +716,17 @@ export default function SiteAyarlariPage() {
                   onChange={(e) => setWhatsappDefaultText(e.target.value)}
                   placeholder="Merhabalar, güvenlik sistemleri için fiyat almak istiyorum."
                 />
+              </Field>
+              <Field label="Yüzen WhatsApp butonu üzerindeki etiket (opsiyonel)">
+                <Input
+                  value={whatsappFloatLabel}
+                  onChange={(e) => setWhatsappFloatLabel(e.target.value.slice(0, 60))}
+                  placeholder="Örn. Ücretsiz Keşif"
+                  maxLength={60}
+                />
+                <p className="mt-1.5 text-xs text-ink/40">
+                  Boş bırakılırsa sağ altta sadece ikon görünür (mevcut hâli).
+                </p>
               </Field>
             </div>
           </div>

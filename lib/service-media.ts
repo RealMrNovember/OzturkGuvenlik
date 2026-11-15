@@ -2,6 +2,7 @@ import { cache } from "react";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { serviceMedia, type ServiceMedia } from "@/lib/db/schema";
+import { services, type Service } from "@/lib/services";
 
 export async function listServiceMedia(): Promise<ServiceMedia[]> {
   return db.select().from(serviceMedia);
@@ -15,6 +16,43 @@ export const getServiceMedia = cache(async (slug: string): Promise<ServiceMedia 
   return row ?? null;
 });
 
+export type HomeServiceCard = {
+  slug: string;
+  name: string;
+  description: string;
+  icon: Service["icon"];
+  imageUrl: string | null;
+};
+
+/** Anasayfa "Ne arıyorsunuz?" bölümü için: statik hizmet listesiyle admin'in
+ * service_media'da düzenlediği kart ayarlarını birleştirir. Kart gizlenmişse
+ * (cardVisible=false) listeye hiç girmez; başlık/açıklama boşsa statik
+ * hizmet adı/açıklamasına, görsel yoksa null'a (ikon gösterimine) düşer. */
+export async function getHomeServiceCards(): Promise<HomeServiceCard[]> {
+  const rows = await listServiceMedia();
+  const bySlug = new Map(rows.map((r) => [r.serviceSlug, r]));
+
+  return services
+    .map((s, i) => {
+      const row = bySlug.get(s.slug);
+      return {
+        service: s,
+        row,
+        order: row?.cardSortOrder ?? i,
+        visible: row?.cardVisible ?? true,
+      };
+    })
+    .filter((x) => x.visible)
+    .sort((a, b) => a.order - b.order)
+    .map(({ service: s, row }) => ({
+      slug: s.slug,
+      name: row?.cardTitle?.trim() || s.name,
+      description: row?.cardDescription?.trim() || s.short,
+      icon: s.icon,
+      imageUrl: row?.cardImageUrl ? `/api/public/service-cards/${s.slug}/image` : null,
+    }));
+}
+
 export async function upsertServiceMedia(
   slug: string,
   patch: {
@@ -24,6 +62,10 @@ export async function upsertServiceMedia(
     videoStart: number;
     videoDuration: number | null;
     heroSize: string;
+    cardTitle: string;
+    cardDescription: string;
+    cardVisible: boolean;
+    cardSortOrder: number;
   },
   updatedBy: number
 ): Promise<ServiceMedia> {

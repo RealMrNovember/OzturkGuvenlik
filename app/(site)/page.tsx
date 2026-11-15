@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getResolvedSite } from "@/lib/site-settings";
-import { services, processSteps } from "@/lib/services";
+import { processSteps } from "@/lib/services";
+import { getHomeServiceCards } from "@/lib/service-media";
 import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { HeroMedia } from "@/components/HeroMedia";
@@ -27,6 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function HomePage() {
   const site = await getResolvedSite();
+  const serviceCards = await getHomeServiceCards();
 
   const trustChips = [
     { label: "11+ yıl deneyim", icon: "clock" as const },
@@ -101,27 +103,55 @@ export default async function HomePage() {
             subtitle="İhtiyacınıza göre 11 farklı sistem. Hangi çözümün size uygun olduğundan emin değilseniz ücretsiz keşifle birlikte karar verelim."
           />
           <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-            {services.map((s, i) => (
+            {serviceCards.map((s, i) => (
               <Reveal key={s.slug} delay={(i % 3) * 80}>
-                <Link
-                  href={`/hizmetler/${s.slug}`}
-                  className="group flex h-full flex-col rounded-2xl border border-ink/8 bg-surface p-6 transition-all hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/10"
-                >
-                  <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-brand shadow-sm transition-colors group-hover:bg-brand group-hover:text-white">
-                    <Icon name={s.icon} className="h-6 w-6" />
-                  </span>
-                  <h3 className="mt-4 text-lg font-bold text-ink">{s.name}</h3>
-                  <p className="mt-2 flex-1 text-sm leading-relaxed text-ink/60">
-                    {s.short}
-                  </p>
-                  <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand">
-                    İncele
-                    <Icon
-                      name="arrow"
-                      className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1"
+                {s.imageUrl ? (
+                  <Link
+                    href={`/hizmetler/${s.slug}`}
+                    className="group relative flex h-72 flex-col overflow-hidden rounded-2xl transition-all hover:-translate-y-1 hover:shadow-xl hover:shadow-ink/20"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={s.imageUrl}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                     />
-                  </span>
-                </Link>
+                    <div className="absolute inset-0 bg-gradient-to-t from-ink/95 via-ink/45 to-ink/5" />
+                    <div className="relative z-10 mt-auto p-6 text-white">
+                      <h3 className="text-lg font-bold">{s.name}</h3>
+                      <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-white/75">
+                        {s.description}
+                      </p>
+                      <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-white">
+                        İncele
+                        <Icon
+                          name="arrow"
+                          className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1"
+                        />
+                      </span>
+                    </div>
+                  </Link>
+                ) : (
+                  <Link
+                    href={`/hizmetler/${s.slug}`}
+                    className="group flex h-full flex-col rounded-2xl border border-ink/8 bg-surface p-6 transition-all hover:-translate-y-1 hover:border-brand/40 hover:shadow-lg hover:shadow-brand/10"
+                  >
+                    <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-white text-brand shadow-sm transition-colors group-hover:bg-brand group-hover:text-white">
+                      <Icon name={s.icon} className="h-6 w-6" />
+                    </span>
+                    <h3 className="mt-4 text-lg font-bold text-ink">{s.name}</h3>
+                    <p className="mt-2 flex-1 text-sm leading-relaxed text-ink/60">
+                      {s.description}
+                    </p>
+                    <span className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-brand">
+                      İncele
+                      <Icon
+                        name="arrow"
+                        className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1"
+                      />
+                    </span>
+                  </Link>
+                )}
               </Reveal>
             ))}
           </div>

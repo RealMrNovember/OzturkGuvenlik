@@ -199,17 +199,8 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-3 lg:flex">
-          {(site.email || site.instagram || site.facebook) && (
+          {(site.instagram || site.facebook || site.youtube) && (
             <div className="flex items-center gap-1 border-r border-white/15 pr-3">
-              {site.email && (
-                <a
-                  href={`mailto:${site.email}`}
-                  aria-label="E-posta gönder"
-                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
-                >
-                  <Icon name="mail" className="h-4 w-4" />
-                </a>
-              )}
               {site.instagram && (
                 <a
                   href={site.instagram}
@@ -232,15 +223,36 @@ export function Header() {
                   <Icon name="facebook" className="h-4 w-4" />
                 </a>
               )}
+              {site.youtube && (
+                <a
+                  href={site.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="YouTube"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-white/55 transition-colors hover:bg-white/10 hover:text-white"
+                >
+                  <Icon name="youtube" className="h-4 w-4" />
+                </a>
+              )}
             </div>
           )}
-          <a
-            href={site.phoneHref}
-            className="flex items-center gap-2 text-sm font-semibold text-white/90 transition-colors hover:text-white"
-          >
-            <Icon name="phone" className="h-4 w-4 text-brand-light" />
-            {site.phoneDisplay}
-          </a>
+          <div className="flex flex-col">
+            <a
+              href={site.phoneHref}
+              className="flex items-center gap-2 text-sm font-semibold text-white/90 transition-colors hover:text-white"
+            >
+              <Icon name="phone" className="h-4 w-4 text-brand-light" />
+              {site.phoneDisplay}
+            </a>
+            {site.email && (
+              <a
+                href={`mailto:${site.email}`}
+                className="pl-6 text-xs text-white/50 transition-colors hover:text-white/80"
+              >
+                {site.email}
+              </a>
+            )}
+          </div>
           <Link
             href="/kesif"
             className="rounded-full bg-brand px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-brand/30 transition-all hover:bg-brand-light hover:shadow-brand-light/30"
@@ -295,6 +307,15 @@ export function Header() {
               <Icon name="phone" className="h-4 w-4" />
               {site.phoneDisplay}
             </a>
+            {site.email && (
+              <a
+                href={`mailto:${site.email}`}
+                className="flex items-center justify-center gap-2 text-xs text-white/55"
+              >
+                <Icon name="mail" className="h-3.5 w-3.5" />
+                {site.email}
+              </a>
+            )}
             <a
               href={resolvedWaLinkDefault(site)}
               target="_blank"
@@ -304,15 +325,6 @@ export function Header() {
               <Icon name="whatsapp" className="h-4 w-4" />
               WhatsApp'tan Yaz
             </a>
-            {site.email && (
-              <a
-                href={`mailto:${site.email}`}
-                className="flex items-center justify-center gap-2 rounded-full border border-white/20 px-4 py-3 text-sm font-semibold text-white"
-              >
-                <Icon name="mail" className="h-4 w-4" />
-                {site.email}
-              </a>
-            )}
             <Link
               href="/kesif"
               onClick={() => setOpen(false)}
@@ -320,7 +332,7 @@ export function Header() {
             >
               Ücretsiz Keşif
             </Link>
-            {(site.instagram || site.facebook) && (
+            {(site.instagram || site.facebook || site.youtube) && (
               <div className="mt-1 flex items-center justify-center gap-3">
                 {site.instagram && (
                   <a
@@ -342,6 +354,17 @@ export function Header() {
                     className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70"
                   >
                     <Icon name="facebook" className="h-4 w-4" />
+                  </a>
+                )}
+                {site.youtube && (
+                  <a
+                    href={site.youtube}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label="YouTube"
+                    className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 text-white/70"
+                  >
+                    <Icon name="youtube" className="h-4 w-4" />
                   </a>
                 )}
               </div>

@@ -21,6 +21,8 @@ const FALLBACK: ResolvedSite = {
   googleAdsConversionId: "",
   googleAdsConversionLabel: "",
   heroSize: "normal",
+  whatsappFloatLabel: "",
+  youtube: "",
 };
 
 const SiteContext = createContext<ResolvedSite>(FALLBACK);

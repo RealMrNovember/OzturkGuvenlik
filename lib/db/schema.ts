@@ -465,8 +465,12 @@ export const siteSettings = pgTable("site_settings", {
   // Sosyal medya + WhatsApp
   instagramUrl: varchar("instagram_url", { length: 300 }).default(""),
   facebookUrl: varchar("facebook_url", { length: 300 }).default(""),
+  youtubeUrl: varchar("youtube_url", { length: 300 }).default(""),
   whatsappNumber: varchar("whatsapp_number", { length: 20 }).default(""), // yalnızca rakam, örn: 905350146593
   whatsappDefaultText: text("whatsapp_default_text").default(""),
+  // Sağ altta sabit duran WhatsApp butonunun üzerinde gösterilen kısa etiket
+  // (örn. "Ücretsiz Keşif"). Boşsa etiket hiç gösterilmez, buton eskisi gibi kalır.
+  whatsappFloatLabel: varchar("whatsapp_float_label", { length: 60 }).default(""),
 
   // Google — puan/yorum (schema.org'a da yansır), Analytics, Search Console
   googleRating: varchar("google_rating", { length: 10 }).default(""),
@@ -512,6 +516,17 @@ export const serviceMedia = pgTable("service_media", {
   videoDuration: integer("video_duration"),
   // Hizmet detay sayfasının hero bölümünün dikey boyutu — bkz. lib/hero-size.ts.
   heroSize: varchar("hero_size", { length: 20 }).notNull().default("normal"),
+
+  // Anasayfa "Ne arıyorsunuz?" hizmet kartı — boşsa lib/services.ts'teki
+  // statik ad/açıklama ve ikon kullanılır (veri kaybı riski olmadan geriye
+  // dönük uyumlu). cardImageUrl doluysa kart, ikon yerine kutunun tamamını
+  // kaplayan bir görsel gösterir (bkz. app/api/public/service-cards).
+  cardTitle: varchar("card_title", { length: 120 }).default(""),
+  cardDescription: text("card_description").default(""),
+  cardImageUrl: text("card_image_url"),
+  cardVisible: boolean("card_visible").notNull().default(true),
+  cardSortOrder: integer("card_sort_order").notNull().default(0),
+
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });

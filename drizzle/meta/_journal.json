@@ -232,6 +232,20 @@
       "when": 1794760809008,
       "tag": "0032_rapid_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794776653517,
+      "tag": "0033_perfect_raider",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794777195603,
+      "tag": "0034_fixed_inertia",
+      "breakpoints": true
     }
   ]
 }

@@ -524,6 +524,7 @@ export const updateSiteSettingsSchema = z.object({
   // Sosyal medya + WhatsApp
   instagramUrl: z.string().trim().max(300).optional(),
   facebookUrl: z.string().trim().max(300).optional(),
+  youtubeUrl: z.string().trim().max(300).optional(),
   whatsappNumber: z
     .string()
     .trim()
@@ -531,6 +532,7 @@ export const updateSiteSettingsSchema = z.object({
     .transform((v) => v.replace(/\D/g, ""))
     .optional(),
   whatsappDefaultText: z.string().trim().max(500).optional(),
+  whatsappFloatLabel: z.string().trim().max(60).optional(),
 
   // Google
   googleRating: z.string().trim().max(10).optional(),
@@ -587,6 +589,10 @@ export const upsertServiceMediaSchema = z.object({
     .nullable()
     .optional(),
   heroSize: heroSizeEnum.optional().default("normal"),
+  cardTitle: z.string().trim().max(120).optional().default(""),
+  cardDescription: z.string().trim().max(300).optional().default(""),
+  cardVisible: z.boolean().optional().default(true),
+  cardSortOrder: z.number().int().min(0).max(999).optional().default(0),
 });
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz");

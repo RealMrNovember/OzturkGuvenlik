@@ -31,9 +31,14 @@ export async function PATCH(req: Request, { params }: Ctx) {
       videoStart: parsed.data.videoStart,
       videoDuration: parsed.data.videoDuration ?? null,
       heroSize: parsed.data.heroSize,
+      cardTitle: parsed.data.cardTitle,
+      cardDescription: parsed.data.cardDescription,
+      cardVisible: parsed.data.cardVisible,
+      cardSortOrder: parsed.data.cardSortOrder,
     },
     session.id
   );
   revalidatePath(`/hizmetler/${slug}`);
+  revalidatePath("/");
   return jsonOk(updated);
 }

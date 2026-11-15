@@ -5,8 +5,9 @@ import { api } from "@/lib/fetch";
 import { Icon } from "@/components/icons";
 import { services } from "@/lib/services";
 import { extractYouTubeId, youtubeThumbnailUrl } from "@/lib/youtube";
-import { Badge, Btn, ErrorBox, Field, Input, Loading, Modal } from "@/components/panel/ui";
+import { Badge, Btn, ErrorBox, Field, Input, Loading, Modal, Textarea } from "@/components/panel/ui";
 import { HERO_SIZES, HERO_SIZE_LABELS, HERO_SIZE_DESCRIPTIONS, toHeroSize, type HeroSize } from "@/lib/hero-size";
+import { ServiceCardImageUpload } from "@/components/panel/ServiceCardImageUpload";
 
 type ServiceMediaRow = {
   serviceSlug: string;
@@ -16,6 +17,11 @@ type ServiceMediaRow = {
   videoStart: number;
   videoDuration: number | null;
   heroSize: string;
+  cardTitle: string | null;
+  cardDescription: string | null;
+  cardImageUrl: string | null;
+  cardVisible: boolean;
+  cardSortOrder: number;
 };
 
 export default function HizmetMedyaPage() {
@@ -31,6 +37,12 @@ export default function HizmetMedyaPage() {
   const [start, setStart] = useState("0");
   const [duration, setDuration] = useState("");
   const [heroSize, setHeroSize] = useState<HeroSize>("normal");
+
+  const [cardTitle, setCardTitle] = useState("");
+  const [cardDescription, setCardDescription] = useState("");
+  const [cardImageUrl, setCardImageUrl] = useState<string | null>(null);
+  const [cardVisible, setCardVisible] = useState(true);
+  const [cardSortOrder, setCardSortOrder] = useState("0");
 
   const load = useCallback(async () => {
     try {
@@ -58,6 +70,11 @@ export default function HizmetMedyaPage() {
     setStart(String(row?.videoStart ?? 0));
     setDuration(row?.videoDuration ? String(row.videoDuration) : "");
     setHeroSize(toHeroSize(row?.heroSize));
+    setCardTitle(row?.cardTitle ?? "");
+    setCardDescription(row?.cardDescription ?? "");
+    setCardImageUrl(row?.cardImageUrl ?? null);
+    setCardVisible(row?.cardVisible ?? true);
+    setCardSortOrder(String(row?.cardSortOrder ?? 0));
     setError("");
     setEditingSlug(slug);
   };
@@ -80,6 +97,10 @@ export default function HizmetMedyaPage() {
           videoStart: Number(start) || 0,
           videoDuration: duration ? Number(duration) : null,
           heroSize,
+          cardTitle: cardTitle.trim(),
+          cardDescription: cardDescription.trim(),
+          cardVisible,
+          cardSortOrder: Number(cardSortOrder) || 0,
         }),
       });
       setEditingSlug(null);
@@ -94,10 +115,10 @@ export default function HizmetMedyaPage() {
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-ink">Hizmet Videoları</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink">Hizmet Medya</h1>
         <p className="mt-1 text-sm text-ink/55">
-          Her hizmetin detay sayfasında, başlığın arkasındaki koyu alanda oynatılacak YouTube
-          videosunu buradan yönetin.
+          Her hizmetin detay sayfasındaki videoyu ve anasayfa "Ne arıyorsunuz?" bölümündeki
+          kartını (başlık, açıklama, görsel, sıralama) buradan yönetin.
         </p>
       </div>
 
@@ -111,14 +132,20 @@ export default function HizmetMedyaPage() {
             {services.map((s) => {
               const row = mediaMap.get(s.slug);
               const hasVideo = Boolean(row?.videoUrl);
+              const hasCardImage = Boolean(row?.cardImageUrl);
+              const cardHidden = row?.cardVisible === false;
               return (
                 <div key={s.slug} className="flex items-center justify-between gap-3 px-5 py-3.5">
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 min-w-0">
                     <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-surface text-brand">
                       <Icon name={s.icon} className="h-4 w-4" />
                     </span>
                     <p className="truncate text-sm font-semibold text-ink">{s.name}</p>
                     <Badge tone={hasVideo ? "green" : "gray"}>{hasVideo ? "Video var" : "Video yok"}</Badge>
+                    <Badge tone={hasCardImage ? "green" : "gray"}>
+                      {hasCardImage ? "Kart görseli var" : "Kart görseli yok"}
+                    </Badge>
+                    {cardHidden && <Badge tone="gray">Anasayfada gizli</Badge>}
                   </div>
                   <button
                     type="button"
@@ -231,6 +258,59 @@ export default function HizmetMedyaPage() {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            <div className="border-t border-ink/8 pt-4">
+              <span className="mb-2 block text-xs font-semibold text-ink/70">
+                Anasayfa Kartı ("Ne Arıyorsunuz?" Bölümü)
+              </span>
+              <p className="mb-3 text-xs text-ink/45">
+                Görsel yüklenirse kart, ikon yerine kutunun tamamını kaplayan bu görseli gösterir.
+                Başlık/açıklama boş bırakılırsa hizmetin varsayılan adı/açıklaması kullanılır.
+              </p>
+              <div className="space-y-4">
+                <ServiceCardImageUpload
+                  slug={editingSlug}
+                  imageUrl={cardImageUrl}
+                  onChange={setCardImageUrl}
+                />
+                <Field label={`Kart başlığı (boşsa: "${services.find((s) => s.slug === editingSlug)?.name ?? ""}")`}>
+                  <Input
+                    value={cardTitle}
+                    onChange={(e) => setCardTitle(e.target.value)}
+                    maxLength={120}
+                    placeholder={services.find((s) => s.slug === editingSlug)?.name}
+                  />
+                </Field>
+                <Field label="Kart açıklaması (boşsa hizmetin varsayılan kısa açıklaması)">
+                  <Textarea
+                    rows={2}
+                    value={cardDescription}
+                    onChange={(e) => setCardDescription(e.target.value)}
+                    maxLength={300}
+                    placeholder={services.find((s) => s.slug === editingSlug)?.short}
+                  />
+                </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Anasayfada sıralama (küçük sayı önce gelir)">
+                    <Input
+                      type="number"
+                      min="0"
+                      value={cardSortOrder}
+                      onChange={(e) => setCardSortOrder(e.target.value)}
+                    />
+                  </Field>
+                  <label className="flex items-center gap-2 text-sm font-medium text-ink/70 sm:self-end sm:pb-2.5">
+                    <input
+                      type="checkbox"
+                      checked={cardVisible}
+                      onChange={(e) => setCardVisible(e.target.checked)}
+                      className="h-4 w-4 accent-brand"
+                    />
+                    Anasayfada göster
+                  </label>
+                </div>
               </div>
             </div>
 
