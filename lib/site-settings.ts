@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { siteSettings, type SiteSettings, type SitePhone } from "@/lib/db/schema";
 import { site as staticSite } from "@/lib/site";
 import { toTelHref, type ResolvedSite } from "@/lib/site-resolve";
+import { toHeroSize } from "@/lib/hero-size";
 
 export type { ResolvedSite } from "@/lib/site-resolve";
 export { toTelHref, resolvedWaLink, resolvedWaLinkDefault } from "@/lib/site-resolve";
@@ -96,5 +97,8 @@ export const getResolvedSite = cache(async (): Promise<ResolvedSite> => {
     ogImageUrl: s.ogImageUrl || "/images/hero-1.jpg",
     googleAnalyticsId: s.googleAnalyticsId || "",
     googleSiteVerification: s.googleSiteVerification || "",
+    googleAdsConversionId: s.googleAdsConversionId || "",
+    googleAdsConversionLabel: s.googleAdsConversionLabel || "",
+    heroSize: toHeroSize(s.heroSize),
   };
 });

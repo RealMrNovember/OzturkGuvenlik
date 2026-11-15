@@ -211,6 +211,13 @@
       "when": 1788018293166,
       "tag": "0029_whole_blackheart",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1794757494587,
+      "tag": "0030_cold_dazzler",
+      "breakpoints": true
     }
   ]
 }

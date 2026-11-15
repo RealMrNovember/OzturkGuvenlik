@@ -87,17 +87,20 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd(resolved)) }}
         />
-        {resolved.googleAnalyticsId && (
+        {(resolved.googleAnalyticsId || resolved.googleAdsConversionId) && (
           <>
             <Script
-              src={`https://www.googletagmanager.com/gtag/js?id=${resolved.googleAnalyticsId}`}
+              src={`https://www.googletagmanager.com/gtag/js?id=${
+                resolved.googleAnalyticsId || resolved.googleAdsConversionId
+              }`}
               strategy="afterInteractive"
             />
             <Script id="ga4-init" strategy="afterInteractive">
               {`window.dataLayer = window.dataLayer || [];
                 function gtag(){dataLayer.push(arguments);}
                 gtag('js', new Date());
-                gtag('config', '${resolved.googleAnalyticsId}');`}
+                ${resolved.googleAnalyticsId ? `gtag('config', '${resolved.googleAnalyticsId}');` : ""}
+                ${resolved.googleAdsConversionId ? `gtag('config', '${resolved.googleAdsConversionId}');` : ""}`}
             </Script>
           </>
         )}

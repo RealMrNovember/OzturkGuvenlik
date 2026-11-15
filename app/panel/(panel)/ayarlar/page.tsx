@@ -12,17 +12,17 @@ import {
   DEFAULT_BRAND_LIGHT_COLOR,
 } from "@/lib/db/schema";
 import { extractYouTubeId, youtubeThumbnailUrl } from "@/lib/youtube";
+import { HERO_SIZES, HERO_SIZE_LABELS, HERO_SIZE_DESCRIPTIONS, toHeroSize, type HeroSize, type HeroVideo } from "@/lib/hero-size";
 import type { IconName } from "@/lib/services";
 
 type SitePhone = { label: string; number: string };
 
-type TabKey = "gorunum" | "iletisim" | "sosyal" | "seo";
+type TabKey = "gorunum" | "iletisim" | "sosyal";
 
 const TABS: { key: TabKey; label: string; icon: IconName; desc: string }[] = [
-  { key: "gorunum", label: "Görünüm", icon: "palette", desc: "Tema renkleri, vurgu çerçevesi, hero videosu" },
+  { key: "gorunum", label: "Görünüm", icon: "palette", desc: "Tema renkleri, vurgu çerçevesi, hero videoları" },
   { key: "iletisim", label: "İletişim", icon: "phone", desc: "Telefonlar, e-posta, adres, harita linki" },
   { key: "sosyal", label: "Sosyal Medya & WhatsApp", icon: "whatsapp", desc: "Instagram, Facebook, WhatsApp" },
-  { key: "seo", label: "SEO & Google", icon: "search", desc: "Google puanı, Analytics, Search Console, SEO" },
 ];
 
 type SiteSettings = {
@@ -31,11 +31,10 @@ type SiteSettings = {
   brandLightColor: string;
   accentColor: string;
   accentThickness: number;
-  heroVideoUrl: string | null;
+  heroVideos: HeroVideo[];
   heroVideoAutoplay: boolean;
   heroVideoMuted: boolean;
-  heroVideoStart: number;
-  heroVideoDuration: number | null;
+  heroSize: string;
   phones: SitePhone[];
   contactEmail: string | null;
   address: string | null;
@@ -45,15 +44,6 @@ type SiteSettings = {
   facebookUrl: string | null;
   whatsappNumber: string | null;
   whatsappDefaultText: string | null;
-  googleRating: string | null;
-  googleReviewCount: number | null;
-  googleReviewsUrl: string | null;
-  googleAnalyticsId: string | null;
-  googleSiteVerification: string | null;
-  seoTitle: string | null;
-  seoDescription: string | null;
-  seoKeywords: string | null;
-  ogImageUrl: string | null;
   updatedAt: string;
 };
 
@@ -107,11 +97,10 @@ export default function SiteAyarlariPage() {
   const [brandLightColor, setBrandLightColor] = useState(DEFAULT_BRAND_LIGHT_COLOR);
   const [accentColor, setAccentColor] = useState(DEFAULT_ACCENT_COLOR);
   const [accentThickness, setAccentThickness] = useState(String(DEFAULT_ACCENT_THICKNESS));
-  const [heroVideoUrl, setHeroVideoUrl] = useState("");
+  const [heroVideos, setHeroVideos] = useState<HeroVideo[]>([]);
   const [heroVideoAutoplay, setHeroVideoAutoplay] = useState(true);
   const [heroVideoMuted, setHeroVideoMuted] = useState(true);
-  const [heroVideoStart, setHeroVideoStart] = useState("0");
-  const [heroVideoDuration, setHeroVideoDuration] = useState("");
+  const [heroSize, setHeroSize] = useState<HeroSize>("normal");
 
   const [phones, setPhones] = useState<SitePhone[]>([]);
   const [contactEmail, setContactEmail] = useState("");
@@ -122,15 +111,6 @@ export default function SiteAyarlariPage() {
   const [facebookUrl, setFacebookUrl] = useState("");
   const [whatsappNumber, setWhatsappNumber] = useState("");
   const [whatsappDefaultText, setWhatsappDefaultText] = useState("");
-  const [googleRating, setGoogleRating] = useState("");
-  const [googleReviewCount, setGoogleReviewCount] = useState("");
-  const [googleReviewsUrl, setGoogleReviewsUrl] = useState("");
-  const [googleAnalyticsId, setGoogleAnalyticsId] = useState("");
-  const [googleSiteVerification, setGoogleSiteVerification] = useState("");
-  const [seoTitle, setSeoTitle] = useState("");
-  const [seoDescription, setSeoDescription] = useState("");
-  const [seoKeywords, setSeoKeywords] = useState("");
-  const [ogImageUrl, setOgImageUrl] = useState("");
 
   const [loading, setLoading] = useState(() => isAdmin);
   const [saving, setSaving] = useState(false);
@@ -145,11 +125,10 @@ export default function SiteAyarlariPage() {
       setBrandLightColor(data.brandLightColor);
       setAccentColor(data.accentColor);
       setAccentThickness(String(data.accentThickness));
-      setHeroVideoUrl(data.heroVideoUrl ?? "");
+      setHeroVideos(Array.isArray(data.heroVideos) ? data.heroVideos : []);
       setHeroVideoAutoplay(data.heroVideoAutoplay);
       setHeroVideoMuted(data.heroVideoMuted);
-      setHeroVideoStart(String(data.heroVideoStart));
-      setHeroVideoDuration(data.heroVideoDuration ? String(data.heroVideoDuration) : "");
+      setHeroSize(toHeroSize(data.heroSize));
       setPhones(Array.isArray(data.phones) ? data.phones : []);
       setContactEmail(data.contactEmail ?? "");
       setAddress(data.address ?? "");
@@ -159,15 +138,6 @@ export default function SiteAyarlariPage() {
       setFacebookUrl(data.facebookUrl ?? "");
       setWhatsappNumber(data.whatsappNumber ?? "");
       setWhatsappDefaultText(data.whatsappDefaultText ?? "");
-      setGoogleRating(data.googleRating ?? "");
-      setGoogleReviewCount(data.googleReviewCount != null ? String(data.googleReviewCount) : "");
-      setGoogleReviewsUrl(data.googleReviewsUrl ?? "");
-      setGoogleAnalyticsId(data.googleAnalyticsId ?? "");
-      setGoogleSiteVerification(data.googleSiteVerification ?? "");
-      setSeoTitle(data.seoTitle ?? "");
-      setSeoDescription(data.seoDescription ?? "");
-      setSeoKeywords(data.seoKeywords ?? "");
-      setOgImageUrl(data.ogImageUrl ?? "");
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -181,10 +151,11 @@ export default function SiteAyarlariPage() {
     return () => clearTimeout(t);
   }, [isAdmin, load]);
 
-  const videoId = extractYouTubeId(heroVideoUrl);
-  const heroVideoUrlValid = heroVideoUrl.trim() === "" || videoId !== null;
-  const startNum = Number(heroVideoStart) || 0;
-  const durationNum = heroVideoDuration ? Number(heroVideoDuration) : null;
+  const heroVideosValid = heroVideos.every((v) => extractYouTubeId(v.url) !== null);
+  const addHeroVideo = () => setHeroVideos((prev) => [...prev, { url: "" }]);
+  const removeHeroVideo = (idx: number) => setHeroVideos((prev) => prev.filter((_, i) => i !== idx));
+  const updateHeroVideo = (idx: number, patch: Partial<HeroVideo>) =>
+    setHeroVideos((prev) => prev.map((v, i) => (i === idx ? { ...v, ...patch } : v)));
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -199,11 +170,12 @@ export default function SiteAyarlariPage() {
           brandLightColor,
           accentColor,
           accentThickness: Number(accentThickness) || DEFAULT_ACCENT_THICKNESS,
-          heroVideoUrl: heroVideoUrl.trim(),
+          heroVideos: heroVideos
+            .map((v) => ({ ...v, url: v.url.trim() }))
+            .filter((v) => v.url),
           heroVideoAutoplay,
           heroVideoMuted,
-          heroVideoStart: startNum,
-          heroVideoDuration: durationNum,
+          heroSize,
           phones: phones.map((p) => ({ label: p.label.trim(), number: p.number.trim() })).filter((p) => p.number),
           contactEmail: contactEmail.trim(),
           address: address.trim(),
@@ -213,20 +185,11 @@ export default function SiteAyarlariPage() {
           facebookUrl: facebookUrl.trim(),
           whatsappNumber: whatsappNumber.trim(),
           whatsappDefaultText: whatsappDefaultText.trim(),
-          googleRating: googleRating.trim(),
-          googleReviewCount: googleReviewCount.trim() ? Number(googleReviewCount) : null,
-          googleReviewsUrl: googleReviewsUrl.trim(),
-          googleAnalyticsId: googleAnalyticsId.trim(),
-          googleSiteVerification: googleSiteVerification.trim(),
-          seoTitle: seoTitle.trim(),
-          seoDescription: seoDescription.trim(),
-          seoKeywords: seoKeywords.trim(),
-          ogImageUrl: ogImageUrl.trim(),
         }),
       });
       setSettings(data);
       setAccentThickness(String(data.accentThickness));
-      setHeroVideoStart(String(data.heroVideoStart));
+      setHeroVideos(Array.isArray(data.heroVideos) ? data.heroVideos : []);
       setPhones(Array.isArray(data.phones) ? data.phones : []);
       setSaved(true);
     } catch (err) {
@@ -241,11 +204,10 @@ export default function SiteAyarlariPage() {
     setBrandLightColor(DEFAULT_BRAND_LIGHT_COLOR);
     setAccentColor(DEFAULT_ACCENT_COLOR);
     setAccentThickness(String(DEFAULT_ACCENT_THICKNESS));
-    setHeroVideoUrl("");
+    setHeroVideos([]);
     setHeroVideoAutoplay(true);
     setHeroVideoMuted(true);
-    setHeroVideoStart("0");
-    setHeroVideoDuration("");
+    setHeroSize("normal");
     setSaved(false);
   };
 
@@ -268,17 +230,16 @@ export default function SiteAyarlariPage() {
     HEX_REGEX.test(brandLightColor) &&
     HEX_REGEX.test(accentColor) &&
     thicknessValid &&
-    heroVideoUrlValid;
+    heroVideosValid;
   const dirty = settings
     ? brandColor !== settings.brandColor ||
       brandLightColor !== settings.brandLightColor ||
       accentColor !== settings.accentColor ||
       thicknessNum !== settings.accentThickness ||
-      heroVideoUrl.trim() !== (settings.heroVideoUrl ?? "") ||
+      JSON.stringify(heroVideos) !== JSON.stringify(settings.heroVideos ?? []) ||
       heroVideoAutoplay !== settings.heroVideoAutoplay ||
       heroVideoMuted !== settings.heroVideoMuted ||
-      startNum !== settings.heroVideoStart ||
-      durationNum !== settings.heroVideoDuration ||
+      heroSize !== toHeroSize(settings.heroSize) ||
       JSON.stringify(phones) !== JSON.stringify(settings.phones ?? []) ||
       contactEmail.trim() !== (settings.contactEmail ?? "") ||
       address.trim() !== (settings.address ?? "") ||
@@ -287,16 +248,7 @@ export default function SiteAyarlariPage() {
       instagramUrl.trim() !== (settings.instagramUrl ?? "") ||
       facebookUrl.trim() !== (settings.facebookUrl ?? "") ||
       whatsappNumber.trim() !== (settings.whatsappNumber ?? "") ||
-      whatsappDefaultText.trim() !== (settings.whatsappDefaultText ?? "") ||
-      googleRating.trim() !== (settings.googleRating ?? "") ||
-      (googleReviewCount.trim() ? Number(googleReviewCount) : null) !== settings.googleReviewCount ||
-      googleReviewsUrl.trim() !== (settings.googleReviewsUrl ?? "") ||
-      googleAnalyticsId.trim() !== (settings.googleAnalyticsId ?? "") ||
-      googleSiteVerification.trim() !== (settings.googleSiteVerification ?? "") ||
-      seoTitle.trim() !== (settings.seoTitle ?? "") ||
-      seoDescription.trim() !== (settings.seoDescription ?? "") ||
-      seoKeywords.trim() !== (settings.seoKeywords ?? "") ||
-      ogImageUrl.trim() !== (settings.ogImageUrl ?? "")
+      whatsappDefaultText.trim() !== (settings.whatsappDefaultText ?? "")
     : false;
 
   const addPhone = () => setPhones((prev) => [...prev, { label: "", number: "" }]);
@@ -308,11 +260,10 @@ export default function SiteAyarlariPage() {
     brandLightColor.toLowerCase() === DEFAULT_BRAND_LIGHT_COLOR &&
     accentColor.toLowerCase() === DEFAULT_ACCENT_COLOR &&
     thicknessNum === DEFAULT_ACCENT_THICKNESS &&
-    heroVideoUrl.trim() === "" &&
+    heroVideos.length === 0 &&
     heroVideoAutoplay === true &&
     heroVideoMuted === true &&
-    startNum === 0 &&
-    durationNum === null;
+    heroSize === "normal";
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -322,12 +273,14 @@ export default function SiteAyarlariPage() {
           Site Ayarları
         </h1>
         <p className="mt-1 text-sm text-ink/55">
-          Sitenin görünümünü, iletişim bilgilerini, sosyal medya hesaplarını ve SEO/Google
-          ayarlarını buradan yönetin. Değişiklikler hem web sitesine hem panele anında yansır.
+          Sitenin görünümünü, iletişim bilgilerini ve sosyal medya hesaplarını buradan yönetin.
+          SEO, Google Analytics, Arama Konsolu ve reklam ayarları artık{" "}
+          <span className="font-semibold text-ink">Google</span> menüsünde. Değişiklikler hem web
+          sitesine hem panele anında yansır.
         </p>
       </div>
 
-      <div className="mb-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-5 grid gap-2 sm:grid-cols-3">
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -445,36 +398,95 @@ export default function SiteAyarlariPage() {
           </div>
         </Card>
 
-        <Card title="Hero Videosu">
+        <Card title="Hero Videoları (Slider)">
           <div className="space-y-5 p-5">
             <p className="text-xs text-ink/50">
-              Anasayfa giriş bölümüne bir YouTube videosu ekleyin. Link boş bırakılırsa mevcut
-              görsel kullanılmaya devam eder.
+              Anasayfa giriş bölümüne bir veya birden fazla YouTube videosu ekleyin. Birden fazla
+              eklerseniz sırayla, otomatik geçişli bir slider olarak oynatılır. Hiç video
+              eklenmezse mevcut görsel kullanılır.
             </p>
-            <Field label="YouTube linki">
-              <Input
-                value={heroVideoUrl}
-                onChange={(e) => setHeroVideoUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=..."
-              />
-              {!heroVideoUrlValid && (
-                <p className="mt-1.5 text-xs font-medium text-red-500">Geçerli bir YouTube linki girin</p>
-              )}
-            </Field>
 
-            {videoId && (
-              <div className="flex items-center gap-3 rounded-xl border border-ink/10 bg-surface p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={youtubeThumbnailUrl(videoId)}
-                  alt=""
-                  className="h-14 w-24 shrink-0 rounded-lg object-cover"
-                />
-                <p className="text-xs font-medium text-ink/60">Video algılandı, hero&apos;da oynatılacak.</p>
-              </div>
+            <div className="space-y-3">
+              {heroVideos.map((v, i) => {
+                const vId = extractYouTubeId(v.url);
+                const vValid = v.url.trim() === "" || vId !== null;
+                return (
+                  <div key={i} className="rounded-xl border border-ink/10 p-3.5">
+                    <div className="flex items-start gap-2">
+                      {vId ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={youtubeThumbnailUrl(vId)}
+                          alt=""
+                          className="h-12 w-20 shrink-0 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-lg bg-surface text-ink/30">
+                          <Icon name="video" className="h-5 w-5" />
+                        </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          value={v.url}
+                          onChange={(e) => updateHeroVideo(i, { url: e.target.value })}
+                          placeholder={`https://www.youtube.com/watch?v=... (Video ${i + 1})`}
+                        />
+                        {!vValid && (
+                          <p className="text-xs font-medium text-red-500">Geçerli bir YouTube linki girin</p>
+                        )}
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            min="0"
+                            value={v.start ?? ""}
+                            onChange={(e) =>
+                              updateHeroVideo(i, { start: e.target.value ? Number(e.target.value) : undefined })
+                            }
+                            placeholder="Başlangıç (sn)"
+                          />
+                          <Input
+                            type="number"
+                            min="1"
+                            value={v.duration ?? ""}
+                            onChange={(e) =>
+                              updateHeroVideo(i, { duration: e.target.value ? Number(e.target.value) : undefined })
+                            }
+                            placeholder="Gösterim süresi (sn)"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeHeroVideo(i)}
+                        aria-label="Videoyu kaldır"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-red-500/70 hover:bg-red-50 hover:text-red-600"
+                      >
+                        <Icon name="trash" className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={addHeroVideo}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand hover:underline"
+            >
+              <Icon name="plus" className="h-4 w-4" />
+              Video ekle
+            </button>
+            {heroVideos.length === 0 && (
+              <p className="text-xs text-ink/40">Hiç eklenmezse mevcut varsayılan görsel kullanılır.</p>
+            )}
+            {heroVideos.length > 1 && (
+              <p className="text-xs text-ink/40">
+                Her video kendi "gösterim süresi" kadar ekranda kalır (boşsa 15 sn), sonra bir
+                sonrakine geçilir ve son videodan sonra başa döner.
+              </p>
             )}
 
-            <div className="grid gap-5 sm:grid-cols-2">
+            <div className="grid gap-5 border-t border-ink/8 pt-5 sm:grid-cols-2">
               <label className="flex items-center gap-2 text-sm font-medium text-ink/70">
                 <input
                   type="checkbox"
@@ -493,29 +505,44 @@ export default function SiteAyarlariPage() {
                 />
                 Sessiz başlat
               </label>
-              <Field label="Başlangıç saniyesi">
-                <Input
-                  type="number"
-                  min="0"
-                  value={heroVideoStart}
-                  onChange={(e) => setHeroVideoStart(e.target.value)}
-                />
-              </Field>
-              <Field label="Süre (saniye, boşsa videonun tamamı)">
-                <Input
-                  type="number"
-                  min="1"
-                  value={heroVideoDuration}
-                  onChange={(e) => setHeroVideoDuration(e.target.value)}
-                  placeholder="Örn. 12"
-                />
-              </Field>
             </div>
             <p className="text-xs text-ink/40">
               Tarayıcılar güvenlik gereği sesli otomatik oynatmaya genelde izin vermez — "Sessiz
               başlat" kapalıyken video otomatik oynasa da ilk kullanıcı etkileşimine kadar sessiz
               kalabilir.
             </p>
+          </div>
+        </Card>
+
+        <Card title="Hero Alanı Boyutu">
+          <div className="space-y-4 p-5">
+            <p className="text-xs text-ink/50">
+              Anasayfa giriş bölümünün (video/görselin oynadığı alan) dikey boyutu. Video daha
+              küçük/dar hissettiriyorsa "Geniş" veya "Ekstra Geniş" seçin.
+            </p>
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              {HERO_SIZES.map((size) => {
+                const active = heroSize === size;
+                return (
+                  <button
+                    key={size}
+                    type="button"
+                    onClick={() => setHeroSize(size)}
+                    aria-current={active}
+                    className={`flex flex-col items-start gap-0.5 rounded-xl border p-3 text-left transition-colors ${
+                      active
+                        ? "border-brand bg-brand/5"
+                        : "border-ink/10 bg-white hover:border-brand/30"
+                    }`}
+                  >
+                    <span className={`text-sm font-semibold ${active ? "text-brand" : "text-ink"}`}>
+                      {HERO_SIZE_LABELS[size]}
+                    </span>
+                    <span className="text-xs text-ink/45">{HERO_SIZE_DESCRIPTIONS[size]}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </Card>
         </>
@@ -648,109 +675,6 @@ export default function SiteAyarlariPage() {
         </Card>
         )}
 
-        {tab === "seo" && (
-        <>
-        <Card title="Google Ayarları">
-          <div className="space-y-5 p-5">
-            <p className="text-xs text-ink/50">
-              Puan/yorum sayısı sitedeki rozetlerde ve arama motoru sonuçlarında (schema.org)
-              gösterilir. Analytics ve Search Console alanları doldurulunca otomatik devreye
-              girer — kod değişikliği gerekmez.
-            </p>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Google puanı">
-                <Input value={googleRating} onChange={(e) => setGoogleRating(e.target.value)} placeholder="5.0" />
-              </Field>
-              <Field label="Yorum sayısı">
-                <Input
-                  type="number"
-                  min="0"
-                  value={googleReviewCount}
-                  onChange={(e) => setGoogleReviewCount(e.target.value)}
-                  placeholder="33"
-                />
-              </Field>
-              <div className="sm:col-span-2">
-                <Field label="Google yorumları linki">
-                  <Input
-                    value={googleReviewsUrl}
-                    onChange={(e) => setGoogleReviewsUrl(e.target.value)}
-                    placeholder="https://www.google.com/maps/search/?api=1&query=..."
-                  />
-                </Field>
-              </div>
-              <Field label="Google Analytics 4 Ölçüm Kimliği">
-                <Input
-                  value={googleAnalyticsId}
-                  onChange={(e) => setGoogleAnalyticsId(e.target.value)}
-                  placeholder="G-XXXXXXXXXX"
-                />
-                <p className="mt-1.5 text-xs text-ink/40">
-                  analytics.google.com → Yönetici → Veri Akışları → Ölçüm Kimliği.
-                </p>
-              </Field>
-              <Field label="Google Search Console doğrulama kodu">
-                <Input
-                  value={googleSiteVerification}
-                  onChange={(e) => setGoogleSiteVerification(e.target.value)}
-                  placeholder="abc123..."
-                />
-                <p className="mt-1.5 text-xs text-ink/40">
-                  search.google.com/search-console → Mülk ekle → HTML etiketi doğrulama →
-                  <code className="mx-1 rounded bg-ink/5 px-1">content=&quot;...&quot;</code>
-                  içindeki kodu yapıştırın.
-                </p>
-              </Field>
-            </div>
-          </div>
-        </Card>
-
-        <Card title="SEO Ayarları">
-          <div className="space-y-5 p-5">
-            <p className="text-xs text-ink/50">
-              Anasayfanın Google&apos;da ve WhatsApp/sosyal medya paylaşımlarında görünen
-              başlık/açıklama/görseli. Boş bırakılırsa mevcut varsayılanlar kullanılır.
-            </p>
-            <Field label="SEO başlığı">
-              <Input
-                value={seoTitle}
-                onChange={(e) => setSeoTitle(e.target.value)}
-                placeholder="Öztürk Güvenlik Sistemleri | Güvenlik Kamerası, Alarm, PDKS — İstanbul"
-                maxLength={200}
-              />
-            </Field>
-            <Field label="SEO açıklaması">
-              <textarea
-                value={seoDescription}
-                onChange={(e) => setSeoDescription(e.target.value)}
-                maxLength={300}
-                rows={2}
-                className="w-full rounded-xl border border-ink/15 bg-white px-3.5 py-2.5 text-sm outline-none placeholder:text-ink/35 focus:border-brand"
-                placeholder="İstanbul genelinde güvenlik kamerası, alarm, PDKS sistemleri. Ücretsiz keşif."
-              />
-            </Field>
-            <Field label="Anahtar kelimeler (virgülle ayrılmış)">
-              <Input
-                value={seoKeywords}
-                onChange={(e) => setSeoKeywords(e.target.value)}
-                placeholder="güvenlik kamerası istanbul, hırsız alarmı, pdks"
-              />
-            </Field>
-            <Field label="Sosyal paylaşım görseli (yol veya tam URL)">
-              <Input
-                value={ogImageUrl}
-                onChange={(e) => setOgImageUrl(e.target.value)}
-                placeholder="/images/hero-1.jpg"
-              />
-              <p className="mt-1.5 text-xs text-ink/40">
-                WhatsApp/Facebook paylaşımlarında görünen görsel — herkese açık bir görsel
-                olmalı (özel/gizli dosya olamaz).
-              </p>
-            </Field>
-          </div>
-        </Card>
-        </>
-        )}
 
         <div className="sticky bottom-4 flex items-center gap-3 rounded-2xl border border-ink/8 bg-white p-5 shadow-lg">
           <Btn type="submit" disabled={saving || !bothValid || !dirty}>

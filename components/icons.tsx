@@ -301,6 +301,13 @@ const paths: Record<IconName, React.ReactNode> = {
       <circle cx="16.5" cy="18.5" r="1.6" />
     </>
   ),
+  target: (
+    <>
+      <circle cx="12" cy="12" r="9.5" />
+      <circle cx="12" cy="12" r="5.5" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+    </>
+  ),
 };
 
 export function Icon({ name, ...props }: IconProps) {

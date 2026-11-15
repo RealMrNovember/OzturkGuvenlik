@@ -30,6 +30,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
       videoMuted: parsed.data.videoMuted,
       videoStart: parsed.data.videoStart,
       videoDuration: parsed.data.videoDuration ?? null,
+      heroSize: parsed.data.heroSize,
     },
     session.id
   );

@@ -71,6 +71,12 @@ const nav = [
     icon: "palette" as const,
     requires: "manage_settings" as const,
   },
+  {
+    href: "/panel/google",
+    label: "Google",
+    icon: "target" as const,
+    requires: "manage_settings" as const,
+  },
 ];
 
 function SidebarLinks({

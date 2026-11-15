@@ -8,6 +8,8 @@ import { Icon } from "@/components/icons";
 import { Reveal } from "@/components/Reveal";
 import { CtaBand } from "@/components/CtaBand";
 import { ServiceHeroMedia } from "@/components/ServiceHeroMedia";
+import { getServiceMedia } from "@/lib/service-media";
+import { SERVICE_HERO_SIZE_CLASSES, toHeroSize } from "@/lib/hero-size";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
@@ -48,6 +50,8 @@ export default async function ServicePage({ params }: PageProps) {
   };
 
   const waText = resolvedWaLink(site, service.waText);
+  const media = await getServiceMedia(service.slug);
+  const heroSize = toHeroSize(media?.heroSize);
 
   return (
     <>
@@ -57,7 +61,7 @@ export default async function ServicePage({ params }: PageProps) {
       />
 
       {/* HERO */}
-      <section className="relative overflow-hidden bg-ink py-16 text-white sm:py-20">
+      <section className={`relative overflow-hidden bg-ink text-white ${SERVICE_HERO_SIZE_CLASSES[heroSize]}`}>
         <ServiceHeroMedia slug={service.slug} />
         <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
           <Reveal>

@@ -1,11 +1,13 @@
 import Image from "next/image";
 import { getSiteSettings } from "@/lib/site-settings";
-import { buildYoutubeBackgroundEmbedUrl } from "@/lib/youtube";
+import { resolveHeroVideos } from "@/lib/hero-size";
+import { HeroVideoSlider } from "@/components/HeroVideoSlider";
 
 /**
- * Hero arka planı: Site Ayarları'nda bir YouTube linki girilmişse tam
- * ekran kaplayan (cover-fill), otomatik döngülü bir video gösterilir;
- * link boşsa mevcut statik görsele düşer. Video, yalnızca sm: ve üzeri
+ * Hero arka planı: Site Ayarları'nda bir veya daha fazla YouTube linki
+ * girilmişse tam ekran kaplayan (cover-fill), otomatik döngülü bir video
+ * (birden fazlaysa sırayla geçiş yapan bir slider) gösterilir; hiç video
+ * yoksa mevcut statik görsele düşülür. Video, yalnızca sm: ve üzeri
  * ekranlarda gömülür — mobil tarayıcılar controls=0 parametresini yok
  * sayıp kendi native video kontrol arayüzünü (oynat/duraklat/sonraki)
  * üstte gösterebildiğinden, mobilde hiç iframe render edilmiyor ve
@@ -13,25 +15,17 @@ import { buildYoutubeBackgroundEmbedUrl } from "@/lib/youtube";
  */
 export async function HeroMedia() {
   const settings = await getSiteSettings();
-  const embedUrl = buildYoutubeBackgroundEmbedUrl({
-    videoUrl: settings.heroVideoUrl,
-    autoplay: settings.heroVideoAutoplay,
-    muted: settings.heroVideoMuted,
-    start: settings.heroVideoStart,
-    duration: settings.heroVideoDuration,
-  });
+  const videos = resolveHeroVideos(settings);
 
   return (
     <div className="absolute inset-0">
-      {embedUrl ? (
+      {videos.length > 0 ? (
         <>
           <div className="pointer-events-none absolute inset-0 hidden overflow-hidden opacity-60 sm:block">
-            <iframe
-              src={embedUrl}
-              title="Tanıtım videosu"
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border-0"
-              style={{ aspectRatio: "16 / 9", minWidth: "100%", minHeight: "100%" }}
-              allow="autoplay; encrypted-media"
+            <HeroVideoSlider
+              videos={videos}
+              autoplay={settings.heroVideoAutoplay}
+              muted={settings.heroVideoMuted}
             />
           </div>
           <Image

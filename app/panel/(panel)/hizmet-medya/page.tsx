@@ -6,6 +6,7 @@ import { Icon } from "@/components/icons";
 import { services } from "@/lib/services";
 import { extractYouTubeId, youtubeThumbnailUrl } from "@/lib/youtube";
 import { Badge, Btn, ErrorBox, Field, Input, Loading, Modal } from "@/components/panel/ui";
+import { HERO_SIZES, HERO_SIZE_LABELS, HERO_SIZE_DESCRIPTIONS, toHeroSize, type HeroSize } from "@/lib/hero-size";
 
 type ServiceMediaRow = {
   serviceSlug: string;
@@ -14,6 +15,7 @@ type ServiceMediaRow = {
   videoMuted: boolean;
   videoStart: number;
   videoDuration: number | null;
+  heroSize: string;
 };
 
 export default function HizmetMedyaPage() {
@@ -28,6 +30,7 @@ export default function HizmetMedyaPage() {
   const [muted, setMuted] = useState(true);
   const [start, setStart] = useState("0");
   const [duration, setDuration] = useState("");
+  const [heroSize, setHeroSize] = useState<HeroSize>("normal");
 
   const load = useCallback(async () => {
     try {
@@ -54,6 +57,7 @@ export default function HizmetMedyaPage() {
     setMuted(row?.videoMuted ?? true);
     setStart(String(row?.videoStart ?? 0));
     setDuration(row?.videoDuration ? String(row.videoDuration) : "");
+    setHeroSize(toHeroSize(row?.heroSize));
     setError("");
     setEditingSlug(slug);
   };
@@ -75,6 +79,7 @@ export default function HizmetMedyaPage() {
           videoMuted: muted,
           videoStart: Number(start) || 0,
           videoDuration: duration ? Number(duration) : null,
+          heroSize,
         }),
       });
       setEditingSlug(null);
@@ -196,6 +201,37 @@ export default function HizmetMedyaPage() {
                   placeholder="Örn. 12"
                 />
               </Field>
+            </div>
+
+            <div className="border-t border-ink/8 pt-4">
+              <span className="mb-2 block text-xs font-semibold text-ink/70">
+                Hero Alanı Boyutu
+              </span>
+              <p className="mb-2.5 text-xs text-ink/45">
+                Bu sayfanın video/görsel oynadığı alanın dikey boyutu. Dar hissettiriyorsa "Geniş"
+                veya "Ekstra Geniş" seçin.
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {HERO_SIZES.map((size) => {
+                  const active = heroSize === size;
+                  return (
+                    <button
+                      key={size}
+                      type="button"
+                      onClick={() => setHeroSize(size)}
+                      aria-current={active}
+                      className={`flex flex-col items-start gap-0.5 rounded-xl border p-2.5 text-left transition-colors ${
+                        active ? "border-brand bg-brand/5" : "border-ink/10 bg-white hover:border-brand/30"
+                      }`}
+                    >
+                      <span className={`text-sm font-semibold ${active ? "text-brand" : "text-ink"}`}>
+                        {HERO_SIZE_LABELS[size]}
+                      </span>
+                      <span className="text-xs text-ink/45">{HERO_SIZE_DESCRIPTIONS[size]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="flex justify-end gap-3 border-t border-ink/8 pt-4">

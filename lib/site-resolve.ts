@@ -4,6 +4,7 @@
 // istemci bileşenleri (Header, kesif/hesaplama/sss sayfaları) bunun yerine
 // bu dosyadan ve components/SiteContext.tsx'ten import eder.
 import type { SitePhone } from "@/lib/db/schema";
+import type { HeroSize } from "@/lib/hero-size";
 
 export type ResolvedSite = {
   name: string;
@@ -36,6 +37,9 @@ export type ResolvedSite = {
   ogImageUrl: string;
   googleAnalyticsId: string;
   googleSiteVerification: string;
+  googleAdsConversionId: string;
+  googleAdsConversionLabel: string;
+  heroSize: HeroSize;
 };
 
 /** "0535 014 65 93" → "tel:+905350146593". Admin serbest biçimde yazsa da

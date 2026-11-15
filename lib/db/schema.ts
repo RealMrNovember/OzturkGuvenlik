@@ -435,11 +435,19 @@ export const siteSettings = pgTable("site_settings", {
     .default(DEFAULT_BRAND_LIGHT_COLOR),
   accentColor: varchar("accent_color", { length: 7 }).notNull().default(DEFAULT_ACCENT_COLOR),
   accentThickness: integer("accent_thickness").notNull().default(DEFAULT_ACCENT_THICKNESS),
+  // Eski tek-video alanları — geriye dönük uyumluluk için duruyor. Yeni
+  // kayıtlar heroVideos (dizi) kullanır; bkz. lib/hero-size.ts'teki
+  // resolveHeroVideos() (heroVideos boşsa bu alana düşer).
   heroVideoUrl: varchar("hero_video_url", { length: 500 }).default(""),
   heroVideoAutoplay: boolean("hero_video_autoplay").notNull().default(true),
   heroVideoMuted: boolean("hero_video_muted").notNull().default(true),
   heroVideoStart: integer("hero_video_start").notNull().default(0),
   heroVideoDuration: integer("hero_video_duration"),
+  // Anasayfa hero slider'ı — birden fazla YouTube videosu sırayla oynatılır.
+  // [{url, start?, duration?}] — autoplay/muted yukarıdaki global alanlardan gelir.
+  heroVideos: jsonb("hero_videos").notNull().default([]),
+  // Hero bölümünün (video/görsel oynadığı alan) dikey boyutu — bkz. lib/hero-size.ts.
+  heroSize: varchar("hero_size", { length: 20 }).notNull().default("normal"),
 
   // Aşağıdaki alanların tamamı boş/varsayılan bırakılabilir — boşsa
   // lib/site-settings.ts'teki getResolvedSite() lib/site.ts'teki sabit
@@ -466,6 +474,10 @@ export const siteSettings = pgTable("site_settings", {
   googleReviewsUrl: text("google_reviews_url").default(""),
   googleAnalyticsId: varchar("google_analytics_id", { length: 20 }).default(""), // örn. G-XXXXXXXXXX
   googleSiteVerification: varchar("google_site_verification", { length: 100 }).default(""),
+  // Google Ads dönüşüm (conversion) izleme — reklam panelinde "Dönüşümler" >
+  // yeni dönüşüm işlemi oluşturunca verilen etiket parçaları.
+  googleAdsConversionId: varchar("google_ads_conversion_id", { length: 20 }).default(""), // örn. AW-123456789
+  googleAdsConversionLabel: varchar("google_ads_conversion_label", { length: 60 }).default(""),
 
   // SEO — anasayfa varsayılan meta etiketleri + sosyal paylaşım görseli
   seoTitle: varchar("seo_title", { length: 200 }).default(""),
@@ -488,6 +500,8 @@ export const serviceMedia = pgTable("service_media", {
   videoMuted: boolean("video_muted").notNull().default(true),
   videoStart: integer("video_start").notNull().default(0),
   videoDuration: integer("video_duration"),
+  // Hizmet detay sayfasının hero bölümünün dikey boyutu — bkz. lib/hero-size.ts.
+  heroSize: varchar("hero_size", { length: 20 }).notNull().default("normal"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   updatedBy: integer("updated_by").references(() => users.id, { onDelete: "set null" }),
 });

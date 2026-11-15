@@ -5,6 +5,7 @@ import Link from "next/link";
 import { services } from "@/lib/services";
 import { useSite } from "@/components/SiteContext";
 import { resolvedWaLink } from "@/lib/site-resolve";
+import { fireGoogleAdsConversion } from "@/lib/gtag-client";
 import { Icon } from "@/components/icons";
 
 const placeTypes = [
@@ -61,6 +62,7 @@ export function KesifContent() {
       }
       const refId = body?.data?.id as number | undefined;
       setSaved(true);
+      fireGoogleAdsConversion(site.googleAdsConversionId, site.googleAdsConversionLabel);
       window.open(resolvedWaLink(site, buildMessage(refId)), "_blank", "noopener");
     } catch {
       setSaveError("Kayıt sırasında bir sorun oluştu. WhatsApp'tan devam edin.");

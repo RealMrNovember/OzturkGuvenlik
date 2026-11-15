@@ -8,6 +8,19 @@ import {
   GIB_INVOICE_DIRECTIONS,
 } from "@/lib/db/schema";
 import { PERMISSION_KEYS } from "@/lib/permissions";
+import { HERO_SIZES } from "@/lib/hero-size";
+
+const heroSizeEnum = z.enum(HERO_SIZES);
+
+const heroVideoItemSchema = z.object({
+  url: z
+    .string()
+    .trim()
+    .max(500)
+    .refine((v) => extractYouTubeId(v) !== null, "Geçerli bir YouTube linki girin"),
+  start: z.number().int().min(0).max(86_400).optional(),
+  duration: z.number().int().min(1).max(3600).optional(),
+});
 
 export const optionalField = z.string().trim().max(2000).optional().default("");
 
@@ -497,6 +510,8 @@ export const updateSiteSettingsSchema = z.object({
     .max(3600, "En fazla 3600 saniye olabilir")
     .nullable()
     .optional(),
+  heroVideos: z.array(heroVideoItemSchema).max(8, "En fazla 8 video eklenebilir").optional(),
+  heroSize: heroSizeEnum.optional(),
 
   // İletişim
   phones: z.array(sitePhoneSchema).max(10, "En fazla 10 telefon numarası eklenebilir").optional(),
@@ -522,6 +537,13 @@ export const updateSiteSettingsSchema = z.object({
   googleReviewsUrl: z.string().trim().max(500).optional(),
   googleAnalyticsId: z.string().trim().max(20).optional(),
   googleSiteVerification: z.string().trim().max(100).optional(),
+  googleAdsConversionId: z
+    .string()
+    .trim()
+    .max(20)
+    .refine((v) => v === "" || /^AW-\d+$/.test(v), "AW- ile başlayan bir Google Ads ID girin (örn. AW-123456789)")
+    .optional(),
+  googleAdsConversionLabel: z.string().trim().max(60).optional(),
 
   // SEO
   seoTitle: z.string().trim().max(200).optional(),
@@ -548,6 +570,7 @@ export const upsertServiceMediaSchema = z.object({
     .max(3600, "En fazla 3600 saniye olabilir")
     .nullable()
     .optional(),
+  heroSize: heroSizeEnum.optional().default("normal"),
 });
 
 const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tarih geçersiz");

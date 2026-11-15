@@ -18,6 +18,9 @@ const FALLBACK: ResolvedSite = {
   ogImageUrl: "/images/hero-1.jpg",
   googleAnalyticsId: "",
   googleSiteVerification: "",
+  googleAdsConversionId: "",
+  googleAdsConversionLabel: "",
+  heroSize: "normal",
 };
 
 const SiteContext = createContext<ResolvedSite>(FALLBACK);

@@ -10,6 +10,7 @@ import { SectionHeading } from "@/components/SectionHeading";
 import { ReviewsSection } from "@/components/ReviewsSection";
 import { BrandsShowcase } from "@/components/BrandsShowcase";
 import { CtaBand } from "@/components/CtaBand";
+import { HOME_HERO_SIZE_CLASSES } from "@/lib/hero-size";
 
 const DEFAULT_DESCRIPTION =
   "İstanbul genelinde güvenlik kamerası, hırsız ve yangın alarmı, PDKS, bariyer ve turnike sistemleri. Ücretsiz keşif: 0535 014 65 93. Yenibosna'dan tüm İstanbul'a hizmet.";
@@ -40,7 +41,7 @@ export default async function HomePage() {
       <section className="relative overflow-hidden bg-ink text-white">
         <HeroMedia />
 
-        <div className="relative mx-auto max-w-6xl px-4 pb-24 pt-20 sm:px-6 sm:pb-32 sm:pt-28">
+        <div className={`relative mx-auto max-w-6xl px-4 sm:px-6 ${HOME_HERO_SIZE_CLASSES[site.heroSize]}`}>
           <Reveal>
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-white/80">
               {trustChips.map((chip) => (
