@@ -15,7 +15,7 @@ import { extractYouTubeId, youtubeThumbnailUrl } from "@/lib/youtube";
 import { HERO_SIZES, HERO_SIZE_LABELS, HERO_SIZE_DESCRIPTIONS, toHeroSize, type HeroSize, type HeroVideo } from "@/lib/hero-size";
 import type { IconName } from "@/lib/services";
 import { isEmbeddableMapUrl } from "@/lib/map-embed";
-import type { GalleryItem } from "@/lib/gallery";
+import { DEFAULT_GALLERY_ITEMS, isGalleryBlobUrl, type GalleryItem } from "@/lib/gallery";
 
 type SitePhone = { label: string; number: string };
 
@@ -143,7 +143,14 @@ export default function SiteAyarlariPage() {
       setHeroVideoAutoplay(data.heroVideoAutoplay);
       setHeroVideoMuted(data.heroVideoMuted);
       setHeroSize(toHeroSize(data.heroSize));
-      setGalleryItems(Array.isArray(data.galleryItems) ? data.galleryItems : []);
+      // Boşsa, sitede hâlihazırda görünen varsayılan 3 görseli doğrudan
+      // düzenlenebilir hâlde gösteriyoruz — admin boş bir liste değil,
+      // sitede gerçekten yayında olanı görsün istiyoruz.
+      setGalleryItems(
+        Array.isArray(data.galleryItems) && data.galleryItems.length > 0
+          ? data.galleryItems
+          : DEFAULT_GALLERY_ITEMS
+      );
       setPhones(Array.isArray(data.phones) ? data.phones : []);
       setContactEmail(data.contactEmail ?? "");
       setAddress(data.address ?? "");
@@ -242,7 +249,11 @@ export default function SiteAyarlariPage() {
       setSettings(data);
       setAccentThickness(String(data.accentThickness));
       setHeroVideos(Array.isArray(data.heroVideos) ? data.heroVideos : []);
-      setGalleryItems(Array.isArray(data.galleryItems) ? data.galleryItems : []);
+      setGalleryItems(
+        Array.isArray(data.galleryItems) && data.galleryItems.length > 0
+          ? data.galleryItems
+          : DEFAULT_GALLERY_ITEMS
+      );
       setPhones(Array.isArray(data.phones) ? data.phones : []);
       setSaved(true);
     } catch (err) {
@@ -261,7 +272,7 @@ export default function SiteAyarlariPage() {
     setHeroVideoAutoplay(true);
     setHeroVideoMuted(true);
     setHeroSize("normal");
-    setGalleryItems([]);
+    setGalleryItems(DEFAULT_GALLERY_ITEMS);
     setSaved(false);
   };
 
@@ -294,7 +305,12 @@ export default function SiteAyarlariPage() {
       heroVideoAutoplay !== settings.heroVideoAutoplay ||
       heroVideoMuted !== settings.heroVideoMuted ||
       heroSize !== toHeroSize(settings.heroSize) ||
-      JSON.stringify(galleryItems) !== JSON.stringify(settings.galleryItems ?? []) ||
+      JSON.stringify(galleryItems) !==
+        JSON.stringify(
+          settings.galleryItems && settings.galleryItems.length > 0
+            ? settings.galleryItems
+            : DEFAULT_GALLERY_ITEMS
+        ) ||
       JSON.stringify(phones) !== JSON.stringify(settings.phones ?? []) ||
       contactEmail.trim() !== (settings.contactEmail ?? "") ||
       address.trim() !== (settings.address ?? "") ||
@@ -322,7 +338,7 @@ export default function SiteAyarlariPage() {
     heroVideoAutoplay === true &&
     heroVideoMuted === true &&
     heroSize === "normal" &&
-    galleryItems.length === 0;
+    JSON.stringify(galleryItems) === JSON.stringify(DEFAULT_GALLERY_ITEMS);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -637,7 +653,11 @@ export default function SiteAyarlariPage() {
                 <div key={i} className="space-y-2 rounded-xl border border-ink/10 p-2.5">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={`/api/site-settings/gallery-image?url=${encodeURIComponent(item.imageUrl)}`}
+                    src={
+                      isGalleryBlobUrl(item.imageUrl)
+                        ? `/api/site-settings/gallery-image?url=${encodeURIComponent(item.imageUrl)}`
+                        : item.imageUrl
+                    }
                     alt=""
                     className="aspect-[4/3] w-full rounded-lg object-cover"
                   />
