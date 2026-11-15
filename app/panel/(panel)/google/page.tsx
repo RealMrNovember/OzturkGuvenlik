@@ -23,6 +23,7 @@ type SiteSettings = {
   googleSiteVerification: string | null;
   googleAdsConversionId: string | null;
   googleAdsConversionLabel: string | null;
+  googleAdsReportEmbedUrl: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
   seoKeywords: string | null;
@@ -41,6 +42,7 @@ export default function GooglePage() {
   const [googleSiteVerification, setGoogleSiteVerification] = useState("");
   const [googleAdsConversionId, setGoogleAdsConversionId] = useState("");
   const [googleAdsConversionLabel, setGoogleAdsConversionLabel] = useState("");
+  const [googleAdsReportEmbedUrl, setGoogleAdsReportEmbedUrl] = useState("");
   const [seoTitle, setSeoTitle] = useState("");
   const [seoDescription, setSeoDescription] = useState("");
   const [seoKeywords, setSeoKeywords] = useState("");
@@ -62,6 +64,7 @@ export default function GooglePage() {
       setGoogleSiteVerification(data.googleSiteVerification ?? "");
       setGoogleAdsConversionId(data.googleAdsConversionId ?? "");
       setGoogleAdsConversionLabel(data.googleAdsConversionLabel ?? "");
+      setGoogleAdsReportEmbedUrl(data.googleAdsReportEmbedUrl ?? "");
       setSeoTitle(data.seoTitle ?? "");
       setSeoDescription(data.seoDescription ?? "");
       setSeoKeywords(data.seoKeywords ?? "");
@@ -80,7 +83,10 @@ export default function GooglePage() {
   }, [isAdmin, load]);
 
   const adsIdValid = googleAdsConversionId.trim() === "" || /^AW-\d+$/.test(googleAdsConversionId.trim());
-  const bothValid = adsIdValid;
+  const reportUrlValid =
+    googleAdsReportEmbedUrl.trim() === "" ||
+    /^https:\/\/(lookerstudio|datastudio)\.google\.com\/embed\//.test(googleAdsReportEmbedUrl.trim());
+  const bothValid = adsIdValid && reportUrlValid;
 
   const save = async (e: FormEvent) => {
     e.preventDefault();
@@ -98,6 +104,7 @@ export default function GooglePage() {
           googleSiteVerification: googleSiteVerification.trim(),
           googleAdsConversionId: googleAdsConversionId.trim(),
           googleAdsConversionLabel: googleAdsConversionLabel.trim(),
+          googleAdsReportEmbedUrl: googleAdsReportEmbedUrl.trim(),
           seoTitle: seoTitle.trim(),
           seoDescription: seoDescription.trim(),
           seoKeywords: seoKeywords.trim(),
@@ -121,6 +128,7 @@ export default function GooglePage() {
       googleSiteVerification.trim() !== (settings.googleSiteVerification ?? "") ||
       googleAdsConversionId.trim() !== (settings.googleAdsConversionId ?? "") ||
       googleAdsConversionLabel.trim() !== (settings.googleAdsConversionLabel ?? "") ||
+      googleAdsReportEmbedUrl.trim() !== (settings.googleAdsReportEmbedUrl ?? "") ||
       seoTitle.trim() !== (settings.seoTitle ?? "") ||
       seoDescription.trim() !== (settings.seoDescription ?? "") ||
       seoKeywords.trim() !== (settings.seoKeywords ?? "") ||
@@ -141,6 +149,7 @@ export default function GooglePage() {
 
   const adsConnected = Boolean(settings?.googleAdsConversionId);
   const analyticsConnected = Boolean(settings?.googleAnalyticsId);
+  const reportConnected = Boolean(settings?.googleAdsReportEmbedUrl);
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
@@ -212,6 +221,14 @@ export default function GooglePage() {
                 <Icon name={adsConnected ? "check" : "close"} className="h-3.5 w-3.5" />
                 Google Ads dönüşümü {adsConnected ? "bağlı" : "bağlı değil"}
               </span>
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                  reportConnected ? "bg-emerald-500/10 text-emerald-700" : "bg-ink/8 text-ink/50"
+                }`}
+              >
+                <Icon name={reportConnected ? "check" : "close"} className="h-3.5 w-3.5" />
+                Performans raporu {reportConnected ? "bağlı" : "bağlı değil"}
+              </span>
             </div>
 
             <Card title="Google Analytics (GA4)">
@@ -269,6 +286,48 @@ export default function GooglePage() {
                   <code className="rounded bg-ink/5 px-1">/XXXXXXXXXXXX</code> kısmı (label).
                   Kaydedince Keşif formu gönderildiğinde otomatik olarak Google'a bildirilir.
                 </p>
+              </div>
+            </Card>
+
+            <Card title="Google Ads Performans Raporu (Panel Ana Sayfası)">
+              <div className="space-y-5 p-5">
+                <p className="text-xs text-ink/50">
+                  Tıklama, gösterim, maliyet ve dönüşüm gibi gerçek reklam performans verilerini
+                  Panel ana sayfasında görmek için Google'ın ücretsiz{" "}
+                  <strong>Looker Studio</strong> aracıyla bir rapor oluşturup buraya bağlayın:
+                </p>
+                <ol className="list-decimal space-y-1.5 pl-5 text-xs text-ink/55">
+                  <li>
+                    <a
+                      href="https://lookerstudio.google.com/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold text-brand hover:underline"
+                    >
+                      lookerstudio.google.com
+                    </a>{" "}
+                    → Boş rapor → Veri kaynağı olarak <strong>Google Ads</strong>'i seçip reklam
+                    hesabınızı bağlayın.
+                  </li>
+                  <li>İstediğiniz tablo/grafikleri (tıklama, maliyet, dönüşüm vb.) ekleyin.</li>
+                  <li>
+                    Sağ üstten <strong>Paylaş → Raporu yerleştir (Embed report)</strong> → yerleştirmeyi
+                    etkinleştirin → verilen linki kopyalayın.
+                  </li>
+                  <li>O linki aşağıya yapıştırıp kaydedin.</li>
+                </ol>
+                <Field label="Looker Studio embed linki">
+                  <Input
+                    value={googleAdsReportEmbedUrl}
+                    onChange={(e) => setGoogleAdsReportEmbedUrl(e.target.value)}
+                    placeholder="https://lookerstudio.google.com/embed/reporting/..."
+                  />
+                  {!reportUrlValid && (
+                    <p className="mt-1.5 text-xs font-medium text-red-500">
+                      lookerstudio.google.com/embed/... ile başlayan bir link girin
+                    </p>
+                  )}
+                </Field>
               </div>
             </Card>
 

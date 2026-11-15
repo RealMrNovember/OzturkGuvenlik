@@ -18,11 +18,13 @@ import {
 import { and, asc, desc, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import { jsonOk, jsonErr } from "@/lib/api";
 import { getSession } from "@/lib/auth";
+import { getSiteSettings } from "@/lib/site-settings";
 
 export async function GET() {
   const session = await getSession();
   if (!session) return jsonErr("Yetkisiz", 401);
 
+  const settings = await getSiteSettings();
   const today = new Date().toISOString().slice(0, 10);
   const weekFromNow = new Date(Date.now() + 7 * 24 * 3600 * 1000)
     .toISOString()
@@ -206,5 +208,6 @@ export async function GET() {
     recentRequests,
     todayAppointments,
     upcomingAppointments,
+    googleAdsReportEmbedUrl: settings.googleAdsReportEmbedUrl || "",
   });
 }

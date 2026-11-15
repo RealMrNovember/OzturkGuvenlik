@@ -1,0 +1,1 @@
+ALTER TABLE "site_settings" ADD COLUMN "google_ads_report_embed_url" text DEFAULT '';

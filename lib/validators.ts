@@ -544,6 +544,15 @@ export const updateSiteSettingsSchema = z.object({
     .refine((v) => v === "" || /^AW-\d+$/.test(v), "AW- ile başlayan bir Google Ads ID girin (örn. AW-123456789)")
     .optional(),
   googleAdsConversionLabel: z.string().trim().max(60).optional(),
+  googleAdsReportEmbedUrl: z
+    .string()
+    .trim()
+    .max(1000)
+    .refine(
+      (v) => v === "" || /^https:\/\/(lookerstudio|datastudio)\.google\.com\/embed\//.test(v),
+      "Looker Studio'nun 'Embed report' linkini girin (lookerstudio.google.com/embed/... ile başlamalı)"
+    )
+    .optional(),
 
   // SEO
   seoTitle: z.string().trim().max(200).optional(),

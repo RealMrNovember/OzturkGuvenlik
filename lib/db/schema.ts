@@ -478,6 +478,10 @@ export const siteSettings = pgTable("site_settings", {
   // yeni dönüşüm işlemi oluşturunca verilen etiket parçaları.
   googleAdsConversionId: varchar("google_ads_conversion_id", { length: 20 }).default(""), // örn. AW-123456789
   googleAdsConversionLabel: varchar("google_ads_conversion_label", { length: 60 }).default(""),
+  // Google Ads hesabına bağlı bir Looker Studio raporunun "Embed report"
+  // linki — panel ana sayfasında tıklama/gösterim/maliyet/dönüşüm verilerini
+  // göstermek için kullanılır. Gerçek Google Ads API/OAuth entegrasyonu değil.
+  googleAdsReportEmbedUrl: text("google_ads_report_embed_url").default(""),
 
   // SEO — anasayfa varsayılan meta etiketleri + sosyal paylaşım görseli
   seoTitle: varchar("seo_title", { length: 200 }).default(""),

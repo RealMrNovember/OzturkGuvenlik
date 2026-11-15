@@ -85,6 +85,7 @@ type DashboardData = {
     assignedName: string | null;
     customerName: string | null;
   }[];
+  googleAdsReportEmbedUrl: string;
 };
 
 export default function PanelPage() {
@@ -214,6 +215,33 @@ export default function PanelPage() {
           )}
         </Link>
       </div>
+
+      <Card
+        title="Google Ads Performansı"
+        action={
+          <Link href="/panel/google" className="text-xs font-semibold text-brand">
+            Ayarla →
+          </Link>
+        }
+      >
+        {data.googleAdsReportEmbedUrl ? (
+          <iframe
+            src={data.googleAdsReportEmbedUrl}
+            title="Google Ads Performans Raporu"
+            className="h-[500px] w-full border-0"
+            loading="lazy"
+          />
+        ) : (
+          <div className="px-5 py-8 text-sm text-ink/50">
+            Henüz bir performans raporu bağlanmadı.{" "}
+            <Link href="/panel/google" className="font-semibold text-brand hover:underline">
+              Google menüsünden
+            </Link>{" "}
+            bir Looker Studio raporu bağlayarak tıklama, maliyet ve dönüşüm verilerinizi burada
+            görebilirsiniz.
+          </div>
+        )}
+      </Card>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Bugünkü randevular">
