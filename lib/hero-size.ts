@@ -6,7 +6,7 @@ import type { SiteSettings } from "@/lib/db/schema";
  * adlarını statik olarak taradığından (string birleştirme ile üretilemez),
  * her boyut için TAM sınıf adları burada sabit olarak tanımlanır.
  */
-export const HERO_SIZES = ["kompakt", "normal", "genis", "ekstra-genis"] as const;
+export const HERO_SIZES = ["kompakt", "normal", "genis", "ekstra-genis", "devasa"] as const;
 export type HeroSize = (typeof HERO_SIZES)[number];
 
 export const HERO_SIZE_LABELS: Record<HeroSize, string> = {
@@ -14,6 +14,7 @@ export const HERO_SIZE_LABELS: Record<HeroSize, string> = {
   normal: "Normal",
   genis: "Geniş",
   "ekstra-genis": "Ekstra Geniş",
+  devasa: "Devasa",
 };
 
 export const HERO_SIZE_DESCRIPTIONS: Record<HeroSize, string> = {
@@ -21,6 +22,7 @@ export const HERO_SIZE_DESCRIPTIONS: Record<HeroSize, string> = {
   normal: "Varsayılan boyut",
   genis: "Video/görsel daha büyük ve belirgin görünür",
   "ekstra-genis": "En büyük hali — video tam anlamıyla öne çıkar",
+  devasa: "En abartılı hâli — video neredeyse tüm ekranı kaplar",
 };
 
 /** Anasayfa hero bölümünün iç içerik kutusuna uygulanan dolgu (section'ın görünen yüksekliğini belirler). */
@@ -29,6 +31,7 @@ export const HOME_HERO_SIZE_CLASSES: Record<HeroSize, string> = {
   normal: "pt-20 pb-24 sm:pt-28 sm:pb-32",
   genis: "pt-28 pb-32 sm:pt-36 sm:pb-40",
   "ekstra-genis": "pt-36 pb-40 sm:pt-44 sm:pb-48",
+  devasa: "pt-48 pb-56 sm:pt-56 sm:pb-64",
 };
 
 /** Hizmet detay sayfasının hero section'ına uygulanan dolgu. */
@@ -37,6 +40,7 @@ export const SERVICE_HERO_SIZE_CLASSES: Record<HeroSize, string> = {
   normal: "py-16 sm:py-20",
   genis: "py-24 sm:py-28",
   "ekstra-genis": "py-32 sm:py-36",
+  devasa: "py-44 sm:py-52",
 };
 
 export function isHeroSize(value: string): value is HeroSize {
