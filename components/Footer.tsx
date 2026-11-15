@@ -76,6 +76,11 @@ export async function Footer() {
                 </Link>
               </li>
               <li>
+                <Link href="/gizlilik-politikasi" className="transition-colors hover:text-white">
+                  Gizlilik Politikası
+                </Link>
+              </li>
+              <li>
                 <Link href="/markalarimiz" className="transition-colors hover:text-white">
                   Markalarımız
                 </Link>
@@ -149,7 +154,10 @@ export async function Footer() {
 
         <div className="mt-12 flex flex-col gap-2 border-t border-white/10 pt-6 text-xs text-white/40 sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © {new Date().getFullYear()} {site.name}. Tüm hakları saklıdır.
+            © {new Date().getFullYear()} {site.name}. Tüm hakları saklıdır. ·{" "}
+            <Link href="/gizlilik-politikasi" className="hover:text-white">
+              Gizlilik Politikası
+            </Link>
           </p>
           <p>
             Web tasarım & yazılım:{" "}

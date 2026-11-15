@@ -21,6 +21,7 @@ const STATIC_ROUTES: { path: string; priority: number }[] = [
   { path: "/is-ortaklarimiz", priority: 0.5 },
   { path: "/mobil-uygulamalar", priority: 0.4 },
   { path: "/kalite-cevre-politikasi", priority: 0.4 },
+  { path: "/gizlilik-politikasi", priority: 0.3 },
 ];
 
 export default function sitemap(): MetadataRoute.Sitemap {

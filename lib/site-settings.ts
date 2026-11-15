@@ -5,6 +5,7 @@ import { siteSettings, type SiteSettings, type SitePhone } from "@/lib/db/schema
 import { site as staticSite } from "@/lib/site";
 import { toTelHref, type ResolvedSite } from "@/lib/site-resolve";
 import { toHeroSize } from "@/lib/hero-size";
+import { resolveMapEmbedUrl } from "@/lib/map-embed";
 
 export type { ResolvedSite } from "@/lib/site-resolve";
 export { toTelHref, resolvedWaLink, resolvedWaLinkDefault } from "@/lib/site-resolve";
@@ -65,6 +66,8 @@ export const getResolvedSite = cache(async (): Promise<ResolvedSite> => {
         ];
   const primary = phones[0];
   const secondary = phones[1];
+  const address = s.address || staticSite.address;
+  const mapEmbedCandidate = s.mapEmbedUrl || staticSite.mapEmbedUrl;
 
   return {
     name: staticSite.name,
@@ -80,12 +83,12 @@ export const getResolvedSite = cache(async (): Promise<ResolvedSite> => {
     email: s.contactEmail || staticSite.email,
     whatsappNumber: s.whatsappNumber || staticSite.whatsappNumber,
     whatsappDefaultText: s.whatsappDefaultText || staticSite.whatsappDefaultText,
-    address: s.address || staticSite.address,
+    address,
     addressShort: staticSite.addressShort,
     instagram: s.instagramUrl || staticSite.instagram,
     facebook: s.facebookUrl || staticSite.facebook,
     googleReviewsUrl: s.googleReviewsUrl || staticSite.googleReviewsUrl,
-    mapEmbedUrl: s.mapEmbedUrl || staticSite.mapEmbedUrl,
+    mapEmbedUrl: resolveMapEmbedUrl(mapEmbedCandidate, address),
     mapLink: s.mapLink || staticSite.mapLink,
     domain: staticSite.domain,
     url: staticSite.url,

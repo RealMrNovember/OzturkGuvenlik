@@ -14,6 +14,7 @@ import {
 import { extractYouTubeId, youtubeThumbnailUrl } from "@/lib/youtube";
 import { HERO_SIZES, HERO_SIZE_LABELS, HERO_SIZE_DESCRIPTIONS, toHeroSize, type HeroSize, type HeroVideo } from "@/lib/hero-size";
 import type { IconName } from "@/lib/services";
+import { isEmbeddableMapUrl } from "@/lib/map-embed";
 
 type SitePhone = { label: string; number: string };
 
@@ -628,10 +629,19 @@ export default function SiteAyarlariPage() {
                   onChange={(e) => setMapEmbedUrl(e.target.value)}
                   placeholder="https://maps.google.com/maps?q=...&output=embed"
                 />
-                <p className="mt-1.5 text-xs text-ink/40">
-                  Google Haritalar&apos;da adresi arayın → Paylaş → Harita Yerleştir → linki
-                  buraya yapıştırın.
-                </p>
+                {mapEmbedUrl.trim() && !isEmbeddableMapUrl(mapEmbedUrl.trim()) ? (
+                  <p className="mt-1.5 text-xs font-medium text-red-500">
+                    Bu link gömülebilir (embed) türde değil — site bu linki kullanamaz ve otomatik
+                    olarak adresten ürettiği bir haritaya düşer. "Paylaş" düğmesindeki kısa link
+                    değil, aşağıdaki talimattaki "Haritayı yerleştir" sekmesindeki linki yapıştırın.
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-ink/40">
+                    Google Haritalar&apos;da adresi arayın → Paylaş → <strong>Haritayı yerleştir</strong>{" "}
+                    sekmesi → linki buraya yapıştırın (kısa paylaşım linki değil). Boş bırakırsanız
+                    veya yanlış bir link girerseniz, harita yukarıdaki adresten otomatik üretilir.
+                  </p>
+                )}
               </Field>
             </div>
           </div>

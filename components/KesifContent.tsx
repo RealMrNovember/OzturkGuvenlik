@@ -255,8 +255,12 @@ export function KesifContent() {
                 aria-hidden="true"
               />
               <p className="rounded-xl bg-surface px-4 py-3 text-xs text-ink/55">
-                Bilgileriniz KVKK kapsamında yalnızca keşif iletişimi için kullanılır,
-                üçüncü kişilerle paylaşılmaz.
+                Bilgileriniz KVKK kapsamında yalnızca keşif iletişimi için kullanılır, üçüncü
+                kişilerle paylaşılmaz. Detaylar için{" "}
+                <Link href="/gizlilik-politikasi" className="font-semibold text-brand hover:underline">
+                  Gizlilik Politikası
+                </Link>
+                .
               </p>
             </div>
           )}
