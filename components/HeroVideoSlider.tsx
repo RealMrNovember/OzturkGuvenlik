@@ -142,11 +142,21 @@ export function HeroVideoSlider({
   muted: boolean;
 }) {
   const [index, setIndex] = useState(0);
+  // Tek video (ya da aynı indekse geri dönülen döngü) durumunda React,
+  // index değişmediği için yeniden render/remount yapmaz — bu da bir
+  // turu bitiren videonun YouTube'un kendi "bitti" ekranına/önerilen
+  // videoya düşüp tekrar bizim sayacımıza girmeden oynamaya devam etmesine
+  // yol açardı. `cycle`, index aynı kalsa bile her turu zorla yeniden
+  // başlatmak (temiz bir remount) için ayrı bir sayaç.
+  const [cycle, setCycle] = useState(0);
   const safeIndex = index < videos.length ? index : 0;
   const current = videos[safeIndex];
 
-  const advance = () => setIndex((i) => (i + 1) % videos.length);
-  const useRepeatCount = Boolean(current?.repeatCount && current.repeatCount > 0 && videos.length > 1);
+  const advance = () => {
+    setIndex((i) => (i + 1) % videos.length);
+    setCycle((c) => c + 1);
+  };
+  const useRepeatCount = Boolean(current?.repeatCount && current.repeatCount > 0);
 
   useEffect(() => {
     if (useRepeatCount || videos.length < 2) return;
@@ -162,7 +172,13 @@ export function HeroVideoSlider({
   let videoNode: ReactNode;
   if (useRepeatCount) {
     videoNode = (
-      <RepeatCountedVideo key={safeIndex} video={current} autoplay={autoplay} muted={muted} onDone={advance} />
+      <RepeatCountedVideo
+        key={`${safeIndex}-${cycle}`}
+        video={current}
+        autoplay={autoplay}
+        muted={muted}
+        onDone={advance}
+      />
     );
   } else {
     const embedUrl = buildYoutubeBackgroundEmbedUrl({
@@ -193,7 +209,10 @@ export function HeroVideoSlider({
             <button
               key={i}
               type="button"
-              onClick={() => setIndex(i)}
+              onClick={() => {
+                setIndex(i);
+                setCycle((c) => c + 1);
+              }}
               aria-label={`${i + 1}. videoyu göster`}
               aria-current={i === safeIndex}
               className={`pointer-events-auto h-1 rounded-full transition-all duration-300 ${
