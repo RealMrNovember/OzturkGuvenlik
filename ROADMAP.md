@@ -21,12 +21,6 @@ atlanmasın diye buraya yazılıyor; tamamlanınca işaretlenir.
   İletişim/Sosyal sekmelerinden düzenlenebiliyordu, yeni bir admin alanı gerekmedi —
   sadece Header'da gösterilmiyordu. Deploy/doğrulama bekliyor.
 
-- [ ] **"Ne arıyorsunuz?" (anasayfa hizmet kartları) — tam admin düzenlenebilir + görsel**
-  Anasayfadaki hizmet kartları (şu an `lib/services.ts` içinde sabit kodlu) admin panelden
-  düzenlenebilir hale gelecek: başlık, açıklama, görsel, sıralama, gösterme/gizleme.
-  İkon yerine, kutucuğun tamamını kaplayan bir görsel kullanılabilecek (ikon fallback olarak
-  kalacak, görsel yüklenmemişse mevcut görünüm bozulmayacak).
-
 - [x] **Floating WhatsApp butonuna etiket metni** — canlıda
   Sağ altta sabit duran WhatsApp butonunun üzerine admin'in yazdığı kısa bir metin ("Örn.
   Ücretsiz Keşif") gösteriliyor; boşsa buton eskisi gibi sade ikon. Site Ayarları → Sosyal
@@ -51,6 +45,27 @@ atlanmasın diye buraya yazılıyor; tamamlanınca işaretlenir.
   çözdüm: bu domaine gelen her istek artık www.ozturkguvenlik.com'a 308 (kalıcı)
   yönlendiriliyor — ziyaretçi yine aynı siteyi görür, Google'da da tek canonical adres
   kalır.
+
+- [x] **TikTok sosyal medya bağlantısı** — canlıda
+  Header, Footer ve Site Ayarları → Sosyal Medya sekmesine TikTok eklendi.
+
+- [x] **Kritik: hero video çöküyordu + küçük kalıyordu** — canlıda, doğrulandı
+  Tur sayısı özelliğini tüm videolarda aktif edince sayfa çöküyordu (YouTube Player
+  API'nin React'in yönettiği bir DOM elemanını kendi iframe'iyle değiştirmesi, React'in
+  onu kaldırmaya çalışırken çökmesi — "NotFoundError: removeChild"). Ayrıca video hero
+  alanını doldurmuyor, küçük kalıyordu (YouTube'un verdiği 640×390 varsayılan boyut,
+  arka planı kırpıp büyüten CSS teknigiyle çakışıyordu). İkisi de düzeltildi; tarayıcıda
+  gerçek testle doğrulandı (7 video arasında geçiş, konsol hatasız, video tam boy).
+
+- [x] **Hizmet detay sayfalarındaki videolar kontrol edildi** — sorun yok
+  Bu sayfalar ayrı, basit bir bileşen (ServiceHeroMedia, düz iframe) kullanıyor — hero
+  slider'daki hatalardan hiç etkilenmemiş. Video olan/olmayan birkaç sayfa tek tek
+  tarayıcıda test edildi, hepsi doğru boyutta ve hatasız çalışıyor.
+
+- [x] **"Gerçek işler, gerçek mekânlar" galerisi — admin'den düzenlenebilir** — canlıda
+  Anasayfadaki 3 sabit saha fotoğrafı artık Site Ayarları → Görünüm → "Sahadan Kareler"
+  bölümünden yönetiliyor: görsel yükleme + açıklama, sıralı liste. Hiç eklenmezse mevcut
+  3 varsayılan görsel kullanılmaya devam ediyor.
 
 ## Notlar
 
