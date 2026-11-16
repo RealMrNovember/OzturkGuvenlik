@@ -137,8 +137,19 @@ function RepeatCountedVideo({
 
     return () => {
       destroyed = true;
-      player?.destroy();
-      wrapper.replaceChildren();
+      // YouTube Player API, mountEl'i kendi iframe'iyle değiştirme işlemini
+      // kendi önbellekledigi bir `wrapper` referansıyla ASENKRON yapıyor.
+      // Biz burada mountEl'i wrapper'dan elle çıkarırsak (örn. replaceChildren),
+      // bu değişim henüz bitmemişken YouTube'un kendi `removeChild` çağrısı
+      // "node artık bu düğümün çocuğu değil" hatasıyla (NotFoundError) patlıyordu.
+      // Temizliği tamamen player.destroy()'a bırakıyoruz; o da bazen (henüz
+      // "ready" olmadan destroy edilirse) aynı hatayı fırlatabildiğinden
+      // try/catch ile zararsız hale getiriyoruz.
+      try {
+        player?.destroy();
+      } catch {
+        // Zararsız: oynatıcı zaten kayboluyor, DOM'u elle temizlemeye gerek yok.
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [video.url, video.start, video.repeatCount]);
