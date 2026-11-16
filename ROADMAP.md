@@ -57,6 +57,16 @@ atlanmasın diye buraya yazılıyor; tamamlanınca işaretlenir.
   arka planı kırpıp büyüten CSS teknigiyle çakışıyordu). İkisi de düzeltildi; tarayıcıda
   gerçek testle doğrulandı (7 video arasında geçiş, konsol hatasız, video tam boy).
 
+- [x] **Kalan "removeChild" konsol hatası da düzeltildi** — canlıda, doğrulandı
+  Video değiştirirken (unmount/remount) nadiren hâlâ görülen "NotFoundError:
+  removeChild" hatasının kök nedeni bulundu: kendi temizlik kodumuz (`wrapper.
+  replaceChildren()`) mountEl'i, YouTube'un onu kendi iframe'iyle değiştirme
+  işlemi (kendi önbellekledigi referansla, asenkron) bitmeden DOM'dan
+  çıkarıyordu; YouTube daha sonra aynı düğümü kaldırmaya çalışınca hata
+  fırlatıyordu. Kendi elle temizlememiz kaldırıldı, her şey `player.destroy()`'a
+  bırakıldı (try/catch ile korunarak). 7 video arasında hızlı art arda geçiş
+  yapılarak canlıda test edildi, konsolda hiç hata çıkmadı.
+
 - [x] **Hizmet detay sayfalarındaki videolar kontrol edildi** — sorun yok
   Bu sayfalar ayrı, basit bir bileşen (ServiceHeroMedia, düz iframe) kullanıyor — hero
   slider'daki hatalardan hiç etkilenmemiş. Video olan/olmayan birkaç sayfa tek tek
